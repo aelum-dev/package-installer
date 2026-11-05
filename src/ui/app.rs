@@ -17,6 +17,9 @@ use crate::txn::{self, Txn, TxnEvent};
 
 /// Where the model lives on every Aelum system.
 const PACMAN_ROOT: &str = "/var/lib/pacman";
+/// The configuration that says which of its sync databases are repositories
+/// this system can install from (`Model::load`).
+const PACMAN_CONFIG: &str = "/etc/pacman.conf";
 /// Rendered rows per page. A full sync DB is ~15k entries; building that
 /// many rows per keystroke is not a cost worth paying — the cap plus the
 /// "keep typing" row is what `pacman -Ss` itself does.
@@ -99,7 +102,10 @@ impl Ui {
         self.load_seq.set(seq);
         let (tx, mut rx) = futures::channel::mpsc::unbounded();
         std::thread::spawn(move || {
-            let _ = tx.unbounded_send((seq, Model::load(Path::new(PACMAN_ROOT))));
+            let _ = tx.unbounded_send((
+                seq,
+                Model::load(Path::new(PACMAN_ROOT), Path::new(PACMAN_CONFIG)),
+            ));
         });
         let ui = self.clone();
         glib::MainContext::default().spawn_local(async move {

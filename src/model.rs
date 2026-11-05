@@ -108,7 +108,9 @@ pub struct Model {
     /// this" by scanning every installed package's dependency list is
     /// quadratic, measured at ~2 s per Remove click on a 1258-package system.
     dependents: HashMap<String, Vec<String>>,
-    /// Newest mtime among the sync DBs: how fresh the browse page is.
+    /// The newest mtime among the databases the model actually reads: how
+    /// fresh the browse page is. A database for a repository the system does
+    /// not use is left out — its date says nothing about this system.
     pub db_fresh: Option<SystemTime>,
     /// Sync databases that could not be read (`<repo>: reason`). A database
     /// that fails to parse leaves its repository invisible, which otherwise
@@ -117,12 +119,19 @@ pub struct Model {
 }
 
 impl Model {
-    /// Load from a pacman root (normally `/var/lib/pacman`).
-    pub fn load(pacman_root: &Path) -> std::io::Result<Model> {
+    /// Load from a pacman root (normally `/var/lib/pacman`) together with the
+    /// pacman.conf that names the repositories it may use (normally
+    /// `/etc/pacman.conf`).
+    pub fn load(pacman_root: &Path, config: &Path) -> std::io::Result<Model> {
         let local = db::read_local_db(&pacman_root.join("local"))?;
+        // The configuration decides which databases are channels at all; see
+        // [`db::read_config_repos`]. `None` means it could not be read, and
+        // then every database is kept — an unreadable config is not a reason
+        // to show an empty list.
+        let configured = db::read_config_repos(config);
 
-        let mut sync = Vec::new();
-        let mut db_fresh = None;
+        let mut by_repo: HashMap<String, Vec<SyncPackage>> = HashMap::new();
+        let mut fresh: HashMap<String, SystemTime> = HashMap::new();
         let mut db_errors: Vec<String> = Vec::new();
         let sync_dir = pacman_root.join("sync");
         if let Ok(rd) = fs::read_dir(&sync_dir) {
@@ -132,6 +141,9 @@ impl Model {
                     continue;
                 };
                 let Some(repo) = repo.strip_suffix(".db") else { continue };
+                if configured.as_ref().is_some_and(|c| !c.iter().any(|r| r == repo)) {
+                    continue;
+                }
                 let bytes = match fs::read(&path) {
                     Ok(bytes) => bytes,
                     Err(e) => {
@@ -140,28 +152,55 @@ impl Model {
                     }
                 };
                 match db::parse_sync_db(&bytes, repo) {
-                    Ok(pkgs) => sync.extend(pkgs),
+                    Ok(pkgs) => {
+                        by_repo.insert(repo.to_string(), pkgs);
+                    }
                     Err(e) => db_errors.push(format!("{repo}: {e}")),
                 }
                 if let Ok(meta) = f.metadata()
                     && let Ok(t) = meta.modified()
                 {
-                    db_fresh = Some(db_fresh.map_or(t, |cur: SystemTime| cur.max(t)));
+                    fresh.insert(repo.to_string(), t);
                 }
             }
         }
 
+        // Repositories in the order the config declares them, which is the
+        // order pacman resolves a name in; without a config to read, by name,
+        // so the same system still reads the same way.
+        let mut order: Vec<String> = match configured {
+            Some(repos) => repos
+                .into_iter()
+                .filter(|r| by_repo.contains_key(r.as_str()))
+                .collect(),
+            None => {
+                let mut all: Vec<String> = by_repo.keys().cloned().collect();
+                all.sort();
+                all
+            }
+        };
+        order.dedup();
+
         let mut index: HashMap<String, usize> = HashMap::new();
         let mut entries: Vec<Entry> = Vec::new();
-        for p in sync {
-            index.insert(p.name.clone(), entries.len());
-            entries.push(Entry {
-                description: p.desc.clone(),
-                repository: Some(p.repository.clone()),
-                installed: None,
-                name: p.name.clone(),
-                sync: Some(p),
-            });
+        for repo in &order {
+            for p in by_repo.remove(repo.as_str()).unwrap_or_default() {
+                // One row per name: the first repository that carries it owns
+                // the row, because that copy is what an install or an update
+                // would bring. A second row for the same name read as a
+                // package that is both installed and available to install.
+                if index.contains_key(&p.name) {
+                    continue;
+                }
+                index.insert(p.name.clone(), entries.len());
+                entries.push(Entry {
+                    description: p.desc.clone(),
+                    repository: Some(p.repository.clone()),
+                    installed: None,
+                    name: p.name.clone(),
+                    sync: Some(p),
+                });
+            }
         }
         for l in local {
             match index.get(&l.name) {
@@ -181,6 +220,7 @@ impl Model {
             }
         }
 
+        let db_fresh = order.iter().filter_map(|r| fresh.get(r.as_str()).copied()).max();
         let dependents = dependents_index(&entries);
 
         Ok(Model { entries, index, dependents, db_fresh, db_errors })
@@ -559,13 +599,190 @@ mod tests {
         }
     }
 
+    /// A scratch directory for on-disk fixtures. Named per test and per
+    /// process so tests running in parallel cannot collide.
+    fn fixture_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("aelum-pkg-installer-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        dir
+    }
+
+    /// A pacman root on disk, the way a real system has one: `sync/<repo>.db`
+    /// in the compression a mirror sends (gzip) and `local/<name>-<ver>/desc`.
+    /// `Model::load` reads it as written, so these tests hold the whole path
+    /// the Browse page's rows come from.
+    fn write_pacman_root(name: &str, config: &str, sync: &[(&str, &[(&str, &str)])], local: &[(&str, &str)]) {
+        let dir = fixture_dir(name);
+        fs::create_dir_all(dir.join("sync")).unwrap();
+        fs::create_dir_all(dir.join("local")).unwrap();
+        fs::write(dir.join("pacman.conf"), config).unwrap();
+        for (repo, pkgs) in sync {
+            let mut tar = Vec::new();
+            {
+                let mut ar = tar::Builder::new(&mut tar);
+                for (pkg, version) in *pkgs {
+                    let text = format!(
+                        "%NAME%\n{pkg}\n\n%VERSION%\n{version}\n\n%DESC%\ntest package\n\n"
+                    );
+                    let mut header = tar::Header::new_ustar();
+                    header.set_entry_type(tar::EntryType::Regular);
+                    header.set_size(text.len() as u64);
+                    header.set_mode(0o644);
+                    header.set_mtime(0);
+                    ar.append_data(&mut header, format!("{pkg}/desc"), text.as_bytes())
+                        .unwrap();
+                }
+                ar.finish().unwrap();
+            }
+            let mut gz = Vec::new();
+            {
+                let mut enc = flate2::write::GzEncoder::new(&mut gz, flate2::Compression::default());
+                std::io::Write::write_all(&mut enc, &tar).unwrap();
+                enc.finish().unwrap();
+            }
+            fs::write(dir.join("sync").join(format!("{repo}.db")), gz).unwrap();
+        }
+        for (pkg, version) in local {
+            let dir = dir.join("local").join(format!("{pkg}-{version}"));
+            fs::create_dir_all(&dir).unwrap();
+            fs::write(
+                dir.join("desc"),
+                format!("%NAME%\n{pkg}\n\n%VERSION%\n{version}\n\n%REASON%\n1\n\n"),
+            )
+            .unwrap();
+        }
+    }
+
+    fn load_fixture(name: &str) -> Model {
+        let dir = std::env::temp_dir().join(format!("aelum-pkg-installer-{name}-{}", std::process::id()));
+        let m = Model::load(&dir, &dir.join("pacman.conf")).expect("fixture loads");
+        let _ = fs::remove_dir_all(&dir);
+        m
+    }
+
+    #[test]
+    fn a_package_in_two_repositories_is_one_row() {
+        // What the user saw on a fresh install: every package appeared twice,
+        // once labelled `[aelum-offline]` with an Install button and once
+        // `[extra]` with "Installed". The install's `pacstrap` runs through the
+        // live session's pacman.conf, which declares `[aelum-offline]`, and
+        // pacman writes the database it resolved from into the *target's* sync
+        // dir — where the installed system's own config no longer names it.
+        // pacman has never seen that database; neither may this app.
+        write_pacman_root(
+            "two_repos",
+            "[options]\n[core]\n[extra]\n[aelum]\n",
+            &[
+                ("aelum-offline", &[("adwaita-icon-theme", "51.0-1")]),
+                ("extra", &[("adwaita-icon-theme", "51.0-1")]),
+            ],
+            &[("adwaita-icon-theme", "51.0-1")],
+        );
+        let m = load_fixture("two_repos");
+        assert_eq!(m.search("", Scope::All).len(), 1, "one package, one row");
+        let e = m.get("adwaita-icon-theme").unwrap();
+        assert_eq!(e.repository.as_deref(), Some("extra"));
+        // The row is the installed one, not a second "Install" affordance.
+        assert_eq!(e.status(), Status::InstalledDep);
+        assert!(e.installed.is_some() && e.sync.is_some());
+    }
+
+    #[test]
+    fn the_row_is_the_copy_the_config_would_install() {
+        // Measured against pacman: with two configured repositories carrying
+        // one name, `-Sp` and `-Qu` use the copy in the first section, and
+        // swapping the sections flips the answer. The row has to follow, or it
+        // shows a version the system cannot install.
+        for (order, want_repo, want_version) in [
+            ("[extra]\n[aelum]\n", "extra", "1.0-1"),
+            ("[aelum]\n[extra]\n", "aelum", "2.0-1"),
+        ] {
+            let name = format!("order_{want_repo}");
+            write_pacman_root(
+                &name,
+                &format!("[options]\n{order}"),
+                &[("extra", &[("hello", "1.0-1")]), ("aelum", &[("hello", "2.0-1")])],
+                &[("hello", "0.9-1")],
+            );
+            let m = load_fixture(&name);
+            let e = m.get("hello").unwrap();
+            assert_eq!(e.repository.as_deref(), Some(want_repo), "config: {order}");
+            assert_eq!(e.display_version(), want_version, "config: {order}");
+            // …and that is the only update the Updates page may claim.
+            assert_eq!(
+                m.updatable().iter().map(|e| e.display_version()).collect::<Vec<_>>(),
+                [want_version],
+                "config: {order}"
+            );
+        }
+    }
+
+    #[test]
+    fn an_unconfigured_database_offers_no_update() {
+        // The same leftover on a package that *is* installed: reading it would
+        // put a version on the Updates page that `pacman -Syu` never brings.
+        write_pacman_root(
+            "stale_update",
+            "[options]\n[extra]\n",
+            &[
+                ("aelum-offline", &[("hello", "9.9-1")]),
+                ("extra", &[("hello", "1.0-1")]),
+            ],
+            &[("hello", "1.0-1")],
+        );
+        let m = load_fixture("stale_update");
+        assert!(m.updatable().is_empty());
+        assert_eq!(m.get("hello").unwrap().status(), Status::InstalledDep);
+        // The freshness line is about the databases that are shown, not about
+        // whatever is lying in the sync dir.
+        assert!(m.db_fresh.is_some());
+    }
+
+    #[test]
+    fn without_a_config_to_read_every_database_is_still_one_row_each() {
+        // A missing pacman.conf is not a reason to show nothing — but the
+        // duplicate rows are still wrong, so they are merged by name.
+        write_pacman_root(
+            "no_config",
+            "",
+            &[("zz-a", &[("hello", "1.0-1")]), ("zz-b", &[("hello", "2.0-1")])],
+            &[],
+        );
+        let dir = std::env::temp_dir().join(format!(
+            "aelum-pkg-installer-no_config-{}",
+            std::process::id()
+        ));
+        let m = Model::load(&dir, &dir.join("absent.conf")).expect("loads anyway");
+        let _ = fs::remove_dir_all(&dir);
+        assert_eq!(m.search("", Scope::All).len(), 1);
+        // Deterministic: the lower-named repository owns the row.
+        assert_eq!(m.get("hello").unwrap().repository.as_deref(), Some("zz-a"));
+    }
+
+    #[test]
+    fn a_repo_the_config_names_but_never_downloaded_is_not_a_channel() {
+        // The Aelum page distinguishes "nothing to add" from "the repository
+        // is not here". A leftover database from a repository the config does
+        // *not* name must not answer that question either.
+        write_pacman_root(
+            "no_distro_repo",
+            "[options]\n[core]\n[extra]\n",
+            &[("aelum", &[("aelum-newapp", "1.0-1")])],
+            &[],
+        );
+        let m = load_fixture("no_distro_repo");
+        assert!(!m.has_distro_repo());
+        assert!(m.distro_apps().is_empty());
+    }
+
     /// The classification must agree with pacman's own `-Qe` on a real
     /// system. Ignored by default: it needs an Arch host and shells out
     /// to pacman. Run with `cargo test -- --ignored`.
     #[test]
     #[ignore]
     fn explicit_matches_pacman_qe() {
-        let m = Model::load(Path::new("/var/lib/pacman")).expect("real pacman root");
+        let m = Model::load(Path::new("/var/lib/pacman"), Path::new("/etc/pacman.conf"))
+            .expect("real pacman root");
         // Classify by reason, not Status: `-Qe` also lists packages that
         // have an update pending.
         let ours: Vec<String> = m
@@ -594,10 +811,16 @@ mod tests {
     /// The update list must agree with pacman's own `-Qu`. Ignored by
     /// default: it needs an Arch host with sync databases and shells out to
     /// pacman. Run with `cargo test -- --ignored`.
+    ///
+    /// This is also the oracle for the repository rules: pacman resolves a
+    /// name through pacman.conf — the first configured repository that carries
+    /// it, and no database the config does not name — so a model that reads
+    /// the sync directory instead of the config disagrees here.
     #[test]
     #[ignore]
     fn updates_match_pacman_qu() {
-        let m = Model::load(Path::new("/var/lib/pacman")).expect("real pacman root");
+        let m = Model::load(Path::new("/var/lib/pacman"), Path::new("/etc/pacman.conf"))
+            .expect("real pacman root");
         // The failure this guards was silent: every official `.db` is gzip, a
         // zstd-only reader parsed none of them, and the Updates page said
         // "Everything up to date" on a system with updates pending.
@@ -631,7 +854,8 @@ mod tests {
     #[test]
     #[ignore]
     fn removal_questions_answer_on_a_ui_thread_budget() {
-        let m = Model::load(Path::new("/var/lib/pacman")).expect("real pacman root");
+        let m = Model::load(Path::new("/var/lib/pacman"), Path::new("/etc/pacman.conf"))
+            .expect("real pacman root");
         let installed: Vec<String> = m
             .search("", Scope::All)
             .iter()

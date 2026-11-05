@@ -52,6 +52,21 @@ release you target before changing the code that encodes them.
   (gzip + zstd are read, xz/bzip2 name themselves). A zstd-only reader parsed
   *no* repository and the app said "Everything up to date" on a system with 6
   updates pending — the failure was invisible because the parse error was dropped.
+- **A `.db` in the sync directory is not a repository, and a name in two
+  repositories is one row.** pacman resolves through pacman.conf: the **first**
+  configured repository carrying a name is the candidate for `-S` and `-Qu`, and
+  a database whose repository the config does not name is never read. Measured
+  with pacman 7 against two throwaway repositories holding the same package:
+  `-Sl` with `zz-first.db` on disk and only `zz-second` configured lists only
+  `zz-second`; `-Sp` and `-Qu` flip which version they use when the two
+  sections are swapped in the file. `Model::load` therefore takes the config
+  path as well as the pacman root and merges one row per name in that order
+  (`db::read_config_repos`; `Include` is followed, and a config that cannot be
+  enumerated — glob include, include cycle — means *do not filter*). The
+  failure this holds: `pacstrap -K` resolves names through the live session's
+  `[aelum-offline]` and pacman writes that database into the target's sync dir,
+  where the installed system's config no longer names it — Browse then showed
+  every package twice, once "Install" and once "Installed".
 - **`%REASON%` is written only for dependencies** (pacman 7.1 / alpm 16: the
   numeric enum, `1` = dep). An explicit package has **no `%REASON%` section at
   all**, so a missing section means explicit; an unparseable value fails closed

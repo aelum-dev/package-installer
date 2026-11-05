@@ -127,6 +127,88 @@ pub fn parse_sync_db(bytes: &[u8], repository: &str) -> std::io::Result<Vec<Sync
     Ok(out)
 }
 
+/// How deep `Include` nesting is followed before the list is called
+/// unenumerable. Stock configs nest once (`/etc/pacman.d/mirrorlist`).
+const MAX_CONFIG_INCLUDE_DEPTH: usize = 16;
+
+/// The repositories a pacman.conf declares, in the order it declares them.
+///
+/// Which `.db` files in the sync directory are channels is the configuration's
+/// decision, not the directory's. Measured with pacman 7 against two throwaway
+/// repositories carrying the same package name: a database on disk whose
+/// repository the config does not name is invisible (`-Sl` with `zz-first.db`
+/// in `sync/` and only `zz-second` configured lists only `zz-second`), and
+/// when two configured repositories carry one name the candidate for an install
+/// or an upgrade is the copy in the **first** section — `-Sp` and `-Qu` flip
+/// when the two sections are swapped in the file.
+///
+/// `None` means the list could not be enumerated: an unreadable file, an
+/// `Include` with glob(7) wildcards, or an include cycle. A caller must treat
+/// that as "do not filter" — dropping repositories that were never seen is how
+/// a package list reads as empty by accident.
+pub fn read_config_repos(path: &Path) -> Option<Vec<String>> {
+    let text = fs::read_to_string(path).ok()?;
+    let mut repos = Vec::new();
+    let base = path.parent().unwrap_or(Path::new("/"));
+    collect_config_repos(&text, base, 0, &mut repos)?;
+    Some(repos)
+}
+
+/// The config format: comments start a line, a section header sits alone on
+/// its line, and `Include` works in `[options]` and in a repository section
+/// and may itself declare repositories — so it is followed where it appears,
+/// which is the top-to-bottom order pacman processes the file in. `[options]`
+/// is not a repository and `local` is reserved for the installed package DB;
+/// repository names must be unique, so a repeated section is one channel.
+fn collect_config_repos(
+    text: &str,
+    base: &Path,
+    depth: usize,
+    repos: &mut Vec<String>,
+) -> Option<()> {
+    for line in text.lines() {
+        let line = line.trim_end_matches('\r').trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        if line.starts_with('[') && line.ends_with(']') {
+            let name = line[1..line.len() - 1].trim();
+            let known = repos.iter().any(|r| r == name);
+            if !name.is_empty() && name != "options" && name != "local" && !known {
+                repos.push(name.to_string());
+            }
+            continue;
+        }
+        let Some((key, value)) = line.split_once('=') else {
+            continue;
+        };
+        if !key.trim().eq_ignore_ascii_case("include") {
+            continue;
+        }
+        let value = value.trim();
+        if value.contains(['*', '?', '[']) {
+            // A glob(7) include: not worth a glob implementation, and a wrong
+            // guess would hide a repository.
+            return None;
+        }
+        let path = if value.starts_with('/') {
+            std::path::PathBuf::from(value)
+        } else {
+            base.join(value)
+        };
+        // A missing include is a warning in pacman, not a reason to stop.
+        let Ok(text) = fs::read_to_string(&path) else {
+            continue;
+        };
+        if depth >= MAX_CONFIG_INCLUDE_DEPTH {
+            return None; // an include cycle: the list has no end
+        }
+        let base = path.parent().unwrap_or(Path::new("/"));
+        collect_config_repos(&text, base, depth + 1, repos)?;
+    }
+    Some(())
+}
+
 /// pacman's install reason — exactly the `-Qe` distinction.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Reason {
@@ -357,6 +439,70 @@ mod tests {
         assert!(e.to_string().contains("xz"), "{e}");
         let e = parse_sync_db(b"not an archive", "core").unwrap_err();
         assert!(e.to_string().contains("unknown"), "{e}");
+    }
+
+    /// A scratch directory for config fixtures. Named per test and per process
+    /// so tests running in parallel cannot collide.
+    fn fixture_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("aelum-pkg-installer-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    /// A pacman.conf whose `Include` files cannot be read, so the test sees
+    /// only the section rules.
+    fn config_repos(text: &str) -> Option<Vec<String>> {
+        let mut repos = Vec::new();
+        collect_config_repos(text, Path::new("/aelum-test-missing"), 0, &mut repos)?;
+        Some(repos)
+    }
+
+    #[test]
+    fn config_repositories_are_listed_in_the_order_declared() {
+        let text = "\
+# a pacman.conf
+[options]
+SigLevel = Required DatabaseOptional
+Include = /etc/pacman.d/mirrorlist
+
+[core]
+Server = https://example.com/core
+
+# a commented-out repository stays out
+# [testing]
+[extra]
+Server = https://example.com/extra
+# a repeated section is one channel, and `local` is the installed DB
+[core]
+Server = https://mirror/alt
+[local]
+";
+        assert_eq!(config_repos(text).unwrap(), ["core", "extra"]);
+    }
+
+    #[test]
+    fn config_includes_are_followed_where_they_appear() {
+        let dir = fixture_dir("config_include");
+        let included = dir.join("extra.list");
+        fs::write(&included, "[extra]\nServer = file:///extra\n").unwrap();
+        let text = format!("[options]\nInclude = {}\n[core]\nServer = file:///core\n", included.display());
+        let mut repos = Vec::new();
+        collect_config_repos(&text, dir.as_path(), 0, &mut repos).unwrap();
+        // The included repository comes before the one declared after the
+        // include: that is the order pacman resolves a name in.
+        assert_eq!(repos, ["extra", "core"]);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_config_whose_repositories_cannot_be_enumerated_says_so() {
+        // glob(7) includes are documented in pacman.conf(5); guessing at them
+        // could hide a repository, so the caller is told not to filter.
+        assert_eq!(config_repos("[options]\nInclude = /etc/pacman.d/*.conf\n"), None);
+        // …and a config that simply has no repositories is an empty list, not
+        // an unknown one: there is genuinely nothing to install from.
+        assert_eq!(config_repos("[options]\nSigLevel = Never\n").unwrap(), Vec::<String>::new());
     }
 
     #[test]
