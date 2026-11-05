@@ -5,11 +5,11 @@ Binary `package-installer`, app ID `aelum.packageinstaller.Packages`, Arch
 package `aelum-package-installer`. It reads pacman's on-disk state directly and
 shells out only for transactions.
 
-**Distribution channel: the online `[aelum]` repository** — published with
-`../repo/publish-repo.sh`, installed on installed systems with `pacman -S`.
-Deliberately **not** in `live-iso/packages.x86_64` yet: the app is the test of
-whether the repo can carry new apps to users, so it must not be baked into an
-ISO while that is being measured.
+**Distribution channel: the `[aelum]` repository** — published with
+`../repo/publish-repo.sh`, installed on installed systems with `pacman -S`. The channel
+is proven, so the package is also listed in `live-iso/packages.x86_64`: the ISO build
+resolves `[aelum]`, bakes it into the offline mirror, and fresh installs ship it
+preinstalled. Updates still come from the repo.
 
 ## Read these first
 
