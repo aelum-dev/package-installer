@@ -29,6 +29,15 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.1.2" date="2026-11-05">
+      <description>
+        <ul>
+          <li>Removing a package answers instantly: the confirmation used to appear about two seconds after the press</li>
+          <li>The confirmation asks one question and adds at most two facts: what still needs the package, and how many unneeded dependencies go along</li>
+          <li>The unneeded-dependency count follows pacman's -Rns rule and no longer counts unrelated leftovers</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.1" date="2026-11-05">
       <description>
         <ul>
