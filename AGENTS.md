@@ -115,11 +115,12 @@ the annotation — an invariant, not a unit test of a string.
   breakage (`reverse_deps`), and an already-orphaned leftover elsewhere on the
   system is nobody's business here.
 - **The confirmation asks one question and adds at most two facts.** It asks in
-  words — "Are you sure you want to remove this package?" — because a bare fact
-  beside a button does not read as a confirmation. Then only: what still needs
-  the package (three names maximum, then a count) and how many unneeded
-  dependencies go along. Sizes, "this runs as root", and the full orphan list
-  are not there — the transaction log names every package it touches.
+  words — "Are you sure you want to remove this package?" for removal, "Do you
+  want to install/update &lt;name&gt; &lt;version&gt;?" for installs — because a
+  bare fact beside a button does not read as a confirmation. Then only: what
+  still needs the package (three names maximum, then a count) and how many
+  unneeded dependencies go along. Sizes, "this runs as root", and the full
+  orphan list are not there — the transaction log names every package it touches.
 - Model loads are generation-numbered (`Ui::load_seq`): the startup load and the
   post-refresh load overlap, and only the newest may install its result.
 

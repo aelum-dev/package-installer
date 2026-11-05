@@ -166,10 +166,14 @@ pub(crate) fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
                 .unwrap_or_default();
             button.connect_clicked(move |_| {
                 let Some(window) = ui.window.borrow().clone() else { return };
+                // The question is asked in words, like the removal dialog:
+                // a bare fact with a button next to it does not read as a
+                // confirmation. The version rides in the question because
+                // it is the thing being agreed to.
                 let body = if updating {
-                    format!("{name} will be updated to {new_version}.")
+                    format!("Do you want to update {name} to {new_version}?")
                 } else {
-                    format!("{name} {new_version} will be installed.")
+                    format!("Do you want to install {name} {new_version}?")
                 };
                 let mut details = Vec::new();
                 if !url.is_empty() {
