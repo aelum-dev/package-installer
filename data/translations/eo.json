@@ -21,6 +21,7 @@
   "tag.dependency": "dependaĵo",
   "installed.search": "Serĉi inter instalitaj pakaĵoj",
   "installed.empty": "Neniuj instalitaj pakaĵoj",
+  "installed.selfCannotRemove": "La paketadministrilo ne povas forigi sin mem dum ĝi funkcias.",
   "browse.search": "Serĉi ĉiujn pakaĵojn",
   "browse.empty": "Nenio por foliumi",
   "browse.fresh": "Pakaĵaj datumbazoj, laste refreŝigitaj {time}.",

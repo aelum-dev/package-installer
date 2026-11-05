@@ -14,7 +14,8 @@ use crate::vercmp::vercmp;
 pub enum Status {
     /// Not installed; can be installed.
     Available,
-    /// Installed explicitly (`-Qe`); can be removed.
+    /// Installed explicitly (`-Qe`); offered for removal unless it is the
+    /// app's own package (`Entry::can_remove`).
     InstalledExplicit,
     /// Installed as a dependency; not offered for removal.
     InstalledDep,
@@ -65,12 +66,25 @@ impl Entry {
             .or_else(|| self.installed.as_ref().map(|l| l.version.as_str()))
             .unwrap_or("")
     }
+
+    /// Whether this is the package that ships this app.
+    pub fn is_self(&self) -> bool {
+        self.name == SELF_PACKAGE
+    }
+
+    /// Whether a page may offer a working Remove for it. `pacman -Rns` would
+    /// remove the app's own package happily enough — the running process keeps
+    /// its deleted binary — but the system would be left with no package
+    /// manager GUI, and nothing inside it to install one again. So the row is
+    /// listed and updated like any other and only the removal is refused.
+    pub fn can_remove(&self) -> bool {
+        !self.is_self()
+    }
 }
 
-/// This app's own pacman package. It is hidden from every list (Installed,
-/// Updates, Browse, Aelum) — a package manager does not manage itself — but
-/// stays in the model so removing a package it depends on still reports the
-/// breakage. Must match `pkgname` in packaging/PKGBUILD.
+/// This app's own pacman package. It is listed like any other — it needs its
+/// updates too — and only its removal is refused (`Entry::can_remove`).
+/// Must match `pkgname` in packaging/PKGBUILD.
 pub const SELF_PACKAGE: &str = "aelum-package-installer";
 
 /// The distro's own repository, named by its sync DB (`aelum.db`). It is the
@@ -182,9 +196,6 @@ impl Model {
         let q = query.trim().to_lowercase();
         let mut hits: Vec<(u8, &Entry)> = Vec::new();
         for e in &self.entries {
-            if e.name == SELF_PACKAGE {
-                continue;
-            }
             if scope == Scope::Installed
                 && !matches!(e.status(), Status::InstalledExplicit | Status::UpdateAvailable)
             {
@@ -213,7 +224,7 @@ impl Model {
     pub fn updatable(&self) -> Vec<&Entry> {
         self.entries
             .iter()
-            .filter(|e| e.name != SELF_PACKAGE && e.status() == Status::UpdateAvailable)
+            .filter(|e| e.status() == Status::UpdateAvailable)
             .collect()
     }
 
@@ -226,11 +237,7 @@ impl Model {
         let mut hits: Vec<&Entry> = self
             .entries
             .iter()
-            .filter(|e| {
-                e.name != SELF_PACKAGE
-                    && e.installed.is_none()
-                    && e.repository.as_deref() == Some(DISTRO_REPO)
-            })
+            .filter(|e| e.installed.is_none() && e.repository.as_deref() == Some(DISTRO_REPO))
             .collect();
         hits.sort_by(|a, b| a.name.cmp(&b.name));
         hits
@@ -423,9 +430,10 @@ mod tests {
     }
 
     #[test]
-    fn self_package_is_excluded_from_every_list() {
-        // The app's own package: hidden from Installed, Browse and Updates,
-        // yet still a real dependent in the model.
+    fn the_apps_own_package_is_listed_but_never_removed() {
+        // It is a package like any other and needs its updates, so it is in
+        // every list; only its removal is refused. It also stays a real
+        // dependent, so removing one of its dependencies still says so.
         let m = model(vec![
             entry(
                 SELF_PACKAGE,
@@ -435,13 +443,20 @@ mod tests {
             entry("htop", Some(local("htop", "3.0-1", Reason::Explicit, &[])), Some(sync("htop", "3.1-1", "monitor"))),
             entry("polkit", Some(local("polkit", "128-1", Reason::Dependency, &[])), None),
         ]);
-        // Not in any list, even when searched by name or a name prefix.
+        // Listed by the Installed page and by Browse, by empty query and by name.
         for scope in [Scope::Installed, Scope::All] {
-            assert!(!m.search("", scope).iter().any(|e| e.name == SELF_PACKAGE));
-            assert!(!m.search("aelum", scope).iter().any(|e| e.name == SELF_PACKAGE));
+            assert!(m.search("", scope).iter().any(|e| e.name == SELF_PACKAGE));
+            assert!(m.search("aelum", scope).iter().any(|e| e.name == SELF_PACKAGE));
         }
-        // It would otherwise be updatable (0.1.0-1 < 0.2.0-1): still hidden.
-        assert_eq!(m.updatable().iter().map(|e| e.name.as_str()).collect::<Vec<_>>(), ["htop"]);
+        // 0.1.0-1 < 0.2.0-1, so the app can update itself like any other row.
+        assert_eq!(
+            m.updatable().iter().map(|e| e.name.as_str()).collect::<Vec<_>>(),
+            [SELF_PACKAGE, "htop"]
+        );
+        // The one thing the row may not do is remove itself.
+        assert!(m.get(SELF_PACKAGE).unwrap().is_self());
+        assert!(!m.get(SELF_PACKAGE).unwrap().can_remove());
+        assert!(m.get("htop").unwrap().can_remove());
         // Still a real dependent: removing polkit would break it.
         assert_eq!(m.reverse_deps("polkit"), [SELF_PACKAGE]);
     }
@@ -454,12 +469,13 @@ mod tests {
             // Installed, current or updatable: the Installed and Updates pages own those.
             entry("aelum-player", Some(local("aelum-player", "2.0-1", Reason::Explicit, &[])), Some(aelum("aelum-player", "2.0-1", "the player"))),
             entry("aelum-old", Some(local("aelum-old", "1.0-1", Reason::Explicit, &[])), Some(aelum("aelum-old", "2.0-1", "updatable"))),
-            // Not from the distro repo, and never the app itself.
+            // Not from the distro repo; and the app's own package is only here
+            // because this fixture has it uninstalled (run from a source tree).
             entry("firefox", None, Some(sync("firefox", "1.0", "browser"))),
             entry(SELF_PACKAGE, None, Some(aelum(SELF_PACKAGE, "0.2.0-1", "the package manager"))),
         ]);
         let names: Vec<_> = m.distro_apps().iter().map(|e| e.name.as_str()).collect();
-        assert_eq!(names, ["aelum-newapp"]);
+        assert_eq!(names, ["aelum-newapp", SELF_PACKAGE]);
         assert!(m.has_distro_repo());
     }
 
@@ -567,10 +583,6 @@ mod tests {
         let mut theirs: Vec<String> = String::from_utf8(out.stdout)
             .unwrap()
             .lines()
-            // search() hides the app's own package, so drop it from the
-            // pacman side too — the comparison is about classifying the
-            // others, and the self-exclusion has its own test.
-            .filter(|l| *l != SELF_PACKAGE)
             .map(str::to_string)
             .collect();
         theirs.sort();
@@ -603,8 +615,6 @@ mod tests {
         let mut theirs: Vec<String> = String::from_utf8(out.stdout)
             .unwrap()
             .lines()
-            // The app hides its own package from the Updates page.
-            .filter(|l| *l != SELF_PACKAGE)
             .map(str::to_string)
             .collect();
         theirs.sort();

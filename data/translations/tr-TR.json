@@ -21,6 +21,7 @@
   "tag.dependency": "bağımlılık",
   "installed.search": "Yüklü paketlerde ara",
   "installed.empty": "Yüklü paket yok",
+  "installed.selfCannotRemove": "Paket yöneticisi çalışırken kendisini kaldıramaz.",
   "browse.search": "Tüm paketlerde ara",
   "browse.empty": "Gözatılacak bir şey yok",
   "browse.fresh": "Paket veritabanları, son yenileme {time}.",

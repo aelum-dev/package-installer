@@ -21,6 +21,7 @@
   "tag.dependency": "avhengighet",
   "installed.search": "Søk i installerte pakker",
   "installed.empty": "Ingen installerte pakker",
+  "installed.selfCannotRemove": "Pakkeforvalteren kan ikke fjerne seg selv mens den kjører.",
   "browse.search": "Søk i alle pakker",
   "browse.empty": "Ingenting å bla i",
   "browse.fresh": "Pakkedatabaser, sist oppdatert {time}.",

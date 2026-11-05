@@ -21,6 +21,7 @@
   "tag.dependency": "dependència",
   "installed.search": "Cerca paquets instal·lats",
   "installed.empty": "No hi ha paquets instal·lats",
+  "installed.selfCannotRemove": "El gestor de paquets no pot suprimir-se a si mateix mentre s'executa.",
   "browse.search": "Cerca tots els paquets",
   "browse.empty": "No hi ha res per navegar",
   "browse.fresh": "Bases de dades de paquets, actualitzades per última vegada {time}.",

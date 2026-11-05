@@ -21,6 +21,7 @@
   "tag.dependency": "dependensi",
   "installed.search": "Cari paket terpasang",
   "installed.empty": "Tidak ada paket terpasang",
+  "installed.selfCannotRemove": "Manajer paket tidak dapat menghapus dirinya sendiri saat sedang berjalan.",
   "browse.search": "Cari semua paket",
   "browse.empty": "Tidak ada yang dapat dijelajahi",
   "browse.fresh": "Basis data paket, terakhir disegarkan {time}.",

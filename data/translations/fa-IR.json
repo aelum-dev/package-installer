@@ -21,6 +21,7 @@
   "tag.dependency": "وابستگی",
   "installed.search": "جست‌وجوی بسته‌های نصب‌شده",
   "installed.empty": "هیچ بسته‌ای نصب نشده است",
+  "installed.selfCannotRemove": "مدیر بسته نمی‌تواند در حالی که در حال اجرا است، خودش را حذف کند.",
   "browse.search": "جست‌وجوی همه بسته‌ها",
   "browse.empty": "چیزی برای مرور نیست",
   "browse.fresh": "پایگاه‌های داده بسته‌ها، آخرین نوسازی {time}.",

@@ -21,6 +21,7 @@
   "tag.dependency": "תלות",
   "installed.search": "חיפוש בחבילות המותקנות",
   "installed.empty": "אין חבילות מותקנות",
+  "installed.selfCannotRemove": "מנהל החבילות אינו יכול להסיר את עצמו בזמן שהוא פועל.",
   "browse.search": "חיפוש בכל החבילות",
   "browse.empty": "אין מה לעיין",
   "browse.fresh": "מאגרי החבילות, רענון אחרון {time}.",

@@ -98,9 +98,13 @@ the annotation — an invariant, not a unit test of a string.
 - **A successful refresh is quiet.** Startup and manual Refresh spin the header
   button, refresh the pages, and (manual only) toast; only a failure opens the
   log dialog. A modal log would cover the very thing that says a check is running.
-- **The app hides its own package** (`model::SELF_PACKAGE`) from every list
-  but keeps the entry in the model, so removing a dependency of the package
-  manager still reports the breakage.
+- **The app lists its own package** (`model::SELF_PACKAGE`) like any other row —
+  it needs its updates too, and a self-update while running is ordinary (Linux
+  replaces the binary under the process). Only its **Uninstall is insensitive**,
+  decided by `Entry::can_remove` and explained by a tooltip: removing it would
+  leave a system with no package manager and nothing inside it to bring it back.
+  The entry is never filtered out of `search`/`updatable`/`distro_apps`, so
+  removing a dependency of the package manager still reports the breakage.
 - `MAX_ROWS` (300) caps rendered rows — a full sync DB is ~15k entries and the
   pages rebuild on every keystroke.
 - Every `ListBox` sits in a `ScrolledWindow`: an unscrolled list grows the

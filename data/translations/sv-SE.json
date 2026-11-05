@@ -21,6 +21,7 @@
   "tag.dependency": "beroende",
   "installed.search": "Sök installerade paket",
   "installed.empty": "Inga installerade paket",
+  "installed.selfCannotRemove": "Pakethanteraren kan inte ta bort sig själv medan den körs.",
   "browse.search": "Sök bland alla paket",
   "browse.empty": "Inget att bläddra bland",
   "browse.fresh": "Paketdatabaser, senast uppdaterade {time}.",

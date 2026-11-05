@@ -21,6 +21,7 @@
   "tag.dependency": "Abhängigkeit",
   "installed.search": "Installierte Pakete durchsuchen",
   "installed.empty": "Keine installierten Pakete",
+  "installed.selfCannotRemove": "Die Paketverwaltung kann sich während der Ausführung nicht selbst entfernen.",
   "browse.search": "Alle Pakete durchsuchen",
   "browse.empty": "Nichts zu durchsuchen",
   "browse.fresh": "Paketdatenbanken, zuletzt aufgefrischt {time}.",

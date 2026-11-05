@@ -21,6 +21,7 @@
   "tag.dependency": "zależność",
   "installed.search": "Szukaj zainstalowanych pakietów",
   "installed.empty": "Brak zainstalowanych pakietów",
+  "installed.selfCannotRemove": "Menedżer pakietów nie może usunąć samego siebie podczas działania.",
   "browse.search": "Szukaj wśród wszystkich pakietów",
   "browse.empty": "Nie ma czego przeglądać",
   "browse.fresh": "Bazy pakietów, ostatnio odświeżone {time}.",

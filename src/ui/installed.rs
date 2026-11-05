@@ -144,7 +144,19 @@ fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
         }
         Status::InstalledExplicit => {
             let label = i18n::t("action.uninstall");
-            add_button(&row, &label, "flat", ui, entry.name.clone(), false);
+            let button = add_button(&row, &label, "flat", ui, entry.name.clone(), false);
+            if !entry.can_remove() {
+                // The app's own row: listed so it can be updated, but removing
+                // it would leave the user with no package manager to put it
+                // back, so the button shows that instead of pretending.
+                let why = i18n::t("installed.selfCannotRemove");
+                button.set_sensitive(false);
+                // An insensitive button takes no pointer events, so the
+                // explanation goes on the row too — otherwise the grey reads
+                // as a bug rather than as a choice.
+                button.set_tooltip_text(Some(&why));
+                row.set_tooltip_text(Some(&why));
+            }
         }
         Status::InstalledDep => {
             let tag = gtk::Label::new(Some(&i18n::t("tag.dependency")));
@@ -158,6 +170,7 @@ fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
 
 /// The Uninstall / Update button. Uninstall confirms with the two facts that
 /// can change the answer; Update just runs `pacman -S --needed` for that name.
+/// The button is returned so a caller can make it insensitive.
 fn add_button(
     row: &adw::ActionRow,
     label: &str,
@@ -165,7 +178,7 @@ fn add_button(
     ui: &Ui,
     name: String,
     is_update: bool,
-) {
+) -> gtk::Button {
     let button = gtk::Button::builder().label(label).valign(gtk::Align::Center).build();
     button.add_css_class(css);
     {
@@ -216,6 +229,7 @@ fn add_button(
         });
     }
     row.add_suffix(&button);
+    button
 }
 
 /// Names for a dialog line: all of them when there are few, a count with a

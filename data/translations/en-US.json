@@ -21,6 +21,7 @@
   "tag.dependency": "dependency",
   "installed.search": "Search installed packages",
   "installed.empty": "No installed packages",
+  "installed.selfCannotRemove": "The package manager cannot remove itself while it is running.",
   "browse.search": "Search all packages",
   "browse.empty": "Nothing to browse",
   "browse.fresh": "Package databases, last refreshed {time}.",

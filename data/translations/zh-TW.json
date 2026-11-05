@@ -21,6 +21,7 @@
   "tag.dependency": "相依套件",
   "installed.search": "搜尋已安裝的軟體包",
   "installed.empty": "沒有已安裝的軟體包",
+  "installed.selfCannotRemove": "軟體包管理器無法在執行期間移除自身。",
   "browse.search": "搜尋所有軟體包",
   "browse.empty": "沒有可瀏覽的內容",
   "browse.fresh": "軟體包資料庫，上次重新整理於 {time}。",

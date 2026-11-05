@@ -21,6 +21,7 @@
   "tag.dependency": "اعتمادية",
   "installed.search": "ابحث في الحزم المثبتة",
   "installed.empty": "لا توجد حزم مثبتة",
+  "installed.selfCannotRemove": "لا يمكن لمدير الحزم أن يزيل نفسه أثناء تشغيله.",
   "browse.search": "ابحث في جميع الحزم",
   "browse.empty": "لا شيء للتصفّح",
   "browse.fresh": "قواعد بيانات الحزم، آخر تحديث {time}.",

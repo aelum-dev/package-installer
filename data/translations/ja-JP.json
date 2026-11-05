@@ -21,6 +21,7 @@
   "tag.dependency": "依存関係",
   "installed.search": "インストール済みパッケージを検索",
   "installed.empty": "インストール済みパッケージはありません",
+  "installed.selfCannotRemove": "パッケージマネージャーは実行中には自身を削除できません。",
   "browse.search": "すべてのパッケージを検索",
   "browse.empty": "参照できる項目がありません",
   "browse.fresh": "パッケージデータベースの最終更新: {time}。",

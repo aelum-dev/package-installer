@@ -21,6 +21,7 @@
   "tag.dependency": "phụ thuộc",
   "installed.search": "Tìm kiếm các gói đã cài đặt",
   "installed.empty": "Không có gói nào đã cài đặt",
+  "installed.selfCannotRemove": "Trình quản lý gói không thể tự gỡ chính nó khi đang chạy.",
   "browse.search": "Tìm kiếm tất cả gói",
   "browse.empty": "Không có gì để duyệt",
   "browse.fresh": "Cơ sở dữ liệu gói, lần làm mới gần nhất {time}.",

@@ -21,6 +21,7 @@
   "tag.dependency": "afhankelijkheid",
   "installed.search": "Zoeken in geïnstalleerde pakketten",
   "installed.empty": "Geen geïnstalleerde pakketten",
+  "installed.selfCannotRemove": "De pakketbeheerder kan zichzelf niet verwijderen terwijl het actief is.",
   "browse.search": "Alle pakketten doorzoeken",
   "browse.empty": "Niets om te bladeren",
   "browse.fresh": "Pakketdatabases, laatst ververst {time}.",

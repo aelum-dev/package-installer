@@ -21,6 +21,7 @@
   "tag.dependency": "의존성",
   "installed.search": "설치된 패키지 검색",
   "installed.empty": "설치된 패키지 없음",
+  "installed.selfCannotRemove": "패키지 관리자는 실행 중에는 자기 자신을 제거할 수 없습니다.",
   "browse.search": "모든 패키지 검색",
   "browse.empty": "찾아볼 항목 없음",
   "browse.fresh": "패키지 데이터베이스 마지막 갱신: {time}.",

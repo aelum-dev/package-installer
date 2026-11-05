@@ -21,6 +21,7 @@
   "tag.dependency": "riippuvuus",
   "installed.search": "Etsi asennettuja paketteja",
   "installed.empty": "Ei asennettuja paketteja",
+  "installed.selfCannotRemove": "Pakettienhallinta ei voi poistaa itseään sen ollessa käynnissä.",
   "browse.search": "Etsi kaikkia paketteja",
   "browse.empty": "Ei selattavaa",
   "browse.fresh": "Pakettitietokannat, viimeisin päivitys {time}.",

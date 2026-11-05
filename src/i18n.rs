@@ -363,6 +363,7 @@ mod tests {
             "tag.dependency",
             "installed.search",
             "installed.empty",
+            "installed.selfCannotRemove",
             "browse.search",
             "browse.empty",
             "browse.fresh",

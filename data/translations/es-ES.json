@@ -21,6 +21,7 @@
   "tag.dependency": "dependencia",
   "installed.search": "Buscar paquetes instalados",
   "installed.empty": "No hay paquetes instalados",
+  "installed.selfCannotRemove": "El gestor de paquetes no puede quitarse a sí mismo mientras se está ejecutando.",
   "browse.search": "Buscar en todos los paquetes",
   "browse.empty": "Nada que examinar",
   "browse.fresh": "Bases de datos de paquetes, actualizadas por última vez {time}.",

@@ -21,6 +21,7 @@
   "tag.dependency": "залежність",
   "installed.search": "Шукати встановлені пакети",
   "installed.empty": "Немає встановлених пакетів",
+  "installed.selfCannotRemove": "Менеджер пакетів не може видалити сам себе під час роботи.",
   "browse.search": "Шукати всі пакети",
   "browse.empty": "Немає що переглянути",
   "browse.fresh": "Бази даних пакетів, востаннє оновлені {time}.",

@@ -21,6 +21,7 @@
   "tag.dependency": "függőség",
   "installed.search": "Telepített csomagok keresése",
   "installed.empty": "Nincsenek telepített csomagok",
+  "installed.selfCannotRemove": "A csomagkezelő futás közben nem távolíthatja el önmagát.",
   "browse.search": "Összes csomag keresése",
   "browse.empty": "Nincs mit tallózni",
   "browse.fresh": "Csomag-adatbázisok, utolsó frissítés {time}.",

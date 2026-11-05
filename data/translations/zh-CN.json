@@ -21,6 +21,7 @@
   "tag.dependency": "依赖",
   "installed.search": "搜索已安装的软件包",
   "installed.empty": "没有已安装的软件包",
+  "installed.selfCannotRemove": "软件包管理器无法在运行时移除自身。",
   "browse.search": "搜索所有软件包",
   "browse.empty": "没有可浏览的内容",
   "browse.fresh": "软件包数据库，上次刷新于 {time}。",

@@ -21,6 +21,7 @@
   "tag.dependency": "dependência",
   "installed.search": "Pesquisar pacotes instalados",
   "installed.empty": "Nenhum pacote instalado",
+  "installed.selfCannotRemove": "O gerenciador de pacotes não pode remover a si mesmo enquanto está em execução.",
   "browse.search": "Pesquisar todos os pacotes",
   "browse.empty": "Nada para navegar",
   "browse.fresh": "Bancos de dados de pacotes, atualizados pela última vez em {time}.",
