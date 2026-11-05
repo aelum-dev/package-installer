@@ -67,6 +67,12 @@ impl Entry {
     }
 }
 
+/// This app's own pacman package. It is hidden from every list (Installed,
+/// Updates, Browse) — a package manager does not manage itself — but stays in
+/// the model so removing a package it depends on still reports the breakage.
+/// Must match `pkgname` in packaging/PKGBUILD.
+pub const SELF_PACKAGE: &str = "aelum-package-installer";
+
 /// Which rows a search may return.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Scope {
@@ -153,6 +159,9 @@ impl Model {
         let q = query.trim().to_lowercase();
         let mut hits: Vec<(u8, &Entry)> = Vec::new();
         for e in &self.entries {
+            if e.name == SELF_PACKAGE {
+                continue;
+            }
             if scope == Scope::Installed
                 && !matches!(e.status(), Status::InstalledExplicit | Status::UpdateAvailable)
             {
@@ -181,7 +190,7 @@ impl Model {
     pub fn updatable(&self) -> Vec<&Entry> {
         self.entries
             .iter()
-            .filter(|e| e.status() == Status::UpdateAvailable)
+            .filter(|e| e.name != SELF_PACKAGE && e.status() == Status::UpdateAvailable)
             .collect()
     }
 
@@ -325,6 +334,30 @@ mod tests {
     }
 
     #[test]
+    fn self_package_is_excluded_from_every_list() {
+        // The app's own package: hidden from Installed, Browse and Updates,
+        // yet still a real dependent in the model.
+        let m = model(vec![
+            entry(
+                SELF_PACKAGE,
+                Some(local(SELF_PACKAGE, "0.1.0-1", Reason::Explicit, &["polkit"])),
+                Some(sync(SELF_PACKAGE, "0.2.0-1", "the package manager")),
+            ),
+            entry("htop", Some(local("htop", "3.0-1", Reason::Explicit, &[])), Some(sync("htop", "3.1-1", "monitor"))),
+            entry("polkit", Some(local("polkit", "128-1", Reason::Dependency, &[])), None),
+        ]);
+        // Not in any list, even when searched by name or a name prefix.
+        for scope in [Scope::Installed, Scope::All] {
+            assert!(!m.search("", scope).iter().any(|e| e.name == SELF_PACKAGE));
+            assert!(!m.search("aelum", scope).iter().any(|e| e.name == SELF_PACKAGE));
+        }
+        // It would otherwise be updatable (0.1.0-1 < 0.2.0-1): still hidden.
+        assert_eq!(m.updatable().iter().map(|e| e.name.as_str()).collect::<Vec<_>>(), ["htop"]);
+        // Still a real dependent: removing polkit would break it.
+        assert_eq!(m.reverse_deps("polkit"), [SELF_PACKAGE]);
+    }
+
+    #[test]
     fn reverse_deps_match_the_dep_token() {
         let m = fixture();
         assert_eq!(m.reverse_deps("glibc"), ["myapp"]);
@@ -366,6 +399,10 @@ mod tests {
         let mut theirs: Vec<String> = String::from_utf8(out.stdout)
             .unwrap()
             .lines()
+            // search() hides the app's own package, so drop it from the
+            // pacman side too — the comparison is about classifying the
+            // others, and the self-exclusion has its own test.
+            .filter(|l| *l != SELF_PACKAGE)
             .map(str::to_string)
             .collect();
         theirs.sort();
