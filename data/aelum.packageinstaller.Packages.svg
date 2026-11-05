@@ -1,21 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <!-- App icon, the video-player's shape: a rounded squircle in the
-       brand's dark base with the app's own glyph — a boxed package with
-       its tape seam, drawn in the lighter brand pair so it reads on both
-       light and dark launchers. -->
+  <!-- Aelum brand palette (website base.css): dark #1d1b20, accent #834c74, lilac #cfbdfe.
+       The package mark is the md-package-variant glyph (U+F03D6) extracted from the same
+       SymbolsNerdFont the website's icon set is built from (scripts/icons.py). -->
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#3d3846"/>
-      <stop offset="1" stop-color="#241f31"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b272e"/>
+      <stop offset="1" stop-color="#1d1b20"/>
+    </linearGradient>
+    <linearGradient id="pkg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#cfbdfe"/>
+      <stop offset="1" stop-color="#834c74"/>
     </linearGradient>
   </defs>
-  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
-  <!-- box body -->
-  <path d="M64 22 102 40v48L64 106 26 88V40Z" fill="#e0d8f0"/>
-  <!-- top faces, the open-box read -->
-  <path d="M64 22 102 40 64 58 26 40Z" fill="#f4effc"/>
-  <!-- tape seam down the front -->
-  <path d="M60 58h8v46a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2Z" fill="#8fff6a"/>
-  <!-- side shading -->
-  <path d="M64 58v48l38-18V40Z" fill="#d0c6e4" opacity=".55"/>
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#bg)"/>
+  <rect x="8.5" y="8.5" width="111" height="111" rx="25.5" fill="none" stroke="#cfbdfe" stroke-opacity="0.18"/>
+  <!-- md-package-variant outline, centered on the canvas. -->
+  <path d="M27.25 60.2Q25.91 59.33 25.43 57.86Q25 56.44 25.86 55.18L31.4 45.5Q31.96 44.47 33.12 43.95L61.99 27.87Q62.81 27.18 64.06 27.18Q65.32 27.18 66.14 27.87L95.35 44.12Q96.43 44.86 96.91 45.85L102.27 55.18Q102.96 56.35 102.61 57.86Q102.31 59.33 100.88 60.2L97.25 62.27V80.59Q97.25 82.84 95.35 83.88L66.14 100.13Q65.32 100.82 64.06 100.82Q62.81 100.82 61.99 100.13L32.78 83.88Q30.88 82.84 30.88 80.59V60.2Q29.02 61.23 27.25 60.2ZM64.06 35.13V59.68L86.02 47.41ZM38.31 78.35 60.43 90.97V66.07L38.31 53.63ZM89.82 78.35V66.59L71.5 77.31Q69.6 78.17 67.69 77.31V90.97ZM70.81 69.01 93.97 55.7 91.89 51.9 68.73 65.21Z" fill="url(#pkg)"/>
 </svg>
