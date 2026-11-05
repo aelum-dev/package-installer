@@ -131,11 +131,10 @@ fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
             let tag = gtk::Label::new(Some(&format!("→ {}", sync.version)));
             tag.add_css_class("dim-label");
             row.add_suffix(&tag);
-            add_button(&row, "Update", "suggested-action", ui, entry.name.clone(), true, 0);
+            add_button(&row, "Update", "suggested-action", ui, entry.name.clone(), true);
         }
         Status::InstalledExplicit => {
-            let frees = entry.installed.as_ref().map(|l| l.isize).unwrap_or(0);
-            add_button(&row, "Uninstall", "flat", ui, entry.name.clone(), false, frees);
+            add_button(&row, "Uninstall", "flat", ui, entry.name.clone(), false);
         }
         Status::InstalledDep => {
             let tag = gtk::Label::new(Some("dependency"));
@@ -147,9 +146,8 @@ fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
     row
 }
 
-/// The Uninstall / Update button. Uninstall confirms with the real impact
-/// (dependents it would break, orphans `-Rns` would take); Update just
-/// runs `pacman -S --needed` for that name.
+/// The Uninstall / Update button. Uninstall confirms with the two facts that
+/// can change the answer; Update just runs `pacman -S --needed` for that name.
 fn add_button(
     row: &adw::ActionRow,
     label: &str,
@@ -157,7 +155,6 @@ fn add_button(
     ui: &Ui,
     name: String,
     is_update: bool,
-    frees: u64,
 ) {
     let button = gtk::Button::builder().label(label).valign(gtk::Align::Center).build();
     button.add_css_class(css);
@@ -178,30 +175,24 @@ fn add_button(
             };
             let mut details = Vec::new();
             if !breaks.is_empty() {
-                details.push(format!(
-                    "This breaks packages that depend on it: {}.",
-                    breaks.join(", ")
-                ));
-            }
-            if frees > 0 {
-                details.push(format!("It frees {} of disk.", super::human_size(frees)));
+                // The one fact that decides the answer: pacman refuses to
+                // remove a package other packages still need.
+                details.push(format!("Still needed by: {}.", name_list(&breaks)));
             }
             if !orphans.is_empty() {
-                let shown = orphans.iter().take(12).cloned().collect::<Vec<_>>().join(", ");
-                let rest = if orphans.len() > 12 {
-                    format!(", and {} more", orphans.len() - 12)
-                } else {
-                    String::new()
-                };
-                details.push(format!("It also removes unneeded dependencies: {shown}{rest}."));
+                // A count, not a list: the run's own log names every package
+                // it takes, and this dialog is not the place to pre-print it.
+                details.push(format!("Also removes {} unneeded dependencies.", orphans.len()));
             }
-            details.push("The operation runs as root and its output is shown.".into());
             let ui2 = ui.clone();
             let name_for_txn = name.clone();
             dialog::confirm(
                 &window,
                 &format!("Remove {name}?"),
-                &format!("{name} and its files will be removed from the system."),
+                // The question is asked in words: a bare fact with a button
+                // next to it does not read as a confirmation.
+                "Are you sure you want to remove this package? \
+                 Its files will be removed from the system.",
                 &details,
                 "Remove",
                 true,
@@ -210,4 +201,19 @@ fn add_button(
         });
     }
     row.add_suffix(&button);
+}
+
+/// Names for a dialog line: all of them when there are few, a count with a
+/// sample when there are many — a wall of names is what makes a confirmation
+/// unreadable.
+fn name_list(names: &[String]) -> String {
+    const SHOWN: usize = 3;
+    if names.len() <= SHOWN {
+        return names.join(", ");
+    }
+    format!(
+        "{} packages, including {}",
+        names.len(),
+        names.iter().take(SHOWN).cloned().collect::<Vec<_>>().join(", ")
+    )
 }
