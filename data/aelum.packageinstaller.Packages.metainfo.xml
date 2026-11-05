@@ -30,6 +30,13 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.2.2" date="2026-11-05">
+      <description>
+        <ul>
+          <li>While a database refresh runs, the tabs step aside and say so: "Databases refresh in progress, please wait…" — the rows behind it were the state before the check</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.2.1" date="2026-11-05">
       <description>
         <ul>
