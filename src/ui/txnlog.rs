@@ -6,6 +6,8 @@ use gtk::prelude::*;
 use libadwaita as adw;
 use libadwaita::prelude::*;
 
+use crate::i18n;
+
 /// Handles into the log dialog — cheap to clone, shared between the event
 /// receiver and the failure path.
 #[derive(Clone)]
@@ -19,7 +21,7 @@ pub struct TxnLog {
 
 pub fn show(window: &adw::ApplicationWindow, summary: &str) -> TxnLog {
     let dialog = adw::Dialog::builder()
-        .title("Operation")
+        .title(i18n::t("txnlog.title"))
         .content_width(640)
         .content_height(420)
         .build();
@@ -50,9 +52,9 @@ pub fn show(window: &adw::ApplicationWindow, summary: &str) -> TxnLog {
     actions.set_margin_bottom(12);
     let spinner = gtk::Spinner::new();
     spinner.set_spinning(true);
-    let status = gtk::Label::new(Some("Running…"));
+    let status = gtk::Label::new(Some(&i18n::t("txnlog.running")));
     status.add_css_class("dim-label");
-    let close = gtk::Button::builder().label("Close").build();
+    let close = gtk::Button::builder().label(i18n::t("action.close")).build();
     close.set_sensitive(false);
     {
         let dialog = dialog.clone();
@@ -90,10 +92,13 @@ impl TxnLog {
     pub fn finish(&self, result: Result<(), i32>) {
         self.spinner.set_spinning(false);
         match result {
-            Ok(()) => self.status.set_text("Done."),
+            Ok(()) => self.status.set_text(&i18n::t("txnlog.done")),
             // pkexec: 127 = the action was refused, 1 = the auth prompt was
             // dismissed. pacman's own failure codes pass through.
-            Err(code) => self.status.set_text(&format!("Failed (exit {code}).")),
+            Err(code) => {
+                self.status
+                    .set_text(&i18n::t_fmt("txnlog.failed", &[("code", &code.to_string())]));
+            }
         }
         self.close.set_sensitive(true);
     }

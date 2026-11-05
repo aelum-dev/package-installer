@@ -11,6 +11,7 @@ use gtk::prelude::*;
 use libadwaita as adw;
 
 use crate::db;
+use crate::i18n;
 use crate::model::Model;
 use crate::txn::{self, Txn, TxnEvent};
 
@@ -109,15 +110,19 @@ impl Ui {
                         // is indistinguishable from an up-to-date system.
                         // Nothing in this app fails silently.
                         if !model.db_errors.is_empty() {
-                            ui.toast(&format!(
-                                "Could not read {} package database(s): {}",
-                                model.db_errors.len(),
-                                model.db_errors.join("; ")
+                            ui.toast(&i18n::t_fmt(
+                                "toast.dbErrors",
+                                &[
+                                    ("count", &model.db_errors.len().to_string()),
+                                    ("errors", &model.db_errors.join("; ")),
+                                ],
                             ));
                         }
                         *ui.model.borrow_mut() = Some(Rc::new(model));
                     }
-                    Err(e) => ui.toast(&format!("Could not read the package databases: {e}")),
+                    Err(e) => {
+                        ui.toast(&i18n::t_fmt("toast.modelLoad", &[("error", &e.to_string())]));
+                    }
                 }
                 ui.refresh_pages();
             }
@@ -198,7 +203,7 @@ impl Ui {
     fn run_txn(&self, txn: Txn, quiet: bool, auto: bool) {
         if self.running.get() {
             if !quiet {
-                self.toast("Another operation is already running.");
+                self.toast(&i18n::t("toast.busy"));
             }
             return;
         }
@@ -208,9 +213,9 @@ impl Ui {
         // a pkexec error in a log dialog.
         if !std::path::Path::new(txn::HELPER).exists() {
             if !quiet {
-                self.toast(&format!(
-                    "Package operations need the installed aelum-package-installer ({} is missing).",
-                    txn::HELPER
+                self.toast(&i18n::t_fmt(
+                    "toast.noHelper",
+                    &[("helper", txn::HELPER)],
                 ));
             }
             return;
@@ -268,11 +273,11 @@ impl Ui {
                                     Some(std::time::SystemTime::now());
                             }
                             if log.is_some() {
-                                ui.toast("Done.");
+                                ui.toast(&i18n::t("txnlog.done"));
                             } else if !auto {
                                 // The manual check announces itself; the
                                 // startup one lets the pages speak.
-                                ui.toast("Package databases refreshed.");
+                                ui.toast(&i18n::t("toast.refreshed"));
                             }
                             ui.load_model();
                         }
@@ -290,7 +295,9 @@ impl Ui {
             }
             match log {
                 Some(log) => log.finish(Err(-1)),
-                None => self.toast(&format!("Could not start the operation: {e}")),
+                None => {
+                    self.toast(&i18n::t_fmt("toast.startFailed", &[("error", &e.to_string())]));
+                }
             }
         }
     }

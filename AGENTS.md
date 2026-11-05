@@ -26,6 +26,9 @@ ISO while that is being measured.
 - `src/db.rs` — the formats: sync DBs, the local DB, `.PKGINFO`. **No GTK.**
 - `src/model.rs` — the merged model (sync × local), `Status`/`Reason`
   classification, search, `updatable`, reverse-deps and orphans. **No GTK.**
+- `src/i18n.rs` — locale selection + the embedded catalogs (the player's
+  contract: `LC_ALL`→`LC_MESSAGES`→`LANG` → BCP-47 → supported list →
+  en-US; per-key fallback; `{placeholder}` interpolation). **No GTK.**
 - `src/vercmp.rs` — rpmvercmp + epoch, hand-written. **No GTK, no alpm.**
 - `src/txn.rs` — the only place a subprocess runs, and the only place root is
   asked for.
@@ -182,9 +185,15 @@ cargo run                                  # GUI. Reads work from a source tree;
   body lines for the *why*. Measured data goes in the code comment or the plan.
 - A claim about classification is settled against pacman, not by reading its
   source: `-Qqe` / `-Qqd` / `-Quq` are the oracles and the ignored tests hold them.
-- The UI strings are English literals; the 28-locale runtime is milestone 4 and
-  follows the video-player's `i18n.rs` pattern (embedded catalogs, locale
-  selection, fallback) — the desktop entry already carries `Name[]` for all 28.
+- **i18n is wired (M4, 2026-11-05):** every UI string is an `i18n::t()`/
+  `i18n::t_fmt()` call keyed in `data/translations/en-US.json`; all 28
+  supported locales carry a full catalog, embedded at compile time (no data
+  dir, no network). The completeness tests in `i18n.rs` fail if a catalog
+  misses a key or loses a `{placeholder}`, if the desktop entry's `Name[]`
+  disagrees with `app.name`, or if `GenericName[]`/`Comment[]` coverage
+  drops — so adding a string means: key in en-US + the call site + all 27
+  translations, and the tests say so. The window direction follows `is_rtl`
+  (`apply_rtl` walks the tree — GTK direction is not inherited).
 - GPL-3.0-only, declared in `Cargo.toml`, the PKGBUILD and `LICENSE` (the
   polkit rule carries its own SPDX id; the license ships in the package under
   `/usr/share/licenses/aelum-package-installer/`).

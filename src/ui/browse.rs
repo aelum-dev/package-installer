@@ -14,6 +14,7 @@ use super::dialog;
 use super::human_size;
 use super::markup_escape;
 use crate::db;
+use crate::i18n;
 use crate::model::{Model, Scope, Status};
 use crate::txn::Txn;
 
@@ -29,7 +30,7 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
     let root = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
     let search = gtk::SearchEntry::new();
-    search.set_placeholder_text(Some("Search all packages"));
+    search.set_placeholder_text(Some(&i18n::t("browse.search")));
     search.set_margin_start(12);
     search.set_margin_end(12);
     search.set_margin_top(12);
@@ -50,7 +51,7 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
 
     let empty = adw::StatusPage::builder()
         .icon_name("system-search-symbolic")
-        .title("Reading package databases…")
+        .title(i18n::t("status.reading"))
         .build();
 
     // A ListBox is not scrollable: its minimum height is the whole list, so
@@ -97,9 +98,12 @@ impl Page {
             self.list.append(&make_row(ui, entry));
         }
         if hits.len() > MAX_ROWS {
-            let more = gtk::Label::new(Some(&format!(
-                "Showing the first {MAX_ROWS} of {} — keep typing to narrow.",
-                hits.len()
+            let more = gtk::Label::new(Some(&i18n::t_fmt(
+                "rows.truncated",
+                &[
+                    ("max", &MAX_ROWS.to_string()),
+                    ("total", &hits.len().to_string()),
+                ],
             )));
             more.add_css_class("dim-label");
             more.set_margin_top(6);
@@ -112,16 +116,20 @@ impl Page {
         // stale even though the check just ran.
         let fresh = (*ui.last_check.borrow()).max(model.db_fresh);
         self.freshness.set_text(&match fresh {
-            Some(t) => format!("Package databases, last refreshed {}.", format_time(t)),
-            None => "No package databases: use the refresh button to download them.".into(),
+            Some(t) => i18n::t_fmt("browse.fresh", &[("time", &format_time(t))]),
+            None => i18n::t("browse.noDbs"),
         });
 
         if hits.is_empty() {
-            let title = if query.is_empty() { "Nothing to browse" } else { "No matches" };
+            let title = if query.is_empty() {
+                i18n::t("browse.empty")
+            } else {
+                i18n::t("rows.noMatches")
+            };
             if let Some(child) = self.stack.child_by_name("empty")
                 && let Some(page) = child.downcast_ref::<adw::StatusPage>()
             {
-                page.set_title(title);
+                page.set_title(&title);
             }
             self.stack.set_visible_child_name("empty");
         } else {
@@ -150,9 +158,13 @@ pub(crate) fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
     match entry.status() {
         Status::Available | Status::UpdateAvailable => {
             let updating = entry.status() == Status::UpdateAvailable;
-            let label = if updating { "Update" } else { "Install" };
+            let label = if updating {
+                i18n::t("action.update")
+            } else {
+                i18n::t("action.install")
+            };
             let button = gtk::Button::builder()
-                .label(label)
+                .label(&label)
                 .valign(gtk::Align::Center)
                 .build();
             button.add_css_class("suggested-action");
@@ -170,20 +182,38 @@ pub(crate) fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
                 // a bare fact with a button next to it does not read as a
                 // confirmation. The version rides in the question because
                 // it is the thing being agreed to.
-                let body = if updating {
-                    format!("Do you want to update {name} to {new_version}?")
+                let (title_key, body_key, button_label) = if updating {
+                    (
+                        "dialog.update.title",
+                        "dialog.update.body",
+                        i18n::t("action.update"),
+                    )
                 } else {
-                    format!("Do you want to install {name} {new_version}?")
+                    (
+                        "dialog.install.title",
+                        "dialog.install.body",
+                        i18n::t("action.install"),
+                    )
                 };
+                let body = i18n::t_fmt(
+                    body_key,
+                    &[("name", &name), ("version", &new_version)],
+                );
                 let mut details = Vec::new();
                 if !url.is_empty() {
                     details.push(url.clone());
                 }
                 if csize > 0 {
-                    details.push(format!("Download: {}.", human_size(csize)));
+                    details.push(i18n::t_fmt(
+                        "dialog.download",
+                        &[("size", &human_size(csize))],
+                    ));
                 }
                 if isize_ > 0 {
-                    details.push(format!("Installed size: {}.", human_size(isize_)));
+                    details.push(i18n::t_fmt(
+                        "dialog.installedSize",
+                        &[("size", &human_size(isize_))],
+                    ));
                 }
                 if let Some(model) = ui.model.borrow().as_ref().cloned() {
                     let missing: Vec<&str> = depends
@@ -194,21 +224,28 @@ pub(crate) fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
                         })
                         .collect();
                     if !missing.is_empty() {
-                        details.push(format!(
-                            "Also installs {} package{} from the repositories.",
-                            missing.len(),
-                            if missing.len() == 1 { "" } else { "s" }
-                        ));
+                        // Two keys, not a Rust plural: "1 package" and the
+                        // count form are different sentences in most of the
+                        // 28 locales.
+                        let also = if missing.len() == 1 {
+                            i18n::t("dialog.alsoInstallsOne")
+                        } else {
+                            i18n::t_fmt(
+                                "dialog.alsoInstallsMany",
+                                &[("count", &missing.len().to_string())],
+                            )
+                        };
+                        details.push(also);
                     }
                 }
                 let ui2 = ui.clone();
                 let name2 = name.clone();
                 dialog::confirm(
                     &window,
-                    &format!("{} {name}?", if updating { "Update" } else { "Install" }),
+                    &i18n::t_fmt(title_key, &[("name", &name)]),
                     &body,
                     &details,
-                    if updating { "Update" } else { "Install" },
+                    &button_label,
                     false,
                     // `pacman -S --needed` is both verbs: a fresh install
                     // or the one newer version the model found.
@@ -218,12 +255,12 @@ pub(crate) fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
             row.add_suffix(&button);
         }
         Status::InstalledExplicit => {
-            let tag = gtk::Label::new(Some("Installed"));
+            let tag = gtk::Label::new(Some(&i18n::t("tag.installed")));
             tag.add_css_class("dim-label");
             row.add_suffix(&tag);
         }
         Status::InstalledDep => {
-            let tag = gtk::Label::new(Some("Installed (dependency)"));
+            let tag = gtk::Label::new(Some(&i18n::t("tag.installedDep")));
             tag.add_css_class("dim-label");
             row.add_suffix(&tag);
         }

@@ -4,6 +4,8 @@ use gtk::prelude::*;
 use libadwaita as adw;
 use libadwaita::prelude::*;
 
+use crate::i18n;
+
 /// A modal confirm with an explanation, optional detail lines, and one
 /// action button. Every removal and every local-file install goes through
 /// here — the confirmation the helper runs `--noconfirm` on.
@@ -40,7 +42,7 @@ pub fn confirm(
     let actions = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     actions.set_halign(gtk::Align::End);
     actions.set_margin_top(6);
-    let cancel = gtk::Button::builder().label("Cancel").build();
+    let cancel = gtk::Button::builder().label(i18n::t("action.cancel")).build();
     cancel.add_css_class("flat");
     {
         let dialog = dialog.clone();

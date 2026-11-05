@@ -17,6 +17,8 @@ use std::thread;
 
 use futures::channel::mpsc::UnboundedSender;
 
+use crate::i18n;
+
 /// The helper shipped by the package; pkexec resolves it to the
 /// `dev.aelum.package.manage` action through the policy's exec.path.
 pub const HELPER: &str = "/usr/bin/aelum-package-installer-helper";
@@ -54,13 +56,16 @@ impl Txn {
     /// One line shown in the log while it runs.
     pub fn summary(&self) -> String {
         match self {
-            Txn::Refresh => "Refreshing package databases…".into(),
-            Txn::Install(pkgs) => format!("Installing {}…", pkgs.join(", ")),
-            Txn::Remove(pkgs) => format!("Removing {}…", pkgs.join(", ")),
-            Txn::Upgrade => "Updating all packages…".into(),
-            Txn::InstallFile(path) => {
-                format!("Installing {}…", path.file_name().unwrap_or_default().to_string_lossy())
+            Txn::Refresh => i18n::t("txn.summaryRefresh"),
+            Txn::Install(pkgs) => {
+                i18n::t_fmt("txn.summaryInstall", &[("names", &pkgs.join(", "))])
             }
+            Txn::Remove(pkgs) => i18n::t_fmt("txn.summaryRemove", &[("names", &pkgs.join(", "))]),
+            Txn::Upgrade => i18n::t("txn.summaryUpgrade"),
+            Txn::InstallFile(path) => i18n::t_fmt(
+                "txn.summaryFile",
+                &[("file", &path.file_name().unwrap_or_default().to_string_lossy())],
+            ),
         }
     }
 }

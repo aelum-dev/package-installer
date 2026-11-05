@@ -9,6 +9,7 @@ use libadwaita::prelude::*;
 use super::app::{MAX_ROWS, Ui};
 use super::human_size;
 use super::markup_escape;
+use crate::i18n;
 use crate::model::{Entry, Model};
 use crate::txn::Txn;
 
@@ -29,7 +30,7 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
     header.set_margin_top(12);
     let count = gtk::Label::builder().xalign(0.0).build();
     count.set_hexpand(true);
-    let all = gtk::Button::builder().label("Update All").build();
+    let all = gtk::Button::builder().label(i18n::t("action.updateAll")).build();
     all.add_css_class("suggested-action");
     {
         let ui = ui.clone();
@@ -51,7 +52,7 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
 
     let empty = adw::StatusPage::builder()
         .icon_name("object-select-symbolic")
-        .title("Reading package databases…")
+        .title(i18n::t("status.reading"))
         .build();
 
     // A ListBox is not scrollable: its minimum height is the whole list, so
@@ -90,9 +91,12 @@ impl Page {
             self.list.append(&make_row(ui, entry));
         }
         if hits.len() > MAX_ROWS {
-            let more = gtk::Label::new(Some(&format!(
-                "Showing the first {MAX_ROWS} of {}.",
-                hits.len()
+            let more = gtk::Label::new(Some(&i18n::t_fmt(
+                "rows.truncatedShort",
+                &[
+                    ("max", &MAX_ROWS.to_string()),
+                    ("total", &hits.len().to_string()),
+                ],
             )));
             more.add_css_class("dim-label");
             more.set_margin_top(6);
@@ -107,17 +111,22 @@ impl Page {
                 // "Up to date" is only a fact when the databases were
                 // readable; an unreadable one would otherwise hide behind it.
                 if model.db_errors.is_empty() {
-                    page.set_title("Everything up to date");
+                    page.set_title(&i18n::t("updates.empty"));
                     page.set_description(None::<&str>);
                 } else {
-                    page.set_title("Package databases could not be read");
+                    page.set_title(&i18n::t("updates.dbError"));
                     page.set_description(Some(&model.db_errors.join("; ")));
                 }
             }
             self.stack.set_visible_child_name("empty");
         } else {
-            let noun = if hits.len() == 1 { "update is" } else { "updates are" };
-            self.count.set_text(&format!("{} {} available.", hits.len(), noun));
+            let count = hits.len().to_string();
+            let key = if hits.len() == 1 {
+                "updates.countOne"
+            } else {
+                "updates.countMany"
+            };
+            self.count.set_text(&i18n::t_fmt(key, &[("count", &count)]));
             self.header.set_visible(true);
             self.stack.set_visible_child_name("list");
         }
@@ -159,7 +168,10 @@ fn make_row(ui: &Ui, entry: &Entry) -> adw::ActionRow {
     // the old and new version, the repo, and the download size — the same
     // contract as the Update button on the Installed page. The log dialog
     // owns the rest.
-    let button = gtk::Button::builder().label("Update").valign(gtk::Align::Center).build();
+    let button = gtk::Button::builder()
+        .label(i18n::t("action.update"))
+        .valign(gtk::Align::Center)
+        .build();
     button.add_css_class("suggested-action");
     let ui = ui.clone();
     let name = entry.name.clone();

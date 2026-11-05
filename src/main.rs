@@ -13,6 +13,7 @@
 //! ([`db`], [`model`]); the only subprocesses are the transactions.
 
 mod db;
+mod i18n;
 mod model;
 mod txn;
 mod ui;
@@ -26,6 +27,9 @@ use libadwaita as adw;
 const APP_ID: &str = "aelum.packageinstaller.Packages";
 
 fn main() -> gtk::glib::ExitCode {
+    // Locale + catalogs, before any string is built.
+    i18n::init();
+
     let app = adw::Application::new(
         Some(APP_ID),
         gtk::gio::ApplicationFlags::HANDLES_OPEN,
@@ -61,13 +65,13 @@ fn main() -> gtk::glib::ExitCode {
                 let name = file
                     .basename()
                     .map(|p| p.display().to_string())
-                    .unwrap_or_else(|| "a package".into());
-                ui.toast(&format!("Only one package is opened at a time; ignoring {name}."));
+                    .unwrap_or_else(|| i18n::t("toast.openFallbackName"));
+                ui.toast(&i18n::t_fmt("toast.openExtra", &[("name", &name)]));
             }
             if let Some(file) = files.first() {
                 match file.path() {
                     Some(path) => ui.open_file(path),
-                    None => ui.toast("The opened file is not a local file."),
+                    None => ui.toast(&i18n::t("toast.openNotLocal")),
                 }
             }
         }

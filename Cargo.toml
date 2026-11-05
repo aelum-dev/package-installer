@@ -16,3 +16,5 @@ tar = "0.4"
 zstd = "0.13"
 futures = "0.3"
 flate2 = "1.1.10"
+# i18n catalogs are flat JSON string maps — the player's pattern.
+serde_json = "1"

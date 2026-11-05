@@ -10,6 +10,7 @@ use libadwaita::prelude::*;
 use super::app::{MAX_ROWS, Ui};
 use super::dialog;
 use super::markup_escape;
+use crate::i18n;
 use crate::model::{Model, Scope, Status};
 use crate::txn::Txn;
 
@@ -24,7 +25,7 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
     let root = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
     let search = gtk::SearchEntry::new();
-    search.set_placeholder_text(Some("Search installed packages"));
+    search.set_placeholder_text(Some(&i18n::t("installed.search")));
     search.set_margin_start(12);
     search.set_margin_end(12);
     search.set_margin_top(12);
@@ -41,7 +42,7 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
 
     let empty = adw::StatusPage::builder()
         .icon_name("package-x-generic-symbolic")
-        .title("Reading package databases…")
+        .title(i18n::t("status.reading"))
         .build();
 
     // A ListBox is not scrollable: its minimum height is the whole list, so
@@ -87,9 +88,12 @@ impl Page {
             self.list.append(&make_row(ui, entry));
         }
         if hits.len() > MAX_ROWS {
-            let more = gtk::Label::new(Some(&format!(
-                "Showing the first {MAX_ROWS} of {} — keep typing to narrow.",
-                hits.len()
+            let more = gtk::Label::new(Some(&i18n::t_fmt(
+                "rows.truncated",
+                &[
+                    ("max", &MAX_ROWS.to_string()),
+                    ("total", &hits.len().to_string()),
+                ],
             )));
             more.add_css_class("dim-label");
             more.set_margin_top(6);
@@ -97,11 +101,15 @@ impl Page {
         }
 
         if hits.is_empty() {
-            let title = if query.is_empty() { "No installed packages" } else { "No matches" };
+            let title = if query.is_empty() {
+                i18n::t("installed.empty")
+            } else {
+                i18n::t("rows.noMatches")
+            };
             if let Some(child) = self.stack.child_by_name("empty")
                 && let Some(page) = child.downcast_ref::<adw::StatusPage>()
             {
-                page.set_title(title);
+                page.set_title(&title);
             }
             self.stack.set_visible_child_name("empty");
         } else {
@@ -131,13 +139,15 @@ fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
             let tag = gtk::Label::new(Some(&format!("→ {}", sync.version)));
             tag.add_css_class("dim-label");
             row.add_suffix(&tag);
-            add_button(&row, "Update", "suggested-action", ui, entry.name.clone(), true);
+            let label = i18n::t("action.update");
+            add_button(&row, &label, "suggested-action", ui, entry.name.clone(), true);
         }
         Status::InstalledExplicit => {
-            add_button(&row, "Uninstall", "flat", ui, entry.name.clone(), false);
+            let label = i18n::t("action.uninstall");
+            add_button(&row, &label, "flat", ui, entry.name.clone(), false);
         }
         Status::InstalledDep => {
-            let tag = gtk::Label::new(Some("dependency"));
+            let tag = gtk::Label::new(Some(&i18n::t("tag.dependency")));
             tag.add_css_class("dim-label");
             row.add_suffix(&tag);
         }
@@ -177,24 +187,29 @@ fn add_button(
             if !breaks.is_empty() {
                 // The one fact that decides the answer: pacman refuses to
                 // remove a package other packages still need.
-                details.push(format!("Still needed by: {}.", name_list(&breaks)));
+                details.push(i18n::t_fmt(
+                    "dialog.remove.stillNeeded",
+                    &[("list", &name_list(&breaks))],
+                ));
             }
             if !orphans.is_empty() {
                 // A count, not a list: the run's own log names every package
                 // it takes, and this dialog is not the place to pre-print it.
-                details.push(format!("Also removes {} unneeded dependencies.", orphans.len()));
+                details.push(i18n::t_fmt(
+                    "dialog.remove.orphans",
+                    &[("count", &orphans.len().to_string())],
+                ));
             }
             let ui2 = ui.clone();
             let name_for_txn = name.clone();
             dialog::confirm(
                 &window,
-                &format!("Remove {name}?"),
+                &i18n::t_fmt("dialog.remove.title", &[("name", &name)]),
                 // The question is asked in words: a bare fact with a button
                 // next to it does not read as a confirmation.
-                "Are you sure you want to remove this package? \
-                 Its files will be removed from the system.",
+                &i18n::t("dialog.remove.body"),
                 &details,
-                "Remove",
+                &i18n::t("action.remove"),
                 true,
                 move || ui2.start_txn(Txn::Remove(vec![name_for_txn])),
             );
@@ -211,9 +226,11 @@ fn name_list(names: &[String]) -> String {
     if names.len() <= SHOWN {
         return names.join(", ");
     }
-    format!(
-        "{} packages, including {}",
-        names.len(),
-        names.iter().take(SHOWN).cloned().collect::<Vec<_>>().join(", ")
+    i18n::t_fmt(
+        "dialog.nameList",
+        &[
+            ("count", &names.len().to_string()),
+            ("sample", &names.iter().take(SHOWN).cloned().collect::<Vec<_>>().join(", ")),
+        ],
     )
 }

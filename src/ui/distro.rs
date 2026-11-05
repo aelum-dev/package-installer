@@ -8,6 +8,7 @@ use libadwaita as adw;
 
 use super::app::{MAX_ROWS, Ui};
 use super::browse;
+use crate::i18n;
 use crate::model::Model;
 
 #[derive(Clone)]
@@ -29,7 +30,7 @@ pub fn build() -> (Page, gtk::Box) {
 
     let empty = adw::StatusPage::builder()
         .icon_name("starred-symbolic")
-        .title("Reading package databases…")
+        .title(i18n::t("status.reading"))
         .build();
 
     // A ListBox is not scrollable: its minimum height is the whole list, so
@@ -60,9 +61,12 @@ impl Page {
             self.list.append(&browse::make_row(ui, entry));
         }
         if hits.len() > MAX_ROWS {
-            let more = gtk::Label::new(Some(&format!(
-                "Showing the first {MAX_ROWS} of {}.",
-                hits.len()
+            let more = gtk::Label::new(Some(&i18n::t_fmt(
+                "rows.truncatedShort",
+                &[
+                    ("max", &MAX_ROWS.to_string()),
+                    ("total", &hits.len().to_string()),
+                ],
             )));
             more.add_css_class("dim-label");
             more.set_margin_top(6);
@@ -83,16 +87,14 @@ impl Page {
                     .map(|e| e.as_str())
                     .collect();
                 if !db_error.is_empty() {
-                    page.set_title("The [aelum] database could not be read");
+                    page.set_title(&i18n::t("aelum.dbError"));
                     page.set_description(Some(&db_error.join("; ")));
                 } else if model.has_distro_repo() {
-                    page.set_title("All Aelum apps are installed");
+                    page.set_title(&i18n::t("aelum.empty"));
                     page.set_description(None::<&str>);
                 } else {
-                    page.set_title("The [aelum] repository is not configured");
-                    page.set_description(Some(
-                        "Enable it in pacman.conf, then use the refresh button to download its package list.",
-                    ));
+                    page.set_title(&i18n::t("aelum.noRepo"));
+                    page.set_description(Some(&i18n::t("aelum.noRepoBody")));
                 }
             }
             self.stack.set_visible_child_name("empty");

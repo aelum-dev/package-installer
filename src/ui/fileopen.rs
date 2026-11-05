@@ -10,6 +10,7 @@ use super::app::Ui;
 use super::dialog;
 use super::human_size;
 use crate::db::PkgInfo;
+use crate::i18n;
 use crate::txn::Txn;
 
 pub fn show(ui: &Ui, info: PkgInfo, path: PathBuf) {
@@ -18,30 +19,40 @@ pub fn show(ui: &Ui, info: PkgInfo, path: PathBuf) {
         return;
     };
 
-    let body = format!(
-        "{} {}\n{}",
-        info.name,
-        info.version,
-        if info.desc.is_empty() { "(no description)" } else { &info.desc }
+    let desc = if info.desc.is_empty() {
+        i18n::t("fileopen.noDesc")
+    } else {
+        info.desc.clone()
+    };
+    let body = i18n::t_fmt(
+        "fileopen.body",
+        &[
+            ("name", &info.name),
+            ("version", &info.version),
+            ("desc", &desc),
+        ],
     );
     let mut details = Vec::new();
     if !info.url.is_empty() {
         details.push(info.url.clone());
     }
     if info.isize > 0 {
-        details.push(format!("Installed size: {}.", human_size(info.isize)));
+        details.push(i18n::t_fmt(
+            "dialog.installedSize",
+            &[("size", &human_size(info.isize))],
+        ));
     }
     if !info.depends.is_empty() {
-        details.push("Missing dependencies will be installed from the sync repositories.".into());
+        details.push(i18n::t("fileopen.missingDeps"));
     }
-    details.push("Local package files are not signature-checked.".into());
+    details.push(i18n::t("fileopen.unsigned"));
 
     dialog::confirm(
         &window,
-        "Install this package?",
+        &i18n::t("fileopen.title"),
         &body,
         &details,
-        "Install",
+        &i18n::t("action.install"),
         false,
         move || ui.start_txn(Txn::InstallFile(path)),
     );
