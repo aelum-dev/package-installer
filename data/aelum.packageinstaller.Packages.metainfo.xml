@@ -30,6 +30,15 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.2.0" date="2026-11-05">
+      <description>
+        <ul>
+          <li>New Aelum tab: the distro's own apps your system doesn't have yet, with a dot when new ones are published</li>
+          <li>The app now speaks all 28 of the desktop's languages — interface, dialogs, and the launcher entry</li>
+          <li>Installs and updates now ask in words: Do you want to install &lt;name&gt; &lt;version&gt;?</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.2" date="2026-11-05">
       <description>
         <ul>
