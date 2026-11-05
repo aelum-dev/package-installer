@@ -1,7 +1,7 @@
 //! The merged package model: sync entries × local state, classification,
 //! and search. Pure — built by loading, read by the UI, never mutates disk.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
 use std::path::Path;
 use std::time::SystemTime;
@@ -85,6 +85,11 @@ pub enum Scope {
 pub struct Model {
     entries: Vec<Entry>,
     index: HashMap<String, usize>,
+    /// name → the installed packages whose dependency list names it, each list
+    /// sorted and deduplicated. Built once at load: answering "what depends on
+    /// this" by scanning every installed package's dependency list is
+    /// quadratic, measured at ~2 s per Remove click on a 1258-package system.
+    dependents: HashMap<String, Vec<String>>,
     /// Newest mtime among the sync DBs: how fresh the browse page is.
     pub db_fresh: Option<SystemTime>,
     /// Sync databases that could not be read (`<repo>: reason`). A database
@@ -158,7 +163,9 @@ impl Model {
             }
         }
 
-        Ok(Model { entries, index, db_fresh, db_errors })
+        let dependents = dependents_index(&entries);
+
+        Ok(Model { entries, index, dependents, db_fresh, db_errors })
     }
 
     pub fn get(&self, name: &str) -> Option<&Entry> {
@@ -206,52 +213,81 @@ impl Model {
             .collect()
     }
 
-    /// Installed packages that depend on `name` — what removing it would
-    /// break. The name is matched as the leading token of a dep string.
+    /// Installed packages that depend on `name` — what removing it would break.
+    /// Sorted, so a confirmation lists them in a stable order.
     pub fn reverse_deps(&self, name: &str) -> Vec<String> {
-        self.entries
-            .iter()
-            .filter_map(|e| e.installed.as_ref())
-            .filter(|l| {
-                l.name != name
-                    && l.depends.iter().any(|d| db::dep_name(d) == name)
-            })
-            .map(|l| l.name.clone())
-            .collect()
+        self.dependents.get(name).cloned().unwrap_or_default()
     }
 
-    /// Orphaned dependencies an uninstall with `-Rns` would take along:
-    /// dependencies that no installed package outside the removal set
-    /// depends on. Fixed-point: each new orphan can make more orphans.
+    /// The dependencies `-Rns <name>` would take along: the packages in that
+    /// dependency tree which nothing outside the removal needs — pacman's own
+    /// rule, so it recurses into the target's dependencies and never sweeps up
+    /// unrelated leftovers. Walked outwards from the removal: a dependency
+    /// falls when its last remaining dependent falls with it.
     pub fn orphans_after_removal(&self, name: &str) -> Vec<String> {
-        let mut removed: Vec<String> = vec![name.to_string()];
-        let mut changed = true;
-        while changed {
-            changed = false;
-            for e in &self.entries {
-                let Some(l) = e.installed.as_ref() else { continue };
-                if l.reason == Reason::Explicit || removed.contains(&l.name) {
+        let mut removed: HashSet<&str> = HashSet::new();
+        removed.insert(name);
+        let mut fell: Vec<&str> = Vec::new();
+        let mut queue: VecDeque<&str> = VecDeque::new();
+        queue.push_back(name);
+        while let Some(going) = queue.pop_front() {
+            let Some(local) = self.installed(going) else { continue };
+            for dep in &local.depends {
+                let dep = db::dep_name(dep);
+                if dep == going || removed.contains(dep) {
                     continue;
                 }
-                // Still needed only if some installed package outside the
-                // removal set depends on it. Dependents, not dependencies.
-                let needed = self
-                    .entries
-                    .iter()
-                    .filter_map(|e| e.installed.as_ref())
-                    .any(|d| {
-                        !removed.contains(&d.name)
-                            && d.depends.iter().any(|dep| db::dep_name(dep) == l.name)
-                    });
-                if !needed {
-                    removed.push(l.name.clone());
-                    changed = true;
+                // Only an installed dependency can fall, and a package the user
+                // chose is never taken by `-Rns`.
+                let Some(dependency) = self.installed(dep) else { continue };
+                if dependency.reason == Reason::Explicit {
+                    continue;
                 }
+                // Still needed while any package outside the removal needs it.
+                let needed = self
+                    .dependents
+                    .get(dep)
+                    .is_some_and(|ds| ds.iter().any(|d| !removed.contains(d.as_str())));
+                if needed {
+                    continue;
+                }
+                removed.insert(dep);
+                fell.push(dep);
+                queue.push_back(dep);
             }
         }
-        removed.remove(0); // the package being removed itself
-        removed
+        let mut fell: Vec<String> = fell.iter().map(|s| s.to_string()).collect();
+        fell.sort();
+        fell
     }
+
+    /// The installed record for a name, if the system has one.
+    fn installed(&self, name: &str) -> Option<&LocalPackage> {
+        self.get(name).and_then(|e| e.installed.as_ref())
+    }
+}
+
+/// name → the installed packages whose dependency list names it, each list
+/// sorted and deduplicated. A dependency string is matched by its leading
+/// token and a package that names itself is skipped, the same rule the
+/// one-off scans used.
+fn dependents_index(entries: &[Entry]) -> HashMap<String, Vec<String>> {
+    let mut index: HashMap<String, Vec<String>> = HashMap::new();
+    for e in entries {
+        let Some(l) = e.installed.as_ref() else { continue };
+        for dep in &l.depends {
+            let dep = db::dep_name(dep);
+            if dep == l.name {
+                continue;
+            }
+            index.entry(dep.to_string()).or_default().push(l.name.clone());
+        }
+    }
+    for list in index.values_mut() {
+        list.sort();
+        list.dedup();
+    }
+    index
 }
 
 #[cfg(test)]
@@ -278,7 +314,6 @@ mod tests {
             version: version.into(),
             desc: String::new(),
             reason,
-            isize: 0,
             depends: depends.iter().map(|s| s.to_string()).collect(),
         }
     }
@@ -288,7 +323,8 @@ mod tests {
         for (i, e) in entries.iter().enumerate() {
             index.insert(e.name.clone(), i);
         }
-        Model { entries, index, db_fresh: None, db_errors: Vec::new() }
+        let dependents = dependents_index(&entries);
+        Model { entries, index, dependents, db_fresh: None, db_errors: Vec::new() }
     }
 
     fn entry(name: &str, installed: Option<LocalPackage>, sync_pkg: Option<SyncPackage>) -> Entry {
@@ -379,12 +415,65 @@ mod tests {
     #[test]
     fn orphans_follow_the_removal() {
         let m = fixture();
-        // glibc's only dependent (myapp) goes, and orphan-dep has no
-        // dependents at all: `-Rns myapp` would take both.
-        assert_eq!(m.orphans_after_removal("myapp"), ["glibc", "orphan-dep"]);
-        // Removing glibc leaves myapp (explicit) standing; only the
-        // never-needed orphan falls.
-        assert_eq!(m.orphans_after_removal("glibc"), ["orphan-dep"]);
+        // `-Rns myapp` takes glibc: nothing else needs it. It does not take
+        // orphan-dep, which is not in myapp's dependency tree — it depends on
+        // myapp, which is also why pacman refuses this removal (reverse_deps
+        // is the list that says so).
+        assert_eq!(m.orphans_after_removal("myapp"), ["glibc"]);
+        // Removing glibc breaks myapp (explicit): nothing of glibc's falls.
+        assert_eq!(m.orphans_after_removal("glibc"), Vec::<String>::new());
+    }
+
+    #[test]
+    fn orphans_fall_transitively() {
+        // top → a → b → c: removing top takes all three, each losing its only
+        // remaining dependent in turn.
+        let m = model(vec![
+            entry("top", Some(local("top", "1-1", Reason::Explicit, &["a"])), None),
+            entry("a", Some(local("a", "1-1", Reason::Dependency, &["b"])), None),
+            entry("b", Some(local("b", "1-1", Reason::Dependency, &["c"])), None),
+            entry("c", Some(local("c", "1-1", Reason::Dependency, &[])), None),
+        ]);
+        assert_eq!(m.orphans_after_removal("top"), ["a", "b", "c"]);
+    }
+
+    #[test]
+    fn a_shared_dependency_stays() {
+        // glibc is needed by another package the user chose: neither removal
+        // takes it, and an explicit package is never taken at all.
+        let m = model(vec![
+            entry("one", Some(local("one", "1-1", Reason::Explicit, &["glibc"])), None),
+            entry("two", Some(local("two", "1-1", Reason::Explicit, &["glibc"])), None),
+            entry("helper", Some(local("helper", "1-1", Reason::Dependency, &["glibc"])), None),
+            entry("glibc", Some(local("glibc", "1-1", Reason::Dependency, &[])), None),
+        ]);
+        assert_eq!(m.orphans_after_removal("one"), Vec::<String>::new());
+        assert_eq!(m.orphans_after_removal("two"), Vec::<String>::new());
+        assert_eq!(m.orphans_after_removal("helper"), Vec::<String>::new());
+        assert_eq!(m.reverse_deps("glibc"), ["helper", "one", "two"]);
+    }
+
+    #[test]
+    fn the_index_matches_a_plain_scan() {
+        // The index is an optimisation only: for every installed package, the
+        // dependents it lists are exactly what scanning the entries finds.
+        let m = fixture();
+        for target in m.entries.iter().filter(|e| e.installed.is_some()) {
+            let mut scanned: Vec<String> = m
+                .entries
+                .iter()
+                .filter_map(|e| e.installed.as_ref())
+                .filter(|l| {
+                    l.name != target.name
+                        && l.depends.iter().any(|d| db::dep_name(d) == target.name)
+                })
+                .map(|l| l.name.clone())
+                .collect();
+            scanned.sort();
+            scanned.dedup();
+            let indexed = m.dependents.get(target.name.as_str()).cloned().unwrap_or_default();
+            assert_eq!(indexed, scanned, "dependents of {}", target.name);
+        }
     }
 
     /// The classification must agree with pacman's own `-Qe` on a real
@@ -455,5 +544,33 @@ mod tests {
         let mut ours = ours;
         ours.sort();
         assert_eq!(ours, theirs);
+    }
+
+    /// A press of Remove answers both removal questions on the UI thread
+    /// before the confirmation appears. Scanning every installed package per
+    /// question took ~2 s each on a 1258-package system, so the budget here is
+    /// the difference between a dialog and a freeze. Ignored by default: it
+    /// needs a real Arch host.
+    #[test]
+    #[ignore]
+    fn removal_questions_answer_on_a_ui_thread_budget() {
+        let m = Model::load(Path::new("/var/lib/pacman")).expect("real pacman root");
+        let installed: Vec<String> = m
+            .search("", Scope::All)
+            .iter()
+            .filter(|e| e.installed.is_some())
+            .map(|e| e.name.clone())
+            .collect();
+        let started = std::time::Instant::now();
+        for name in &installed {
+            let _ = m.reverse_deps(name);
+            let _ = m.orphans_after_removal(name);
+        }
+        let took = started.elapsed();
+        assert!(
+            took < std::time::Duration::from_secs(2),
+            "{} removals answered in {took:?} — the dependents index is not in use",
+            installed.len()
+        );
     }
 }

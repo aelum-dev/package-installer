@@ -157,7 +157,6 @@ pub struct LocalPackage {
     pub version: String,
     pub desc: String,
     pub reason: Reason,
-    pub isize: u64,
     pub depends: Vec<String>,
 }
 
@@ -178,7 +177,6 @@ pub fn read_local_db(dir: &Path) -> std::io::Result<Vec<LocalPackage>> {
             version: field(&s, "%VERSION%").unwrap_or("").to_string(),
             desc: field(&s, "%DESC%").unwrap_or("").to_string(),
             reason: parse_reason(field(&s, "%REASON%")),
-            isize: field_u64(&s, "%ISIZE%"),
             depends: multi(&s, "%DEPENDS%"),
         });
     }
