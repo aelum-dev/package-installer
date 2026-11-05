@@ -18,7 +18,6 @@ pub struct Page {
     search: gtk::SearchEntry,
     list: gtk::ListBox,
     stack: gtk::Stack,
-    banner: adw::Banner,
 }
 
 pub fn build(ui: &Ui) -> (Page, gtk::Box) {
@@ -31,14 +30,8 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
     search.set_margin_top(12);
     root.append(&search);
 
-    let banner = adw::Banner::builder().button_label("Update All").build();
-    banner.set_margin_top(6);
-    {
-        let ui = ui.clone();
-        banner.connect_button_clicked(move |_| ui.start_txn(Txn::Upgrade));
-    }
-    root.append(&banner);
-
+    // No update banner here: the Updates tab carries its own badge, and a
+    // second count on this page would be the same fact said twice.
     let list = gtk::ListBox::new();
     list.set_selection_mode(gtk::SelectionMode::None);
     list.set_margin_start(12);
@@ -69,7 +62,6 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
         search: search.clone(),
         list: list.clone(),
         stack: stack.clone(),
-        banner: banner.clone(),
     };
     {
         let ui = ui.clone();
@@ -102,15 +94,6 @@ impl Page {
             more.add_css_class("dim-label");
             more.set_margin_top(6);
             self.list.append(&more);
-        }
-
-        let updates = model.updatable().len();
-        if updates > 0 {
-            let noun = if updates == 1 { "update is" } else { "updates are" };
-            self.banner.set_title(&format!("{updates} {noun} available"));
-            self.banner.set_revealed(true);
-        } else {
-            self.banner.set_revealed(false);
         }
 
         if hits.is_empty() {
