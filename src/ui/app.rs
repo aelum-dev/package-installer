@@ -45,6 +45,11 @@ pub struct Ui {
     /// post-refresh load can overlap; only the newest one may set the
     /// model, or a slow older read could resurrect stale databases.
     pub load_seq: Rc<Cell<u64>>,
+    /// When a Refresh last *succeeded* this session. pacman -Sy sends a
+    /// conditional request and leaves the .db files untouched when the
+    /// mirror says "not modified", so their mtimes cannot prove when the
+    /// last check happened — this does.
+    pub last_check: Rc<std::cell::RefCell<Option<std::time::SystemTime>>>,
 }
 
 impl Ui {
@@ -61,6 +66,7 @@ impl Ui {
             on_updates_page: Rc::new(Cell::new(false)),
             refresh: Rc::new(RefCell::new(None)),
             load_seq: Rc::new(Cell::new(0)),
+            last_check: Rc::new(RefCell::new(None)),
         }
     }
 
@@ -225,6 +231,10 @@ impl Ui {
                             log.finish(result);
                         }
                         if result.is_ok() {
+                            if spinning {
+                                *ui.last_check.borrow_mut() =
+                                    Some(std::time::SystemTime::now());
+                            }
                             if log.is_some() {
                                 ui.toast("Done.");
                             } else if !auto {

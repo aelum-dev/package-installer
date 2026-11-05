@@ -106,7 +106,12 @@ impl Page {
             self.list.append(&more);
         }
 
-        self.freshness.set_text(&match model.db_fresh {
+        // The fresher of: this session's successful check, or the DB
+        // files' mtimes. A successful -Sy can leave the files untouched
+        // (the mirror answers "not modified"), so the mtime alone goes
+        // stale even though the check just ran.
+        let fresh = (*ui.last_check.borrow()).max(model.db_fresh);
+        self.freshness.set_text(&match fresh {
             Some(t) => format!("Package databases, last refreshed {}.", format_time(t)),
             None => "No package databases: use the refresh button to download them.".into(),
         });
