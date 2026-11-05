@@ -1,4 +1,6 @@
 /target/
 /dist/
 /packaging/*.tar.gz
+/packaging/pkg/
+/packaging/src/
 /release.env
