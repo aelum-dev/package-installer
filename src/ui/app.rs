@@ -94,7 +94,20 @@ impl Ui {
                     return; // a newer load is already on its way
                 }
                 match result {
-                    Ok(model) => *ui.model.borrow_mut() = Some(Rc::new(model)),
+                    Ok(model) => {
+                        // A repository whose database could not be read is
+                        // missing from every page, and an empty Updates page
+                        // is indistinguishable from an up-to-date system.
+                        // Nothing in this app fails silently.
+                        if !model.db_errors.is_empty() {
+                            ui.toast(&format!(
+                                "Could not read {} package database(s): {}",
+                                model.db_errors.len(),
+                                model.db_errors.join("; ")
+                            ));
+                        }
+                        *ui.model.borrow_mut() = Some(Rc::new(model));
+                    }
                     Err(e) => ui.toast(&format!("Could not read the package databases: {e}")),
                 }
                 ui.refresh_pages();

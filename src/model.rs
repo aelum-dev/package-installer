@@ -87,6 +87,10 @@ pub struct Model {
     index: HashMap<String, usize>,
     /// Newest mtime among the sync DBs: how fresh the browse page is.
     pub db_fresh: Option<SystemTime>,
+    /// Sync databases that could not be read (`<repo>: reason`). A database
+    /// that fails to parse leaves its repository invisible, which otherwise
+    /// looks exactly like a system with nothing to update — the UI shows these.
+    pub db_errors: Vec<String>,
 }
 
 impl Model {
@@ -96,6 +100,7 @@ impl Model {
 
         let mut sync = Vec::new();
         let mut db_fresh = None;
+        let mut db_errors: Vec<String> = Vec::new();
         let sync_dir = pacman_root.join("sync");
         if let Ok(rd) = fs::read_dir(&sync_dir) {
             for f in rd.flatten() {
@@ -104,9 +109,16 @@ impl Model {
                     continue;
                 };
                 let Some(repo) = repo.strip_suffix(".db") else { continue };
-                let bytes = fs::read(&path).unwrap_or_default();
-                if let Ok(pkgs) = db::parse_sync_db(&bytes, repo) {
-                    sync.extend(pkgs);
+                let bytes = match fs::read(&path) {
+                    Ok(bytes) => bytes,
+                    Err(e) => {
+                        db_errors.push(format!("{repo}: {e}"));
+                        continue;
+                    }
+                };
+                match db::parse_sync_db(&bytes, repo) {
+                    Ok(pkgs) => sync.extend(pkgs),
+                    Err(e) => db_errors.push(format!("{repo}: {e}")),
                 }
                 if let Ok(meta) = f.metadata()
                     && let Ok(t) = meta.modified()
@@ -146,7 +158,7 @@ impl Model {
             }
         }
 
-        Ok(Model { entries, index, db_fresh })
+        Ok(Model { entries, index, db_fresh, db_errors })
     }
 
     pub fn get(&self, name: &str) -> Option<&Entry> {
@@ -276,7 +288,7 @@ mod tests {
         for (i, e) in entries.iter().enumerate() {
             index.insert(e.name.clone(), i);
         }
-        Model { entries, index, db_fresh: None }
+        Model { entries, index, db_fresh: None, db_errors: Vec::new() }
     }
 
     fn entry(name: &str, installed: Option<LocalPackage>, sync_pkg: Option<SyncPackage>) -> Entry {
@@ -402,6 +414,40 @@ mod tests {
             // search() hides the app's own package, so drop it from the
             // pacman side too — the comparison is about classifying the
             // others, and the self-exclusion has its own test.
+            .filter(|l| *l != SELF_PACKAGE)
+            .map(str::to_string)
+            .collect();
+        theirs.sort();
+        let mut ours = ours;
+        ours.sort();
+        assert_eq!(ours, theirs);
+    }
+
+    /// The update list must agree with pacman's own `-Qu`. Ignored by
+    /// default: it needs an Arch host with sync databases and shells out to
+    /// pacman. Run with `cargo test -- --ignored`.
+    #[test]
+    #[ignore]
+    fn updates_match_pacman_qu() {
+        let m = Model::load(Path::new("/var/lib/pacman")).expect("real pacman root");
+        // The failure this guards was silent: every official `.db` is gzip, a
+        // zstd-only reader parsed none of them, and the Updates page said
+        // "Everything up to date" on a system with updates pending.
+        assert!(m.db_errors.is_empty(), "unreadable databases: {:?}", m.db_errors);
+        assert!(
+            m.search("", Scope::All).iter().any(|e| e.sync.is_some()),
+            "no sync packages were read at all"
+        );
+
+        let ours: Vec<String> = m.updatable().iter().map(|e| e.name.clone()).collect();
+        let out = std::process::Command::new("pacman")
+            .args(["-Quq"])
+            .output()
+            .expect("pacman");
+        let mut theirs: Vec<String> = String::from_utf8(out.stdout)
+            .unwrap()
+            .lines()
+            // The app hides its own package from the Updates page.
             .filter(|l| *l != SELF_PACKAGE)
             .map(str::to_string)
             .collect();

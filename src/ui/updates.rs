@@ -104,7 +104,15 @@ impl Page {
             if let Some(child) = self.stack.child_by_name("empty")
                 && let Some(page) = child.downcast_ref::<adw::StatusPage>()
             {
-                page.set_title("Everything up to date");
+                // "Up to date" is only a fact when the databases were
+                // readable; an unreadable one would otherwise hide behind it.
+                if model.db_errors.is_empty() {
+                    page.set_title("Everything up to date");
+                    page.set_description(None::<&str>);
+                } else {
+                    page.set_title("Package databases could not be read");
+                    page.set_description(Some(&model.db_errors.join("; ")));
+                }
             }
             self.stack.set_visible_child_name("empty");
         } else {

@@ -2,8 +2,8 @@
 //! the `.PKGINFO` inside a package file.
 //!
 //! This is the whole data layer — no `pacman -Ss`/`-Qi` subprocesses. The
-//! formats are alpm's own, stable for years: sync DBs are tar.zst archives
-//! of `<pkgname>/desc` files, the local DB is a directory of the same
+//! formats are alpm's own, stable for years: sync DBs are compressed tar
+//! archives of `<pkgname>/desc` files, the local DB is a directory of the same
 //! `desc` files (with `%REASON%` and `%DEPENDS%`), and `.PKGINFO` is a
 //! `key = value` text file at the root of the package archive.
 
@@ -64,9 +64,40 @@ pub struct SyncPackage {
     pub depends: Vec<String>,
 }
 
+/// Unpack a sync DB into the tar stream inside it.
+///
+/// The local file keeps the compression the mirror served: Arch's
+/// `core.db.tar.gz` lands as `/var/lib/pacman/sync/core.db`, so the official
+/// databases are **gzip**, not zstd (`repo-add` writes gzip too; zstd appears
+/// when a repo is published that way). libalpm sniffs the format, and so must
+/// we — assuming one codec leaves every repository unreadable, which looks
+/// exactly like a system with nothing to update.
+fn unpack_db(bytes: &[u8]) -> std::io::Result<Vec<u8>> {
+    let mut out = Vec::new();
+    if bytes.starts_with(b"\x1f\x8b") {
+        flate2::read::GzDecoder::new(bytes).read_to_end(&mut out)?;
+        Ok(out)
+    } else if bytes.starts_with(b"\x28\xb5\x2f") {
+        zstd::stream::decode_all(bytes)
+    } else if bytes.starts_with(b"\xfd7zXZ\x00") {
+        Err(unsupported("xz"))
+    } else if bytes.starts_with(b"BZh") {
+        Err(unsupported("bzip2"))
+    } else {
+        Err(unsupported("an unknown format"))
+    }
+}
+
+fn unsupported(format: &str) -> std::io::Error {
+    std::io::Error::new(
+        std::io::ErrorKind::InvalidData,
+        format!("package database is compressed with {format}, which this app cannot read"),
+    )
+}
+
 /// Read a sync DB (`/var/lib/pacman/sync/<repo>.db`) into entries.
 pub fn parse_sync_db(bytes: &[u8], repository: &str) -> std::io::Result<Vec<SyncPackage>> {
-    let data = zstd::stream::decode_all(bytes)?;
+    let data = unpack_db(bytes)?;
     let mut archive = tar::Archive::new(Cursor::new(data));
     let mut out = Vec::new();
     for entry in archive.entries()? {
@@ -263,13 +294,11 @@ mod tests {
         assert_eq!(field_u64(&s, "%ISIZE%"), 0);
     }
 
-    #[test]
-    fn sync_db_fixture() {
-        // Build a real tar.zst in memory, then parse it back.
+    /// The tar half of a sync DB: two `desc` members, uncompressed.
+    fn sync_db_tar() -> Vec<u8> {
         let mut buf = Vec::new();
         {
-            let enc = zstd::stream::write::Encoder::new(&mut buf, 1).unwrap();
-            let mut ar = tar::Builder::new(enc);
+            let mut ar = tar::Builder::new(&mut buf);
             for (name, desc_text) in [
                 ("hello", desc(&[("NAME", &["hello"]), ("VERSION", &["2.12.1-1"]), ("DESC", &["example"]), ("CSIZE", &["1234"]), ("ISIZE", &["5678"])])),
                 ("world", desc(&[("NAME", &["world"]), ("VERSION", &["1.0-1"])])),
@@ -283,14 +312,53 @@ mod tests {
                     .unwrap();
             }
             ar.finish().unwrap();
-            ar.into_inner().unwrap().finish().unwrap();
         }
-        let pkgs = parse_sync_db(&buf, "extra").unwrap();
+        buf
+    }
+
+    fn gz(bytes: &[u8]) -> Vec<u8> {
+        let mut out = Vec::new();
+        let mut enc = flate2::write::GzEncoder::new(&mut out, flate2::Compression::default());
+        std::io::Write::write_all(&mut enc, bytes).unwrap();
+        enc.finish().unwrap();
+        out
+    }
+
+    fn zst(bytes: &[u8]) -> Vec<u8> {
+        zstd::stream::encode_all(bytes, 1).unwrap()
+    }
+
+    #[test]
+    fn sync_db_fixture() {
+        let pkgs = parse_sync_db(&zst(&sync_db_tar()), "extra").unwrap();
         assert_eq!(pkgs.len(), 2);
         assert_eq!(pkgs[0].name, "hello");
         assert_eq!(pkgs[0].repository, "extra");
         assert_eq!(pkgs[0].csize, 1234);
         assert_eq!(pkgs[1].name, "world");
+    }
+
+    #[test]
+    fn sync_db_reads_the_compression_the_mirror_sent() {
+        // The format Arch actually ships: `core.db` is `core.db.tar.gz`. A
+        // zstd-only reader parses none of the official repositories and the
+        // Updates page then says "Everything up to date".
+        for (label, bytes) in [("gzip", gz(&sync_db_tar())), ("zstd", zst(&sync_db_tar()))] {
+            let pkgs = parse_sync_db(&bytes, "core").unwrap_or_else(|e| panic!("{label}: {e}"));
+            assert_eq!(pkgs.len(), 2, "{label}");
+            assert_eq!(pkgs[0].name, "hello", "{label}");
+            assert_eq!(pkgs[0].repository, "core", "{label}");
+            assert_eq!(pkgs[0].csize, 1234, "{label}");
+        }
+    }
+
+    #[test]
+    fn sync_db_names_a_codec_it_cannot_read() {
+        // Not silently empty: the message is what the user is shown.
+        let e = parse_sync_db(b"\xfd7zXZ\x00\x00\x00", "core").unwrap_err();
+        assert!(e.to_string().contains("xz"), "{e}");
+        let e = parse_sync_db(b"not an archive", "core").unwrap_err();
+        assert!(e.to_string().contains("unknown"), "{e}");
     }
 
     #[test]
