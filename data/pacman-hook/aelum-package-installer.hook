@@ -12,4 +12,8 @@ Target = aelum-package-installer
 Description = Updating MIME and desktop databases for the package manager…
 When = PostTransaction
 Exec = /usr/bin/sh -c "update-mime-database /usr/share/mime && update-desktop-database -q /usr/share/applications"
-Depends = shared-mime-info desktop-file-utils
+# One dependency per line — the hook parser does not split one value on
+# spaces (measured: a single `Depends = a b` line never satisfies), and
+# every system hook repeats the key.
+Depends = shared-mime-info
+Depends = desktop-file-utils

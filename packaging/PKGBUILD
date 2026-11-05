@@ -54,6 +54,9 @@ package() {
         "$pkgdir/usr/share/polkit-1/actions/dev.aelum.package.manage.policy"
     install -Dm644 data/polkit/aelum-package-manage.rules \
         "$pkgdir/etc/polkit-1/rules.d/aelum-package-manage.rules"
+    # filesystem owns /etc/polkit-1/rules.d at 750; install -D would record
+    # the created directory at 755 and pacman warns on every transaction.
+    chmod 750 "$pkgdir/etc/polkit-1/rules.d"
     # Refresh the MIME/desktop databases after the package's own transactions
     # (Arch runs neither on install).
     install -Dm644 data/pacman-hook/aelum-package-installer.hook \
