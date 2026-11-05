@@ -13,6 +13,7 @@
   "action.cancel": "취소",
   "action.close": "닫기",
   "status.reading": "패키지 데이터베이스 읽는 중…",
+  "status.refreshing": "데이터베이스 갱신 중입니다. 잠시 기다려 주세요…",
   "rows.noMatches": "일치하는 항목 없음",
   "rows.truncated": "전체 {total}개 중 처음 {max}개 표시 — 계속 입력하여 좁히세요.",
   "rows.truncatedShort": "전체 {total}개 중 처음 {max}개 표시.",

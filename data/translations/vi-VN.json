@@ -13,6 +13,7 @@
   "action.cancel": "Hủy",
   "action.close": "Đóng",
   "status.reading": "Đang đọc cơ sở dữ liệu gói…",
+  "status.refreshing": "Đang làm mới cơ sở dữ liệu, vui lòng đợi…",
   "rows.noMatches": "Không có kết quả",
   "rows.truncated": "Đang hiển thị {max} kết quả đầu trong tổng số {total} — tiếp tục gõ để thu hẹp danh sách.",
   "rows.truncatedShort": "Đang hiển thị {max} kết quả đầu trong tổng số {total}.",

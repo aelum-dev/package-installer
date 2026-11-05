@@ -13,6 +13,7 @@
   "action.cancel": "ביטול",
   "action.close": "סגירה",
   "status.reading": "קריאת מאגרי החבילות…",
+  "status.refreshing": "רענון מאגרי הנתונים מתבצע, נא להמתין…",
   "rows.noMatches": "אין תוצאות",
   "rows.truncated": "מוצגות {max} החבילות הראשונות מתוך {total} — המשיכו להקליד כדי לצמצם.",
   "rows.truncatedShort": "מוצגות {max} החבילות הראשונות מתוך {total}.",

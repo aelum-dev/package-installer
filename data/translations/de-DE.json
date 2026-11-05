@@ -13,6 +13,7 @@
   "action.cancel": "Abbrechen",
   "action.close": "Schließen",
   "status.reading": "Paketdatenbanken werden gelesen…",
+  "status.refreshing": "Aktualisierung der Paketdatenbanken läuft, bitte warten…",
   "rows.noMatches": "Keine Treffer",
   "rows.truncated": "Die ersten {max} von {total} werden angezeigt – geben Sie weiter ein, um die Ergebnisse einzugrenzen.",
   "rows.truncatedShort": "Die ersten {max} von {total} werden angezeigt.",

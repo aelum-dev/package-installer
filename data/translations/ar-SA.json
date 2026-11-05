@@ -13,6 +13,7 @@
   "action.cancel": "إلغاء",
   "action.close": "إغلاق",
   "status.reading": "قراءة قواعد بيانات الحزم…",
+  "status.refreshing": "تحديث قواعد البيانات قيد التقدم، يرجى الانتظار…",
   "rows.noMatches": "لا توجد نتائج مطابقة",
   "rows.truncated": "يعرض أول {max} من {total} — تابع الكتابة لتضييق النتائج.",
   "rows.truncatedShort": "يعرض أول {max} من {total}.",

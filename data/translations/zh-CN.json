@@ -13,6 +13,7 @@
   "action.cancel": "取消",
   "action.close": "关闭",
   "status.reading": "正在读取软件包数据库…",
+  "status.refreshing": "数据库正在刷新，请稍候…",
   "rows.noMatches": "没有匹配的项",
   "rows.truncated": "正在显示 {total} 项中的前 {max} 项——继续输入以缩小范围。",
   "rows.truncatedShort": "正在显示 {total} 项中的前 {max} 项。",

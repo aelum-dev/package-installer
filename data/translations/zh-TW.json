@@ -13,6 +13,7 @@
   "action.cancel": "取消",
   "action.close": "關閉",
   "status.reading": "正在讀取軟體包資料庫…",
+  "status.refreshing": "資料庫正在重新整理，請稍候…",
   "rows.noMatches": "沒有相符的項目",
   "rows.truncated": "正在顯示 {total} 個中的前 {max} 個——請繼續輸入以縮小範圍。",
   "rows.truncatedShort": "正在顯示 {total} 個中的前 {max} 個。",

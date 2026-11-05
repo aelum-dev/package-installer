@@ -13,6 +13,7 @@
   "action.cancel": "Annuler",
   "action.close": "Fermer",
   "status.reading": "Lecture des bases de données de paquets…",
+  "status.refreshing": "Mise à jour des bases de données en cours, veuillez patienter…",
   "rows.noMatches": "Aucune correspondance",
   "rows.truncated": "Affichage des {max} premiers sur {total} — continuez à saisir du texte pour affiner.",
   "rows.truncatedShort": "Affichage des {max} premiers sur {total}.",

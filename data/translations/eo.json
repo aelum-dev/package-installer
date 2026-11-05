@@ -13,6 +13,7 @@
   "action.cancel": "Nuligi",
   "action.close": "Fermi",
   "status.reading": "Legado de la pakaĵaj datumbazoj…",
+  "status.refreshing": "La ĝisdatigo de la datumbazoj estas okazanta, bonvolu atendi…",
   "rows.noMatches": "Neniuj kongruoj",
   "rows.truncated": "Montriĝas la unuaj {max} el {total} — daŭrigu tajpi por mallarĝigi la rezultojn.",
   "rows.truncatedShort": "Montriĝas la unuaj {max} el {total}.",

@@ -13,6 +13,7 @@
   "action.cancel": "Скасувати",
   "action.close": "Закрити",
   "status.reading": "Читання баз даних пакетів…",
+  "status.refreshing": "Оновлення баз даних триває, зачекайте…",
   "rows.noMatches": "Немає збігів",
   "rows.truncated": "Показано перші {max} з {total} — продовжуйте вводити, щоб звузити список.",
   "rows.truncatedShort": "Показано перші {max} з {total}.",

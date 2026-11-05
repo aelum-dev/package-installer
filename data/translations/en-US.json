@@ -13,6 +13,7 @@
   "action.cancel": "Cancel",
   "action.close": "Close",
   "status.reading": "Reading package databases…",
+  "status.refreshing": "Databases refresh in progress, please wait…",
   "rows.noMatches": "No matches",
   "rows.truncated": "Showing the first {max} of {total} — keep typing to narrow.",
   "rows.truncatedShort": "Showing the first {max} of {total}.",

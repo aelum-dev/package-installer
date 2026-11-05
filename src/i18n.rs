@@ -355,6 +355,7 @@ mod tests {
             "action.cancel",
             "action.close",
             "status.reading",
+            "status.refreshing",
             "rows.noMatches",
             "rows.truncated",
             "rows.truncatedShort",

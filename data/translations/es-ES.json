@@ -13,6 +13,7 @@
   "action.cancel": "Cancelar",
   "action.close": "Cerrar",
   "status.reading": "Leyendo las bases de datos de paquetes…",
+  "status.refreshing": "Actualización de las bases de datos en curso, espere…",
   "rows.noMatches": "No hay coincidencias",
   "rows.truncated": "Mostrando los primeros {max} de {total} — siga escribiendo para restringir los resultados.",
   "rows.truncatedShort": "Mostrando los primeros {max} de {total}.",

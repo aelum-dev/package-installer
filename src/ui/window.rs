@@ -98,7 +98,19 @@ pub fn build(app: &adw::Application, ui: &Ui) {
         });
     }
 
-    toolbar.set_content(Some(&stack));
+    // A running refresh replaces the page area (Ui::set_refresh_running
+    // switches the two children): until the new databases are read, every row
+    // on screen is the state from *before* the check, and stale rows read like
+    // a result. The progress page is the honest content while it runs.
+    let content = gtk::Stack::new();
+    content.set_hexpand(true);
+    content.set_vexpand(true);
+    content.add_named(&stack, Some("pages"));
+    content.add_named(&refreshing_page(), Some("refreshing"));
+    content.set_visible_child_name("pages");
+    *ui.content.borrow_mut() = Some(content.clone());
+
+    toolbar.set_content(Some(&content));
     overlay.set_child(Some(&toolbar));
     window.set_content(Some(&overlay));
 
@@ -110,4 +122,19 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     // RTL after the whole tree exists: every control must be covered.
     apply_rtl(&window);
     window.present();
+}
+
+/// The page that stands in for the tabs while a database refresh runs: a
+/// spinner and the one sentence that explains why the content is gone.
+/// Styled as the other full-area states (adw::StatusPage) so a page that
+/// deliberately shows nothing and a page that is waiting look the same.
+fn refreshing_page() -> adw::StatusPage {
+    let spinner = gtk::Spinner::new();
+    spinner.set_spinning(true);
+    spinner.set_size_request(32, 32);
+    let page = adw::StatusPage::builder()
+        .title(i18n::t("status.refreshing"))
+        .build();
+    page.set_child(Some(&spinner));
+    page
 }

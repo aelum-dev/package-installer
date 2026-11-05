@@ -96,8 +96,11 @@ the annotation — an invariant, not a unit test of a string.
   `refresh_pages`, and visiting a page is the acknowledgement that clears
   its dot (window.rs). A third page may add a third dot the same way.
 - **A successful refresh is quiet.** Startup and manual Refresh spin the header
-  button, refresh the pages, and (manual only) toast; only a failure opens the
-  log dialog. A modal log would cover the very thing that says a check is running.
+  button, cover the tab content with a "refresh in progress" page, refresh the
+  pages, and (manual only) toast; only a failure opens the log dialog. A modal
+  log would cover the very thing that says a check is running — and the rows
+  behind it are the databases as they were *before* the check, so `Ui::set_refresh_running`
+  hides them rather than letting stale rows read as a result.
 - **The app lists its own package** (`model::SELF_PACKAGE`) like any other row —
   it needs its updates too, and a self-update while running is ordinary (Linux
   replaces the binary under the process). Only its **Uninstall is insensitive**,

@@ -13,6 +13,7 @@
   "action.cancel": "Cancel·la",
   "action.close": "Tanca",
   "status.reading": "S'estan llegint les bases de dades de paquets…",
+  "status.refreshing": "L'actualització de les bases de dades és en curs, espereu…",
   "rows.noMatches": "No hi ha coincidències",
   "rows.truncated": "Es mostren els primers {max} de {total} — continueu escrivint per restringir els resultats.",
   "rows.truncatedShort": "Es mostren els primers {max} de {total}.",

@@ -13,6 +13,7 @@
   "action.cancel": "لغو",
   "action.close": "بستن",
   "status.reading": "خواندن پایگاه‌های داده بسته‌ها…",
+  "status.refreshing": "به‌روزرسانی پایگاه‌های داده در حال انجام است، لطفاً صبر کنید…",
   "rows.noMatches": "موردی یافت نشد",
   "rows.truncated": "نمایش {max} مورد نخست از {total} — برای محدود کردن نتایج ادامه تایپ کنید.",
   "rows.truncatedShort": "نمایش {max} مورد نخست از {total}.",

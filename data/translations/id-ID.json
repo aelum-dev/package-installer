@@ -13,6 +13,7 @@
   "action.cancel": "Batal",
   "action.close": "Tutup",
   "status.reading": "Membaca basis data paket…",
+  "status.refreshing": "Penyegaran basis data sedang berlangsung, harap tunggu…",
   "rows.noMatches": "Tidak ada yang cocok",
   "rows.truncated": "Menampilkan {max} pertama dari {total} — terus ketik untuk mempersempit.",
   "rows.truncatedShort": "Menampilkan {max} pertama dari {total}.",

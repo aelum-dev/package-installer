@@ -13,6 +13,7 @@
   "action.cancel": "Annulla",
   "action.close": "Chiudi",
   "status.reading": "Lettura dei database dei pacchetti…",
+  "status.refreshing": "Aggiornamento dei database in corso, attendere…",
   "rows.noMatches": "Nessuna corrispondenza",
   "rows.truncated": "Vengono mostrati i primi {max} di {total} — continua a digitare per restringere.",
   "rows.truncatedShort": "Vengono mostrati i primi {max} di {total}.",

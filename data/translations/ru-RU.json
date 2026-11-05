@@ -13,6 +13,7 @@
   "action.cancel": "Отмена",
   "action.close": "Закрыть",
   "status.reading": "Чтение баз данных пакетов…",
+  "status.refreshing": "Обновление баз данных выполняется, подождите…",
   "rows.noMatches": "Нет совпадений",
   "rows.truncated": "Показаны первые {max} из {total} — продолжайте ввод, чтобы сузить список.",
   "rows.truncatedShort": "Показаны первые {max} из {total}.",

@@ -13,6 +13,7 @@
   "action.cancel": "Cancelar",
   "action.close": "Fechar",
   "status.reading": "Lendo os bancos de dados de pacotes…",
+  "status.refreshing": "Atualização dos bancos de dados em andamento, aguarde…",
   "rows.noMatches": "Nenhuma correspondência",
   "rows.truncated": "Mostrando os primeiros {max} de {total} — continue digitando para filtrar.",
   "rows.truncatedShort": "Mostrando os primeiros {max} de {total}.",

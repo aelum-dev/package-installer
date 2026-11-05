@@ -13,6 +13,7 @@
   "action.cancel": "Avbryt",
   "action.close": "Lukk",
   "status.reading": "Leser pakkedatabaser…",
+  "status.refreshing": "Oppdatering av databaser pågår, vennligst vent…",
   "rows.noMatches": "Ingen treff",
   "rows.truncated": "Viser de første {max} av {total} — fortsett å skrive for å avgrense.",
   "rows.truncatedShort": "Viser de første {max} av {total}.",

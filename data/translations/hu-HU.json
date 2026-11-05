@@ -13,6 +13,7 @@
   "action.cancel": "Mégse",
   "action.close": "Bezárás",
   "status.reading": "Csomag-adatbázisok beolvasása…",
+  "status.refreshing": "Az adatbázisok frissítése folyamatban van, kérem várjon…",
   "rows.noMatches": "Nincs találat",
   "rows.truncated": "Az első {max} megjelenítése {total} csomagból — a szűkítéshez folytassa a gépelést.",
   "rows.truncatedShort": "Az első {max} megjelenítése {total} csomagból.",

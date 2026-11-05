@@ -13,6 +13,7 @@
   "action.cancel": "Peru",
   "action.close": "Sulje",
   "status.reading": "Luetaan pakettitietokantoja…",
+  "status.refreshing": "Tietokantojen päivitys on käynnissä, odota…",
   "rows.noMatches": "Ei osumia",
   "rows.truncated": "Näytetään {max} ensimmäistä {total}:sta — tarkenna kirjoittamalla lisää.",
   "rows.truncatedShort": "Näytetään {max} ensimmäistä {total}:sta.",

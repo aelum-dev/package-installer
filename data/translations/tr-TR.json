@@ -13,6 +13,7 @@
   "action.cancel": "İptal",
   "action.close": "Kapat",
   "status.reading": "Paket veritabanları okunuyor…",
+  "status.refreshing": "Veritabanları yenileniyor, lütfen bekleyin…",
   "rows.noMatches": "Eşleşme yok",
   "rows.truncated": "{total} öğeden ilk {max} gösteriliyor — daraltmak için yazmaya devam edin.",
   "rows.truncatedShort": "{total} öğeden ilk {max} gösteriliyor.",

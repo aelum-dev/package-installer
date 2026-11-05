@@ -13,6 +13,7 @@
   "action.cancel": "Avbryt",
   "action.close": "Stäng",
   "status.reading": "Läser paketdatabaser…",
+  "status.refreshing": "Uppdatering av databaser pågår, vänta…",
   "rows.noMatches": "Inga träffar",
   "rows.truncated": "Visar de första {max} av {total} — fortsätt skriva för att inskränka listan.",
   "rows.truncatedShort": "Visar de första {max} av {total}.",

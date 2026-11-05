@@ -13,6 +13,7 @@
   "action.cancel": "Annuleren",
   "action.close": "Sluiten",
   "status.reading": "Pakketdatabases lezen…",
+  "status.refreshing": "Vernieuwen van databases is bezig, even geduld…",
   "rows.noMatches": "Geen overeenkomsten",
   "rows.truncated": "De eerste {max} van {total} worden getoond — blijf typen om te verfijnen.",
   "rows.truncatedShort": "De eerste {max} van {total} worden getoond.",

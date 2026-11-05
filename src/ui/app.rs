@@ -48,6 +48,9 @@ pub struct Ui {
     /// The header's Refresh button; it doubles as the update-check
     /// indicator (a spinner while any refresh runs).
     pub refresh: Rc<RefCell<Option<gtk::Button>>>,
+    /// The page area (the ViewStack, and the "refresh in progress" page
+    /// that covers it while a refresh runs — see [`Ui::set_refresh_running`]).
+    pub content: Rc<RefCell<Option<gtk::Stack>>>,
     /// Generation counter for model loads. The startup load and the
     /// post-refresh load can overlap; only the newest one may set the
     /// model, or a slow older read could resurrect stale databases.
@@ -75,6 +78,7 @@ impl Ui {
             aelum_tab: Rc::new(RefCell::new(None)),
             on_aelum_page: Rc::new(Cell::new(false)),
             refresh: Rc::new(RefCell::new(None)),
+            content: Rc::new(RefCell::new(None)),
             load_seq: Rc::new(Cell::new(0)),
             last_check: Rc::new(RefCell::new(None)),
         }
@@ -159,18 +163,23 @@ impl Ui {
         }
     }
 
-    /// The Refresh button shows a spinner while a refresh — its own press
-    /// or the startup check — is running.
-    pub fn set_refresh_spinning(&self, on: bool) {
-        let Some(button) = self.refresh.borrow().clone() else {
-            return;
-        };
-        if on {
-            let spinner = gtk::Spinner::new();
-            spinner.set_spinning(true);
-            button.set_child(Some(&spinner));
-        } else {
-            button.set_child(Some(&gtk::Image::from_icon_name("view-refresh-symbolic")));
+    /// A refresh is running — its own press or the startup check. Two things
+    /// follow: the Refresh button shows a spinner, and the page area is
+    /// replaced by the "refresh in progress" page. Every row on screen is the
+    /// state of the databases *before* the check, so while the check runs the
+    /// honest content is that a check is running.
+    pub fn set_refresh_running(&self, on: bool) {
+        if let Some(button) = self.refresh.borrow().clone() {
+            if on {
+                let spinner = gtk::Spinner::new();
+                spinner.set_spinning(true);
+                button.set_child(Some(&spinner));
+            } else {
+                button.set_child(Some(&gtk::Image::from_icon_name("view-refresh-symbolic")));
+            }
+        }
+        if let Some(content) = self.content.borrow().clone() {
+            content.set_visible_child_name(if on { "refreshing" } else { "pages" });
         }
     }
 
@@ -180,9 +189,9 @@ impl Ui {
     /// than a lock error.
     pub fn start_txn(&self, txn: Txn) {
         // A refresh never opens a log dialog: the dialog would cover the
-        // window and hide the one thing that says the check is running —
-        // the spinning button. Its result is the updated pages and badge;
-        // only a failure opens the log.
+        // window and hide the two things that say the check is running —
+        // the spinning button and the progress page over the tabs. Its
+        // result is the updated pages and badge; only a failure opens the log.
         let quiet = matches!(txn, Txn::Refresh);
         self.run_txn(txn, quiet, false);
     }
@@ -226,7 +235,7 @@ impl Ui {
         self.running.set(true);
         let spinning = matches!(txn, Txn::Refresh);
         if spinning {
-            self.set_refresh_spinning(true);
+            self.set_refresh_running(true);
         }
         let summary = txn.summary();
         let log = if quiet {
@@ -253,7 +262,7 @@ impl Ui {
                     TxnEvent::Finished(result) => {
                         ui.running.set(false);
                         if spinning {
-                            ui.set_refresh_spinning(false);
+                            ui.set_refresh_running(false);
                         }
                         // A quiet failure still gets its log: the buffered
                         // output is the explanation.
@@ -291,7 +300,7 @@ impl Ui {
         if let Err(e) = run {
             self.running.set(false);
             if spinning {
-                self.set_refresh_spinning(false);
+                self.set_refresh_running(false);
             }
             match log {
                 Some(log) => log.finish(Err(-1)),

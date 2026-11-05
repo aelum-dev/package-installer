@@ -13,6 +13,7 @@
   "action.cancel": "Anuluj",
   "action.close": "Zamknij",
   "status.reading": "Odczytywanie baz pakietów…",
+  "status.refreshing": "Odświeżanie baz trwa, proszę czekać…",
   "rows.noMatches": "Brak wyników",
   "rows.truncated": "Wyświetlono pierwszych {max} z {total} — pisz dalej, aby zawęzić listę.",
   "rows.truncatedShort": "Wyświetlono pierwszych {max} z {total}.",
