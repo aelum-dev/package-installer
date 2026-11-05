@@ -95,6 +95,24 @@ the annotation — an invariant, not a unit test of a string.
   pages rebuild on every keystroke.
 - Every `ListBox` sits in a `ScrolledWindow`: an unscrolled list grows the
   window instead of the scrollbar.
+- **A Remove click answers on the spot.** `Model` builds a dependents index
+  (`name → installed packages that need it`) at load, and `reverse_deps` /
+  `orphans_after_removal` answer from it. Scanning every installed package per
+  question measured **~2 s per click** on a 1258-package system — the
+  confirmation dialog appeared three seconds after the press; with the index the
+  same 1258 questions take 15 ms. The ignored `removal_questions_answer_on_a_ui_thread_budget`
+  test holds that budget.
+- **The orphan list is pacman's `-Rns` set, not "everything orphaned".** It walks
+  the target's dependency tree and takes a dependency only when nothing outside
+  the removal needs it; a package that merely *depends on* the target is a
+  breakage (`reverse_deps`), and an already-orphaned leftover elsewhere on the
+  system is nobody's business here.
+- **The confirmation asks one question and adds at most two facts.** It asks in
+  words — "Are you sure you want to remove this package?" — because a bare fact
+  beside a button does not read as a confirmation. Then only: what still needs
+  the package (three names maximum, then a count) and how many unneeded
+  dependencies go along. Sizes, "this runs as root", and the full orphan list
+  are not there — the transaction log names every package it touches.
 - Model loads are generation-numbered (`Ui::load_seq`): the startup load and the
   post-refresh load overlap, and only the newest may install its result.
 
