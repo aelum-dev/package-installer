@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# aelum-package-installer-helper — the root half of every package-manager
+# operation. pkexec authenticates this program (the polkit action names it
+# through its exec.path annotation); it is the only place pacman runs with
+# privileges, so one action and one rule cover every verb.
+#
+# --noconfirm everywhere: the app's dialog owns the confirmation, and a
+# conflict must exit non-zero with pacman's real output rather than wait
+# for a TTY that does not exist.
+set -euo pipefail
+
+cmd="${1:-}"
+shift || true
+
+case "$cmd" in
+    refresh) exec pacman -Sy --noconfirm "$@" ;;
+    install) exec pacman -S --needed --noconfirm -- "$@" ;;
+    remove)  exec pacman -Rns --noconfirm -- "$@" ;;
+    upgrade) exec pacman -Syu --noconfirm ;;
+    file)    exec pacman -U --noconfirm -- "$@" ;;
+    *)
+        echo "usage: aelum-package-installer-helper {refresh|install|remove|upgrade|file} [args...]" >&2
+        exit 2
+        ;;
+esac

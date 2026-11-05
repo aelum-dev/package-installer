@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream metadata: what the software center shows. Keep the id and the
+     desktop-file name equal to the GApplication app ID. -->
+<component type="desktop-application">
+  <id>aelum.packageinstaller.Packages</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  <name>Packages</name>
+  <summary>Install and remove software on Aelum</summary>
+  <developer id="dev.aelum">
+    <name>Aelum</name>
+  </developer>
+  <url type="homepage">https://aelum.dev</url>
+  <url type="bugtracker">https://github.com/aelum-dev/package-installer/issues</url>
+  <content_rating type="oars-1.1"/>
+  <description>
+    <p>Shows the packages this system chose — not their dependency trees —
+    and removes them with their orphaned dependencies, showing what would
+    break first. Browse searches every configured repository, installs
+    with one click, and points out updates; opening a .pkg.tar.zst file
+    installs that too. Every operation runs as root and shows pacman's
+    own output.</p>
+  </description>
+  <categories>
+    <category>System</category>
+  </categories>
+  <launchable type="desktop-id">aelum.packageinstaller.Packages.desktop</launchable>
+  <provides>
+    <binary>package-installer</binary>
+  </provides>
+  <releases>
+    <release version="0.1.0" date="2026-11-05"/>
+  </releases>
+</component>

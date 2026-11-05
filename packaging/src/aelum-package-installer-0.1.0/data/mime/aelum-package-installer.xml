@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The type for Arch package files. The globs beat shared-mime-info's
+     archive magic for *.pkg.tar.zst (globs outrank magic), so a package
+     file resolves to this type and the package manager is its only
+     handler — the default then resolves to the manager with no per-user
+     config, which is what covers systems that install the app later. -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/vnd.arch.pacman">
+    <comment>Arch Linux package</comment>
+    <glob pattern="*.pkg.tar.zst"/>
+    <glob pattern="*.pkg.tar.xz"/>
+    <glob pattern="*.pkg.tar.gz"/>
+    <glob pattern="*.pkg.tar"/>
+  </mime-type>
+</mime-info>

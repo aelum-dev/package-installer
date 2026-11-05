@@ -1,0 +1,15 @@
+# Arch runs neither update-mime-database nor update-desktop-database when a
+# package installs, and this package is the first handler of its own MIME
+# type — so it refreshes both databases itself, after its own transactions.
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Type = Package
+Target = aelum-package-installer
+
+[Action]
+Description = Updating MIME and desktop databases for the package manager…
+When = PostTransaction
+Exec = /usr/bin/sh -c "update-mime-database /usr/share/mime && update-desktop-database -q /usr/share/applications"
+Depends = shared-mime-info desktop-file-utils

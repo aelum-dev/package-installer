@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: GPL-3.0
+// The grant for the package-manager helper, and the only place that gives
+// one. Local rules are consulted before the policy defaults, so this decides
+// the one case that needs no asking and nothing else changes.
+//
+// The grant is the session of the person who pressed the button: a session
+// on the local machine (subject.local), in the foreground of a seat
+// (subject.active), and an administrator — on Arch that is membership in
+// wheel. Everything else — an SSH session, the greeter, another user —
+// falls through to the policy's refusal.
+//
+// The two polkit-rule facts learned from aelum-snapshot-restore.rules apply
+// here too: there is no polkit.user_is_admin (the documented local check is
+// subject.isInGroup), and subject.active is true under systemd user units,
+// which is where the app runs.
+polkit.addRule(function(action, subject) {
+    if (action.id === "dev.aelum.package.manage" &&
+        subject.local && subject.active && subject.isInGroup("wheel")) {
+        return polkit.Result.YES;
+    }
+});
