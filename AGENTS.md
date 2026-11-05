@@ -172,6 +172,13 @@ cargo run                                  # GUI. Reads work from a source tree;
 - `bump-version.sh` needs a clean tracked tree and **does not tag**. Tag by hand
   after it runs, matching video-player:
   `git tag -a vX.Y.Z -m "aelum-package-installer X.Y.Z" && git push origin vX.Y.Z`.
+- Then publish the tag as a **GitHub Release with notes**:
+  `gh release create vX.Y.Z --title "aelum-package-installer X.Y.Z" --notes "<the --changes bullets>"`.
+  A tag's annotation is invisible on GitHub — the tag list never shows it, and
+  descriptions live on Releases. The notes are the same bullets passed to
+  `--changes` (they are already the metainfo changelog: one text, reused). The
+  Release is the human-facing changelog; the installable artifact still ships
+  through the `[aelum]` repo, never GitHub.
 - AppStream edits are worth validating: `appstreamcli validate data/*.metainfo.xml`
   (a `<ul>` must sit inside `<description>`; `<summary>` is not valid in `<release>`).
 - Run from source and the packaged helper is absent, so `auto_check` skips itself
