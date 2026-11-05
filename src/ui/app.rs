@@ -136,23 +136,28 @@ impl Ui {
     /// second concurrent run a guaranteed failure, and a gate is kinder
     /// than a lock error.
     pub fn start_txn(&self, txn: Txn) {
-        self.run_txn(txn, false);
+        // A refresh never opens a log dialog: the dialog would cover the
+        // window and hide the one thing that says the check is running —
+        // the spinning button. Its result is the updated pages and badge;
+        // only a failure opens the log.
+        let quiet = matches!(txn, Txn::Refresh);
+        self.run_txn(txn, quiet, false);
     }
 
-    /// The startup update check: the same Refresh transaction, but its
-    /// output is buffered instead of shown — a routine check that succeeds
-    /// has no business opening a dialog. A failure still shows one:
-    /// nothing in this app fails silently.
+    /// The startup update check: the same Refresh transaction, quiet like
+    /// the manual one, and without even the completion toast — a routine
+    /// check that succeeds has no business announcing itself. A failure
+    /// still shows the log: nothing in this app fails silently.
     pub fn auto_check(&self) {
         // run_txn refuses quietly too; this guard just keeps the check from
         // being attempted at all on a host without the packaged helper.
         if !std::path::Path::new(txn::HELPER).exists() {
             return;
         }
-        self.run_txn(Txn::Refresh, true);
+        self.run_txn(Txn::Refresh, true, true);
     }
 
-    fn run_txn(&self, txn: Txn, quiet: bool) {
+    fn run_txn(&self, txn: Txn, quiet: bool, auto: bool) {
         if self.running.get() {
             if !quiet {
                 self.toast("Another operation is already running.");
@@ -222,6 +227,10 @@ impl Ui {
                         if result.is_ok() {
                             if log.is_some() {
                                 ui.toast("Done.");
+                            } else if !auto {
+                                // The manual check announces itself; the
+                                // startup one lets the pages speak.
+                                ui.toast("Package databases refreshed.");
                             }
                             ui.load_model();
                         }
