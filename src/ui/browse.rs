@@ -53,9 +53,16 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
         .title("Reading package databases…")
         .build();
 
+    // A ListBox is not scrollable: its minimum height is the whole list, so
+    // unscrolled rows grow the window instead of the scrollbar.
+    let scrolled = gtk::ScrolledWindow::new();
+    scrolled.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
+    scrolled.set_vexpand(true);
+    scrolled.set_child(Some(&list));
+
     let stack = gtk::Stack::new();
     stack.set_vexpand(true);
-    stack.add_named(&list, Some("list"));
+    stack.add_named(&scrolled, Some("list"));
     stack.add_named(&empty, Some("empty"));
     stack.set_visible_child_name("empty");
     root.append(&stack);
