@@ -96,15 +96,36 @@ pub fn parse_sync_db(bytes: &[u8], repository: &str) -> std::io::Result<Vec<Sync
     Ok(out)
 }
 
+/// pacman's install reason — exactly the `-Qe` distinction.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Reason {
+    /// Chosen by the user (`pacman -S`).
+    Explicit,
+    /// Pulled in as a dependency.
+    Dependency,
+}
+
+/// Read a `%REASON%` value with alpm's semantics, measured against pacman
+/// 7.1 on a real system: pacman writes the section **only for dependencies**,
+/// as the numeric alpm enum (1 = `PKG_INSTALLED`, 2 = `PKG_EXPLICIT`); older
+/// pacman wrote the words `Installed`/`Explicit`. A missing section — every
+/// explicit package on a current pacman — means explicit. An unparseable
+/// value falls to dependency: the fail-closed choice, keeping the package
+/// off the Installed page rather than offering to remove it.
+pub fn parse_reason(value: Option<&str>) -> Reason {
+    match value.map(str::trim) {
+        None | Some("Explicit") | Some("2") => Reason::Explicit,
+        _ => Reason::Dependency,
+    }
+}
+
 /// A package installed on this system.
 #[derive(Clone, Debug)]
 pub struct LocalPackage {
     pub name: String,
     pub version: String,
     pub desc: String,
-    /// pacman's install reason: 1 = explicit (`pacman -S`), 0 = installed
-    /// as a dependency. This is exactly the `-Qe` distinction.
-    pub reason: u64,
+    pub reason: Reason,
     pub isize: u64,
     pub depends: Vec<String>,
 }
@@ -125,7 +146,7 @@ pub fn read_local_db(dir: &Path) -> std::io::Result<Vec<LocalPackage>> {
             name,
             version: field(&s, "%VERSION%").unwrap_or("").to_string(),
             desc: field(&s, "%DESC%").unwrap_or("").to_string(),
-            reason: field_u64(&s, "%REASON%"),
+            reason: parse_reason(field(&s, "%REASON%")),
             isize: field_u64(&s, "%ISIZE%"),
             depends: multi(&s, "%DEPENDS%"),
         });
@@ -299,5 +320,21 @@ depend = gtk4>=4.24
         assert_eq!(dep_name("gtk4>=4.24"), "gtk4");
         assert_eq!(dep_name("python>=3.11"), "python");
         assert_eq!(dep_name("lib32-gcc-libs"), "lib32-gcc-libs");
+    }
+
+    #[test]
+    fn reason_matches_alpm_semantics() {
+        // Measured against pacman 7.1: the section is written only for
+        // dependencies (glibc → `1`), and explicit packages (gimp, steam)
+        // have no section at all.
+        assert_eq!(parse_reason(None), Reason::Explicit);
+        assert_eq!(parse_reason(Some("1")), Reason::Dependency);
+        assert_eq!(parse_reason(Some("2")), Reason::Explicit);
+        // The pre-numeric format stays readable.
+        assert_eq!(parse_reason(Some("Installed")), Reason::Dependency);
+        assert_eq!(parse_reason(Some("Explicit")), Reason::Explicit);
+        // Unknown values fail closed: a package we cannot classify is not
+        // offered for removal.
+        assert_eq!(parse_reason(Some("whatever")), Reason::Dependency);
     }
 }

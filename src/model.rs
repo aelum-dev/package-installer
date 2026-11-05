@@ -6,7 +6,7 @@ use std::fs;
 use std::path::Path;
 use std::time::SystemTime;
 
-use crate::db::{self, LocalPackage, SyncPackage};
+use crate::db::{self, LocalPackage, Reason, SyncPackage};
 use crate::vercmp::vercmp;
 
 /// What a row can do with a package.
@@ -39,14 +39,14 @@ impl Entry {
             (Some(local), Some(sync)) => {
                 if vercmp(&sync.version, &local.version) == std::cmp::Ordering::Greater {
                     Status::UpdateAvailable
-                } else if local.reason != 0 {
+                } else if local.reason == Reason::Explicit {
                     Status::InstalledExplicit
                 } else {
                     Status::InstalledDep
                 }
             }
             (Some(local), None) => {
-                if local.reason != 0 {
+                if local.reason == Reason::Explicit {
                     Status::InstalledExplicit
                 } else {
                     Status::InstalledDep
@@ -200,7 +200,7 @@ impl Model {
     }
 
     /// Orphaned dependencies an uninstall with `-Rns` would take along:
-    /// deps (reason 0) that no installed package outside the removal set
+    /// dependencies that no installed package outside the removal set
     /// depends on. Fixed-point: each new orphan can make more orphans.
     pub fn orphans_after_removal(&self, name: &str) -> Vec<String> {
         let mut removed: Vec<String> = vec![name.to_string()];
@@ -209,7 +209,7 @@ impl Model {
             changed = false;
             for e in &self.entries {
                 let Some(l) = e.installed.as_ref() else { continue };
-                if l.reason != 0 || removed.contains(&l.name) {
+                if l.reason == Reason::Explicit || removed.contains(&l.name) {
                     continue;
                 }
                 // Still needed only if some installed package outside the
@@ -251,7 +251,7 @@ mod tests {
         }
     }
 
-    fn local(name: &str, version: &str, reason: u64, depends: &[&str]) -> LocalPackage {
+    fn local(name: &str, version: &str, reason: Reason, depends: &[&str]) -> LocalPackage {
         LocalPackage {
             name: name.into(),
             version: version.into(),
@@ -283,10 +283,10 @@ mod tests {
     fn fixture() -> Model {
         model(vec![
             entry("firefox", None, Some(sync("firefox", "1.0", "browser"))),
-            entry("htop", Some(local("htop", "3.0-1", 1, &[])), Some(sync("htop", "3.1-1", "monitor"))),
-            entry("glibc", Some(local("glibc", "2.40-1", 0, &[])), Some(sync("glibc", "2.40-1", "libc"))),
-            entry("myapp", Some(local("myapp", "1.0-1", 1, &["glibc"])), None),
-            entry("orphan-dep", Some(local("orphan-dep", "1.0-1", 0, &["myapp"])), None),
+            entry("htop", Some(local("htop", "3.0-1", Reason::Explicit, &[])), Some(sync("htop", "3.1-1", "monitor"))),
+            entry("glibc", Some(local("glibc", "2.40-1", Reason::Dependency, &[])), Some(sync("glibc", "2.40-1", "libc"))),
+            entry("myapp", Some(local("myapp", "1.0-1", Reason::Explicit, &["glibc"])), None),
+            entry("orphan-dep", Some(local("orphan-dep", "1.0-1", Reason::Dependency, &["myapp"])), None),
         ])
     }
 
@@ -340,5 +340,37 @@ mod tests {
         // Removing glibc leaves myapp (explicit) standing; only the
         // never-needed orphan falls.
         assert_eq!(m.orphans_after_removal("glibc"), ["orphan-dep"]);
+    }
+
+    /// The classification must agree with pacman's own `-Qe` on a real
+    /// system. Ignored by default: it needs an Arch host and shells out
+    /// to pacman. Run with `cargo test -- --ignored`.
+    #[test]
+    #[ignore]
+    fn explicit_matches_pacman_qe() {
+        let m = Model::load(Path::new("/var/lib/pacman")).expect("real pacman root");
+        // Classify by reason, not Status: `-Qe` also lists packages that
+        // have an update pending.
+        let ours: Vec<String> = m
+            .search("", Scope::All)
+            .iter()
+            .filter(|e| {
+                e.installed.as_ref().is_some_and(|l| l.reason == Reason::Explicit)
+            })
+            .map(|e| e.name.clone())
+            .collect();
+        let out = std::process::Command::new("pacman")
+            .args(["-Qqe"])
+            .output()
+            .expect("pacman");
+        let mut theirs: Vec<String> = String::from_utf8(out.stdout)
+            .unwrap()
+            .lines()
+            .map(str::to_string)
+            .collect();
+        theirs.sort();
+        let mut ours = ours;
+        ours.sort();
+        assert_eq!(ours, theirs);
     }
 }
