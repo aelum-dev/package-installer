@@ -39,6 +39,11 @@ pub struct Ui {
     /// user is looking at it right now (no badge for what is on screen).
     pub updates_tab: Rc<RefCell<Option<adw::ViewStackPage>>>,
     pub on_updates_page: Rc<Cell<bool>>,
+    /// The Aelum tab and its dot: raised while the channel carries apps
+    /// this system does not have, cleared by visiting the page — the same
+    /// acknowledgement rule as the Updates badge.
+    pub aelum_tab: Rc<RefCell<Option<adw::ViewStackPage>>>,
+    pub on_aelum_page: Rc<Cell<bool>>,
     /// The header's Refresh button; it doubles as the update-check
     /// indicator (a spinner while any refresh runs).
     pub refresh: Rc<RefCell<Option<gtk::Button>>>,
@@ -66,6 +71,8 @@ impl Ui {
             distro: Rc::new(RefCell::new(None)),
             updates_tab: Rc::new(RefCell::new(None)),
             on_updates_page: Rc::new(Cell::new(false)),
+            aelum_tab: Rc::new(RefCell::new(None)),
+            on_aelum_page: Rc::new(Cell::new(false)),
             refresh: Rc::new(RefCell::new(None)),
             load_seq: Rc::new(Cell::new(0)),
             last_check: Rc::new(RefCell::new(None)),
@@ -136,6 +143,13 @@ impl Ui {
         // looking at; visiting the page clears it (window.rs).
         let want = !model.updatable().is_empty() && !self.on_updates_page.get();
         if let Some(tab) = self.updates_tab.borrow().as_ref() {
+            tab.set_needs_attention(want);
+        }
+        // The Aelum dot follows the same rule: raised while the channel
+        // carries apps this system does not have, silent while the user
+        // is reading that very page.
+        let want = !model.distro_apps().is_empty() && !self.on_aelum_page.get();
+        if let Some(tab) = self.aelum_tab.borrow().as_ref() {
             tab.set_needs_attention(want);
         }
     }

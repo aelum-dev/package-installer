@@ -87,6 +87,11 @@ the annotation — an invariant, not a unit test of a string.
   because it is the page you go to when something is waiting, and its
   `needs-attention` badge is the only update signal — the Installed page has
   no banner, a count there was the same fact twice.
+- **Two dots, one rule.** The Updates badge marks pending updates, the Aelum
+  badge marks apps the channel carries that the system lacks; both are
+  `needs-attention` on the `ViewStackPage`, both are computed in
+  `refresh_pages`, and visiting a page is the acknowledgement that clears
+  its dot (window.rs). A third page may add a third dot the same way.
 - **A successful refresh is quiet.** Startup and manual Refresh spin the header
   button, refresh the pages, and (manual only) toast; only a failure opens the
   log dialog. A modal log would cover the very thing that says a check is running.

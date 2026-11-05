@@ -48,23 +48,31 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     // (it is Browse narrowed to the `[aelum]` repo) and before Updates.
     let page = stack.add_titled(&distro_root, Some("aelum"), "Aelum");
     page.set_icon_name(Some("starred-symbolic"));
+    *ui.aelum_tab.borrow_mut() = Some(page);
     // Updates last: it is the page you go to when something is wrong, not
     // the one you open to look at your system. Its badge is the signal.
     let page = stack.add_titled(&updates_root, Some("updates"), "Updates");
     page.set_icon_name(Some("software-update-available-symbolic"));
     *ui.updates_tab.borrow_mut() = Some(page);
 
-    // Visiting the Updates page is the acknowledgement: the badge clears,
-    // and while the page is up no badge is raised for what is on screen.
+    // Visiting a badged page is the acknowledgement: its dot clears, and
+    // while the page is up no dot is raised for what is on screen.
     {
         let ui = ui.clone();
         stack.connect_visible_child_name_notify(move |stack| {
-            let here = stack
-                .visible_child_name()
-                .is_some_and(|name| name.as_str() == "updates");
-            ui.on_updates_page.set(here);
-            if here
+            let name = stack.visible_child_name();
+            let here = name.as_ref().map(|n| n.as_str()).unwrap_or("");
+            let on_updates = here == "updates";
+            ui.on_updates_page.set(on_updates);
+            if on_updates
                 && let Some(tab) = ui.updates_tab.borrow().as_ref()
+            {
+                tab.set_needs_attention(false);
+            }
+            let on_aelum = here == "aelum";
+            ui.on_aelum_page.set(on_aelum);
+            if on_aelum
+                && let Some(tab) = ui.aelum_tab.borrow().as_ref()
             {
                 tab.set_needs_attention(false);
             }
