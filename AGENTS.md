@@ -30,7 +30,7 @@ ISO while that is being measured.
 - `src/txn.rs` — the only place a subprocess runs, and the only place root is
   asked for.
 - `src/ui/` — thin: `app.rs` is the shared state (`Ui`) and the transaction
-  gate, `window.rs` the three-page `ViewStack`, one module per page,
+  gate, `window.rs` the four-page `ViewStack`, one module per page,
   `dialog`/`txnlog`/`fileopen` the dialogs.
 
 The three pure modules hold every decision and carry the tests; a page builds
@@ -81,14 +81,16 @@ the annotation — an invariant, not a unit test of a string.
 
 ## UI rules the app holds to
 
-- **Tab order Installed · Browse · Updates.** Updates is last because it is the
-  page you go to when something is waiting, and its `needs-attention` badge is
-  the only update signal — the Installed page has no banner, a count there was
-  the same fact twice.
+- **Tab order Installed · Aelum · Browse · Updates.** Aelum lists the
+  `[aelum]` repo's packages that are not installed yet — the distribution
+  channel as a page; installing one moves it to Installed. Updates is last
+  because it is the page you go to when something is waiting, and its
+  `needs-attention` badge is the only update signal — the Installed page has
+  no banner, a count there was the same fact twice.
 - **A successful refresh is quiet.** Startup and manual Refresh spin the header
   button, refresh the pages, and (manual only) toast; only a failure opens the
   log dialog. A modal log would cover the very thing that says a check is running.
-- **The app hides its own package** (`model::SELF_PACKAGE`) from all three lists
+- **The app hides its own package** (`model::SELF_PACKAGE`) from every list
   but keeps the entry in the model, so removing a dependency of the package
   manager still reports the breakage.
 - `MAX_ROWS` (300) caps rendered rows — a full sync DB is ~15k entries and the

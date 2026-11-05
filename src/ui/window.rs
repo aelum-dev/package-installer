@@ -1,11 +1,11 @@
-//! The window: header, view switcher, and the three pages.
+//! The window: header, view switcher, and the four pages.
 
 use gtk::prelude::*;
 use libadwaita as adw;
 use libadwaita::prelude::*;
 
 use super::app::Ui;
-use super::{browse, installed, updates};
+use super::{browse, distro, installed, updates};
 use crate::txn::Txn;
 
 pub fn build(app: &adw::Application, ui: &Ui) {
@@ -38,11 +38,16 @@ pub fn build(app: &adw::Application, ui: &Ui) {
 
     let (installed_page, installed_root) = installed::build(ui);
     let (browse_page, browse_root) = browse::build(ui);
+    let (distro_page, distro_root) = distro::build();
     let (updates_page, updates_root) = updates::build(ui);
     let page = stack.add_titled(&installed_root, Some("installed"), "Installed");
     page.set_icon_name(Some("package-x-generic-symbolic"));
     let page = stack.add_titled(&browse_root, Some("browse"), "Browse");
     page.set_icon_name(Some("system-search-symbolic"));
+    // Aelum: the distro's own apps not yet on the system, next to Browse
+    // (it is Browse narrowed to the `[aelum]` repo) and before Updates.
+    let page = stack.add_titled(&distro_root, Some("aelum"), "Aelum");
+    page.set_icon_name(Some("starred-symbolic"));
     // Updates last: it is the page you go to when something is wrong, not
     // the one you open to look at your system. Its badge is the signal.
     let page = stack.add_titled(&updates_root, Some("updates"), "Updates");
@@ -74,5 +79,6 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     *ui.installed.borrow_mut() = Some(installed_page);
     *ui.updates.borrow_mut() = Some(updates_page);
     *ui.browse.borrow_mut() = Some(browse_page);
+    *ui.distro.borrow_mut() = Some(distro_page);
     window.present();
 }

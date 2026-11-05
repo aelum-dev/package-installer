@@ -68,10 +68,14 @@ impl Entry {
 }
 
 /// This app's own pacman package. It is hidden from every list (Installed,
-/// Updates, Browse) — a package manager does not manage itself — but stays in
-/// the model so removing a package it depends on still reports the breakage.
-/// Must match `pkgname` in packaging/PKGBUILD.
+/// Updates, Browse, Aelum) — a package manager does not manage itself — but
+/// stays in the model so removing a package it depends on still reports the
+/// breakage. Must match `pkgname` in packaging/PKGBUILD.
 pub const SELF_PACKAGE: &str = "aelum-package-installer";
+
+/// The distro's own repository, named by its sync DB (`aelum.db`). It is the
+/// channel new apps reach installed systems through; the Aelum page lists it.
+pub const DISTRO_REPO: &str = "aelum";
 
 /// Which rows a search may return.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -213,6 +217,35 @@ impl Model {
             .collect()
     }
 
+    /// The distro's apps this system does not have yet: uninstalled packages
+    /// from the `[aelum]` repository. Publishing an app to the repo puts it
+    /// here; an installed one belongs to the Installed page, and an installed
+    /// one with an update pending to the Updates page. Sorted by name — the
+    /// DB order is arbitrary and the list is short enough to read whole.
+    pub fn distro_apps(&self) -> Vec<&Entry> {
+        let mut hits: Vec<&Entry> = self
+            .entries
+            .iter()
+            .filter(|e| {
+                e.name != SELF_PACKAGE
+                    && e.installed.is_none()
+                    && e.repository.as_deref() == Some(DISTRO_REPO)
+            })
+            .collect();
+        hits.sort_by(|a, b| a.name.cmp(&b.name));
+        hits
+    }
+
+    /// Whether the `[aelum]` database was read at all, installed or not.
+    /// The page needs this to tell "there is nothing to add" from "the
+    /// repository is not here" — an empty list must never read as a fact
+    /// the model cannot support.
+    pub fn has_distro_repo(&self) -> bool {
+        self.entries
+            .iter()
+            .any(|e| e.repository.as_deref() == Some(DISTRO_REPO))
+    }
+
     /// Installed packages that depend on `name` — what removing it would break.
     /// Sorted, so a confirmation lists them in a stable order.
     pub fn reverse_deps(&self, name: &str) -> Vec<String> {
@@ -318,6 +351,14 @@ mod tests {
         }
     }
 
+    /// A sync entry from the distro's own repository.
+    fn aelum(name: &str, version: &str, desc: &str) -> SyncPackage {
+        SyncPackage {
+            repository: DISTRO_REPO.into(),
+            ..sync(name, version, desc)
+        }
+    }
+
     fn model(entries: Vec<Entry>) -> Model {
         let mut index = HashMap::new();
         for (i, e) in entries.iter().enumerate() {
@@ -403,6 +444,32 @@ mod tests {
         assert_eq!(m.updatable().iter().map(|e| e.name.as_str()).collect::<Vec<_>>(), ["htop"]);
         // Still a real dependent: removing polkit would break it.
         assert_eq!(m.reverse_deps("polkit"), [SELF_PACKAGE]);
+    }
+
+    #[test]
+    fn distro_apps_are_the_uninstalled_distro_repo_packages() {
+        let m = model(vec![
+            // Published to the channel, not on the system yet: the page's whole point.
+            entry("aelum-newapp", None, Some(aelum("aelum-newapp", "1.0-1", "a new app"))),
+            // Installed, current or updatable: the Installed and Updates pages own those.
+            entry("aelum-player", Some(local("aelum-player", "2.0-1", Reason::Explicit, &[])), Some(aelum("aelum-player", "2.0-1", "the player"))),
+            entry("aelum-old", Some(local("aelum-old", "1.0-1", Reason::Explicit, &[])), Some(aelum("aelum-old", "2.0-1", "updatable"))),
+            // Not from the distro repo, and never the app itself.
+            entry("firefox", None, Some(sync("firefox", "1.0", "browser"))),
+            entry(SELF_PACKAGE, None, Some(aelum(SELF_PACKAGE, "0.2.0-1", "the package manager"))),
+        ]);
+        let names: Vec<_> = m.distro_apps().iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names, ["aelum-newapp"]);
+        assert!(m.has_distro_repo());
+    }
+
+    #[test]
+    fn a_system_without_the_distro_repo_says_so() {
+        // The page must be able to tell "nothing to add" from "the repo is
+        // not here" — an empty list is not a fact about an unread repository.
+        let m = fixture();
+        assert!(m.distro_apps().is_empty());
+        assert!(!m.has_distro_repo());
     }
 
     #[test]

@@ -34,6 +34,7 @@ pub struct Ui {
     pub installed: Rc<RefCell<Option<super::installed::Page>>>,
     pub updates: Rc<RefCell<Option<super::updates::Page>>>,
     pub browse: Rc<RefCell<Option<super::browse::Page>>>,
+    pub distro: Rc<RefCell<Option<super::distro::Page>>>,
     /// The Updates tab, for the needs-attention badge, and whether the
     /// user is looking at it right now (no badge for what is on screen).
     pub updates_tab: Rc<RefCell<Option<adw::ViewStackPage>>>,
@@ -62,6 +63,7 @@ impl Ui {
             installed: Rc::new(RefCell::new(None)),
             updates: Rc::new(RefCell::new(None)),
             browse: Rc::new(RefCell::new(None)),
+            distro: Rc::new(RefCell::new(None)),
             updates_tab: Rc::new(RefCell::new(None)),
             on_updates_page: Rc::new(Cell::new(false)),
             refresh: Rc::new(RefCell::new(None)),
@@ -125,6 +127,9 @@ impl Ui {
             page.refresh(self, &model);
         }
         if let Some(page) = self.browse.borrow().as_ref() {
+            page.refresh(self, &model);
+        }
+        if let Some(page) = self.distro.borrow().as_ref() {
             page.refresh(self, &model);
         }
         // The tab badge marks pending updates the user is not already

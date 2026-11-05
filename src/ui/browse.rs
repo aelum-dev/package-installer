@@ -130,7 +130,9 @@ impl Page {
     }
 }
 
-fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
+/// The shared row builder: Browse and the Aelum page draw the same
+/// Available/Update row, confirmation included.
+pub(crate) fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
     // ActionRow title/subtitle are Pango markup: escape everything
     // dynamic.
     let row = adw::ActionRow::builder()

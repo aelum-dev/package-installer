@@ -17,9 +17,10 @@
     <p>Shows the packages this system chose — not their dependency trees —
     and removes them with their orphaned dependencies, showing what would
     break first. Browse searches every configured repository, installs
-    with one click, and points out updates; opening a .pkg.tar.zst file
-    installs that too. Every operation runs as root and shows pacman's
-    own output.</p>
+    with one click, and points out updates; an Aelum page lists the apps
+    Aelum publishes that this system does not have yet. Opening a
+    .pkg.tar.zst file installs that too. Every operation runs as root
+    and shows pacman's own output.</p>
   </description>
   <categories>
     <category>System</category>
