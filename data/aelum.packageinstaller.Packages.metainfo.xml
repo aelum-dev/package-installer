@@ -30,6 +30,14 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.2.3" date="2026-11-05">
+      <description>
+        <ul>
+          <li>Browsing no longer lists a package twice when its name is in more than one repository</li>
+          <li>A package now names the repository the system would actually install it from</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.2.2" date="2026-11-05">
       <description>
         <ul>
