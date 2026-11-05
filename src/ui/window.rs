@@ -37,15 +37,17 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     toolbar.add_top_bar(&header);
 
     let (installed_page, installed_root) = installed::build(ui);
-    let (updates_page, updates_root) = updates::build(ui);
     let (browse_page, browse_root) = browse::build(ui);
+    let (updates_page, updates_root) = updates::build(ui);
     let page = stack.add_titled(&installed_root, Some("installed"), "Installed");
     page.set_icon_name(Some("package-x-generic-symbolic"));
+    let page = stack.add_titled(&browse_root, Some("browse"), "Browse");
+    page.set_icon_name(Some("system-search-symbolic"));
+    // Updates last: it is the page you go to when something is wrong, not
+    // the one you open to look at your system. Its badge is the signal.
     let page = stack.add_titled(&updates_root, Some("updates"), "Updates");
     page.set_icon_name(Some("software-update-available-symbolic"));
     *ui.updates_tab.borrow_mut() = Some(page);
-    let page = stack.add_titled(&browse_root, Some("browse"), "Browse");
-    page.set_icon_name(Some("system-search-symbolic"));
 
     // Visiting the Updates page is the acknowledgement: the badge clears,
     // and while the page is up no badge is raised for what is on screen.

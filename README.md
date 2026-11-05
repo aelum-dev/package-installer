@@ -5,14 +5,14 @@ Three pages over one in-memory model of pacman's on-disk state:
 
 - **Installed** — the packages the user chose (`%REASON%`, the `-Qe` view),
   each removable with its orphaned dependencies; the confirmation shows what
-  would break and what would be freed. An update banner + Update All when a
-  sync repo carries something newer.
+  would break and what would be freed. A package with a newer version in its
+  repo shows the new version and an Update button.
+- **Browse** — every package in the configured sync repositories (including
+  `[aelum]`, tagged), searched instantly, installed with one click.
 - **Updates** — every package with a newer version in its repo, per-package
   Update and Update All. The databases are refreshed at every start (quiet
   on success, a log dialog on failure; the Refresh button spins while the
   check runs), and the tab carries a badge when updates are waiting.
-- **Browse** — every package in the configured sync repositories (including
-  `[aelum]`, tagged), searched instantly, installed with one click.
 
 Opening a `.pkg.tar.zst` installs it through the same flow. Every operation
 runs as root through `aelum-package-installer-helper` under one polkit action
