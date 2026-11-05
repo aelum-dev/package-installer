@@ -30,6 +30,14 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.2.1" date="2026-11-05">
+      <description>
+        <ul>
+          <li>The app now lists its own package, so it receives updates like any other; only its removal is refused.</li>
+          <li>The app icon now uses the standard package glyph from the system icon theme.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.2.0" date="2026-11-05">
       <description>
         <ul>
