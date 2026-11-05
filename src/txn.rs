@@ -76,6 +76,12 @@ pub enum TxnEvent {
 
 /// Start the transaction. Output lines and the exit status arrive on `tx`;
 /// the child is reaped by the reader threads.
+///
+/// The helper path is not optional and there is no raw-`pacman` fallback:
+/// every privileged operation must resolve to the one polkit action,
+/// exactly like `aelum-snapshot-restore`. A host without the packaged
+/// helper cannot authorize any transaction, so the caller checks the path
+/// first and says so plainly.
 pub fn run(txn: &Txn, tx: UnboundedSender<TxnEvent>) -> std::io::Result<()> {
     let mut child = Command::new("pkexec")
         .arg(HELPER)
@@ -130,5 +136,20 @@ mod tests {
             Txn::InstallFile("/home/u/x.pkg.tar.zst".into()).argv(),
             ["file", "/home/u/x.pkg.tar.zst"]
         );
+    }
+
+    #[test]
+    fn the_helper_is_annotated_by_the_policy() {
+        // The pattern that makes pkexec resolve `pkexec <helper>` to the
+        // dev.aelum.package.manage action — the aelum-snapshot-restore
+        // shape: the policy names the exact program, and it is the same
+        // path this file execs.
+        let policy = include_str!("../data/polkit/dev.aelum.package.manage.policy");
+        assert!(policy.contains(&format!("exec.path\">{HELPER}<")));
+        let helper = include_str!("../data/helper/aelum-package-installer-helper");
+        for verb in ["refresh", "install", "remove", "upgrade", "file"] {
+            assert!(helper.contains(&format!("{verb})")), "helper lacks {verb}");
+            assert!(helper.contains("--noconfirm"));
+        }
     }
 }
