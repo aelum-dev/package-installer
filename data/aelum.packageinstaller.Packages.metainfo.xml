@@ -29,6 +29,15 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.1.1" date="2026-11-05">
+      <description>
+        <ul>
+          <li>Sync databases are read as gzip or zstd, whichever the repository serves: Arch publishes them gzipped, so nothing was listed as updatable and Browse had no results</li>
+          <li>A database that cannot be read is reported instead of appearing as an empty list</li>
+          <li>The Updates tab moves after Browse, and the Installed page no longer repeats the update count the tab badge already shows</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-11-05"/>
   </releases>
 </component>
