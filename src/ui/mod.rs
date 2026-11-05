@@ -1,5 +1,5 @@
-//! The GTK shell: shared state (`app`), the window, the two pages, and the
-//! dialogs. UI state lives on the GTK main thread; only the model loading
+//! The GTK shell: shared state (`app`), the window, the three pages, and
+//! the dialogs. UI state lives on the GTK main thread; only the model loading
 //! and the transaction output cross threads (channels into this thread).
 
 mod app;
@@ -8,6 +8,7 @@ mod dialog;
 mod fileopen;
 mod installed;
 mod txnlog;
+mod updates;
 pub(crate) mod window;
 
 pub use app::Ui;
