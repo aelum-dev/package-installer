@@ -35,8 +35,8 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
     // second count on this page would be the same fact said twice.
     let list = gtk::ListBox::new();
     list.set_selection_mode(gtk::SelectionMode::None);
-    list.set_margin_start(12);
-    list.set_margin_end(12);
+    // Bottom margin only: it pads inside the frame at the end of the scroll;
+    // the sides and bottom edge of the frame are the viewport's.
     list.set_margin_bottom(12);
     list.add_css_class("boxed-list");
 
@@ -50,6 +50,14 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
     let scrolled = gtk::ScrolledWindow::new();
     scrolled.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
     scrolled.set_vexpand(true);
+    // The card frame wraps the viewport, not the content: its bottom line
+    // stays at the window edge while the rows scroll inside it. The list
+    // keeps .boxed-list for its row styling; window.rs strips the card it
+    // would otherwise paint around the whole (scrolled) content.
+    scrolled.add_css_class("card");
+    scrolled.set_margin_start(12);
+    scrolled.set_margin_end(12);
+    scrolled.set_margin_bottom(12);
     scrolled.set_child(Some(&list));
 
     let stack = gtk::Stack::new();

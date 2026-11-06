@@ -27,12 +27,33 @@ fn apply_rtl(root: &impl gtk::prelude::IsA<gtk::Widget>) {
     }
 }
 
+/// The frame around a scrolled list is the viewport's, not the content's:
+/// the pages put `.card` on the ScrolledWindow and keep `.boxed-list` on
+/// the list, because libadwaita's row styling is `list.boxed-list > row`
+/// — a child selector, so the class cannot move. That class also paints a
+/// card on the list itself, and that outline would run to the end of the
+/// content instead of ending at the window; this strips just that painting.
+fn add_frame_css(window: &adw::ApplicationWindow) {
+    let css = gtk::CssProvider::new();
+    // A stylesheet this file cannot parse is a bug in this file; GTK names
+    // the failure on the terminal, and a missing override is only cosmetic.
+    css.load_from_string(
+        "scrolledwindow.card list.boxed-list { background: none; box-shadow: none; }",
+    );
+    gtk::style_context_add_provider_for_display(
+        &gtk::prelude::RootExt::display(window),
+        &css,
+        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
+}
+
 pub fn build(app: &adw::Application, ui: &Ui) {
     let stack = adw::ViewStack::new();
     let overlay = adw::ToastOverlay::new();
     *ui.overlay.borrow_mut() = Some(overlay.clone());
 
     let window = adw::ApplicationWindow::new(app);
+    add_frame_css(&window);
     window.set_title(Some(&i18n::t("app.name")));
     window.set_default_size(900, 650);
 
