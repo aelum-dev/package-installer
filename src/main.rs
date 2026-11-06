@@ -1,20 +1,24 @@
 //! Packages — a package manager for the Aelum desktop.
 //!
-//! Three pages over one in-memory model: the explicitly-installed packages
-//! (with a real uninstall), the pending updates (with a per-package Update
-//! and Update All), and everything the configured sync repositories carry
-//! (with install). At startup the model is read and a database refresh
-//! checks for updates — quiet on success, a log dialog on failure. A
-//! `.pkg.tar.zst` opened from a file manager lands in the same transaction
-//! flow. Privileged operations run through the package's own helper under
-//! pkexec — see [`txn`].
+//! Five pages over one in-memory model: the explicitly-installed packages
+//! (with a real uninstall), everything the configured sync repositories and
+//! the distro's own `[aelum]` repository carry (searched, installed), the AUR
+//! (searched when asked, built on this machine), and the pending updates. At
+//! startup the model is read and a database refresh checks for updates —
+//! quiet on success, a log dialog on failure. A `.pkg.tar.zst` opened from a
+//! file manager lands in the same transaction flow. Privileged operations run
+//! through the package's own helper under pkexec — see [`txn`].
 //!
 //! The model is read from pacman's on-disk state on a worker thread
-//! ([`db`], [`model`]); the only subprocesses are the transactions.
+//! ([`db`], [`model`]). The only subprocesses are the transactions, which
+//! need root ([`txn`]), and the AUR's half of an install — the RPC, the
+//! PKGBUILD download, and makepkg — which do not ([`remote`], [`aur`]).
 
+mod aur;
 mod db;
 mod i18n;
 mod model;
+mod remote;
 mod txn;
 mod ui;
 mod vercmp;

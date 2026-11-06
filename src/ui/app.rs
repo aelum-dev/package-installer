@@ -10,16 +10,13 @@ use gtk::glib;
 use gtk::prelude::*;
 use libadwaita as adw;
 
+use crate::aur;
 use crate::db;
 use crate::i18n;
-use crate::model::Model;
+use crate::model::{Model, PACMAN_CONFIG, PACMAN_ROOT};
+use crate::remote;
 use crate::txn::{self, Txn, TxnEvent};
 
-/// Where the model lives on every Aelum system.
-const PACMAN_ROOT: &str = "/var/lib/pacman";
-/// The configuration that says which of its sync databases are repositories
-/// this system can install from (`Model::load`).
-const PACMAN_CONFIG: &str = "/etc/pacman.conf";
 /// Rendered rows per page. A full sync DB is ~15k entries; building that
 /// many rows per keystroke is not a cost worth paying — the cap plus the
 /// "keep typing" row is what `pacman -Ss` itself does.
@@ -39,6 +36,7 @@ pub struct Ui {
     pub updates: Rc<RefCell<Option<super::updates::Page>>>,
     pub browse: Rc<RefCell<Option<super::browse::Page>>>,
     pub distro: Rc<RefCell<Option<super::distro::Page>>>,
+    pub aur_page: Rc<RefCell<Option<super::aur::Page>>>,
     /// The Updates tab, for the needs-attention badge, and whether the
     /// user is looking at it right now (no badge for what is on screen).
     pub updates_tab: Rc<RefCell<Option<adw::ViewStackPage>>>,
@@ -48,6 +46,16 @@ pub struct Ui {
     /// acknowledgement rule as the Updates badge.
     pub aelum_tab: Rc<RefCell<Option<adw::ViewStackPage>>>,
     pub on_aelum_page: Rc<Cell<bool>>,
+    /// The last AUR answer the user asked for. Nothing is fetched from the
+    /// AUR unasked: the app's only automatic network call is `pacman -Sy`,
+    /// against the user's own mirrors, and an AUR badge would mean asking a
+    /// third-party server about something the user never asked about.
+    pub aur: Rc<RefCell<Option<AurResults>>>,
+    /// Whether an AUR search is in flight, and which one is still current.
+    /// Two searches can overlap; the slower one must not answer the newer
+    /// question (the same rule as `load_seq`).
+    pub aur_searching: Rc<Cell<bool>>,
+    pub aur_seq: Rc<Cell<u64>>,
     /// The header's Refresh button; it doubles as the update-check
     /// indicator (a spinner while any refresh runs).
     pub refresh: Rc<RefCell<Option<gtk::Button>>>,
@@ -76,10 +84,14 @@ impl Ui {
             updates: Rc::new(RefCell::new(None)),
             browse: Rc::new(RefCell::new(None)),
             distro: Rc::new(RefCell::new(None)),
+            aur_page: Rc::new(RefCell::new(None)),
             updates_tab: Rc::new(RefCell::new(None)),
             on_updates_page: Rc::new(Cell::new(false)),
             aelum_tab: Rc::new(RefCell::new(None)),
             on_aelum_page: Rc::new(Cell::new(false)),
+            aur: Rc::new(RefCell::new(None)),
+            aur_searching: Rc::new(Cell::new(false)),
+            aur_seq: Rc::new(Cell::new(0)),
             refresh: Rc::new(RefCell::new(None)),
             content: Rc::new(RefCell::new(None)),
             load_seq: Rc::new(Cell::new(0)),
@@ -153,6 +165,11 @@ impl Ui {
         }
         if let Some(page) = self.distro.borrow().as_ref() {
             page.refresh(self, &model);
+        }
+        // The AUR page reads its own state, not the model: its rows were
+        // classified against the model when the answer arrived.
+        if let Some(page) = self.aur_page.borrow().as_ref() {
+            page.refresh(self);
         }
         // The tab badge marks pending updates the user is not already
         // looking at; visiting the page clears it (window.rs).
@@ -324,4 +341,138 @@ impl Ui {
             Err(e) => self.toast(&format!("Not a readable Arch package: {e}")),
         }
     }
+
+    /// Ask the AUR. The search is the user's action, never the app's: the
+    /// AUR is a third-party server, and this desktop is offline-first — an
+    /// AUR page that filled itself at startup would make the app need the
+    /// internet to say anything true about the system.
+    pub fn search_aur(&self, query: &str) {
+        let query = query.trim().to_string();
+        let seq = self.aur_seq.get() + 1;
+        self.aur_seq.set(seq);
+        if query.is_empty() {
+            self.aur_searching.set(false);
+            *self.aur.borrow_mut() = None;
+            self.refresh_pages();
+            return;
+        }
+        self.aur_searching.set(true);
+        self.refresh_pages();
+
+        let (tx, mut rx) = futures::channel::mpsc::unbounded();
+        std::thread::spawn(move || {
+            let _ = tx.unbounded_send((seq, aur_hits(&query)));
+        });
+        let ui = self.clone();
+        glib::MainContext::default().spawn_local(async move {
+            if let Some((seq, result)) = rx.next().await {
+                // A newer search is already on screen; this answer is stale.
+                if seq != ui.aur_seq.get() {
+                    return;
+                }
+                ui.aur_searching.set(false);
+                // The answer is kept as the AUR gave it. Rows are classified
+                // against the model when the page is drawn, so they say what
+                // these names are on this system *now* — and a search that
+                // arrives before the databases have been read is not
+                // misclassified as "nothing matches".
+                *ui.aur.borrow_mut() = match result {
+                    Ok(hits) => Some(AurResults { hits, error: None }),
+                    Err(e) => Some(AurResults {
+                        hits: Vec::new(),
+                        error: Some(e),
+                    }),
+                };
+                ui.refresh_pages();
+            }
+        });
+    }
+
+    /// Build one AUR package and install what the build produces. The whole
+    /// request is one job in one log dialog: repository dependencies first
+    /// through the same polkit action as everything else, then makepkg as
+    /// this user, then `pacman -U` for the files it made.
+    pub fn install_aur(&self, hit: aur::Hit) {
+        if self.running.get() {
+            self.toast(&i18n::t("toast.busy"));
+            return;
+        }
+        if !Path::new(txn::HELPER).exists() {
+            self.toast(&i18n::t_fmt("toast.noHelper", &[("helper", txn::HELPER)]));
+            return;
+        }
+        // makepkg needs base-devel, which `base` does not include.
+        // Refusing before anything runs is what the AUR helpers do, and it is
+        // a sentence the user can act on rather than a makepkg error two
+        // minutes into a build.
+        let missing = self
+            .model
+            .borrow()
+            .as_ref()
+            .and_then(|m| m.missing_dependencies(aur::BUILD_TOOLS));
+        if missing.is_some() {
+            self.toast(&i18n::t("aur.noBuildTools"));
+            return;
+        }
+        let Some(window) = self.window.borrow().clone() else {
+            return;
+        };
+        self.running.set(true);
+        let log = super::txnlog::show(&window, &i18n::t_fmt("txn.summaryBuild", &[("name", &hit.name)]));
+
+        let (tx, mut rx) = futures::channel::mpsc::unbounded();
+        let spawned = std::thread::Builder::new().spawn(move || remote::aur_install(&hit, &tx));
+        if let Err(e) = spawned {
+            self.running.set(false);
+            log.finish(Err(-1));
+            self.toast(&i18n::t_fmt("toast.startFailed", &[("error", &e.to_string())]));
+            return;
+        }
+        let ui = self.clone();
+        glib::MainContext::default().spawn_local(async move {
+            let mut answered = false;
+            while let Some(event) = rx.next().await {
+                match event {
+                    TxnEvent::Line(line) => log.append(&line),
+                    TxnEvent::Finished(result) => {
+                        answered = true;
+                        ui.running.set(false);
+                        log.finish(result);
+                        // The new packages are only real once the model has
+                        // read them: the pages move because the databases moved.
+                        if result.is_ok() {
+                            ui.load_model();
+                        }
+                        break;
+                    }
+                }
+            }
+            if !answered {
+                // The worker went away without a status — it panicked. A
+                // dialog that spins forever and a gate that stays closed are
+                // both worse than a failure.
+                ui.running.set(false);
+                log.finish(Err(-1));
+            }
+        });
+    }
+}
+
+/// One AUR search, on the worker thread: the request, then its answer read
+/// into rows. An error here is the server's own sentence (the AUR refuses a
+/// query that matches too much) and is shown as it came back.
+fn aur_hits(query: &str) -> Result<Vec<aur::Hit>, String> {
+    let body = remote::http_get(&aur::search_url(query))?;
+    match aur::parse_reply(&body)? {
+        aur::Response::Search(hits) => Ok(hits),
+        aur::Response::Info(_) => Err("the AUR answered a different question".into()),
+    }
+}
+
+/// What the AUR page shows: the answer to the last search, or the reason
+/// there is none. An empty list and a refused request are different facts —
+/// the page says which one it has.
+pub struct AurResults {
+    pub hits: Vec<aur::Hit>,
+    pub error: Option<String>,
 }

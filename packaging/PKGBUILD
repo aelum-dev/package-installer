@@ -15,8 +15,10 @@ pkgdesc='GTK4/libadwaita package manager for the Aelum desktop'
 arch=('x86_64')
 license=('GPL-3.0-only')
 # gtk4/libadwaita are linked by the binary; pkexec (polkit) is how it
-# reaches root, and the helper is a bash script.
-depends=('gtk4' 'libadwaita' 'polkit' 'bash')
+# reaches root, and the helper is a bash script. curl is the AUR page's
+# HTTP client — pacman already depends on curl, so this asks for nothing a
+# working system lacks, but the app uses it directly and says so.
+depends=('gtk4' 'libadwaita' 'polkit' 'bash' 'curl')
 makedepends=('rust' 'pkgconf')
 # Regenerated from the tracked tree on every build-pkg.sh run, so the hash
 # changes by design.

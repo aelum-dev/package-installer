@@ -29,7 +29,10 @@ pub enum Txn {
     Install(Vec<String>),
     Remove(Vec<String>),
     Upgrade,
-    InstallFile(PathBuf),
+    /// Local package files — an opened `.pkg.tar.zst`, or everything one AUR
+    /// build produced. Several files are one transaction: pacman resolves the
+    /// order between them, which is what a split PKGBUILD needs.
+    InstallFiles(Vec<PathBuf>),
 }
 
 impl Txn {
@@ -49,7 +52,11 @@ impl Txn {
                 a
             }
             Txn::Upgrade => vec!["upgrade".into()],
-            Txn::InstallFile(path) => vec!["file".into(), path.display().to_string()],
+            Txn::InstallFiles(paths) => {
+                let mut a = vec!["file".into()];
+                a.extend(paths.iter().map(|p| p.display().to_string()));
+                a
+            }
         }
     }
 
@@ -62,9 +69,16 @@ impl Txn {
             }
             Txn::Remove(pkgs) => i18n::t_fmt("txn.summaryRemove", &[("names", &pkgs.join(", "))]),
             Txn::Upgrade => i18n::t("txn.summaryUpgrade"),
-            Txn::InstallFile(path) => i18n::t_fmt(
+            Txn::InstallFiles(paths) => i18n::t_fmt(
                 "txn.summaryFile",
-                &[("file", &path.file_name().unwrap_or_default().to_string_lossy())],
+                &[(
+                    "file",
+                    &paths
+                        .iter()
+                        .map(|p| p.file_name().unwrap_or_default().to_string_lossy().into_owned())
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                )],
             ),
         }
     }
@@ -88,31 +102,9 @@ pub enum TxnEvent {
 /// helper cannot authorize any transaction, so the caller checks the path
 /// first and says so plainly.
 pub fn run(txn: &Txn, tx: UnboundedSender<TxnEvent>) -> std::io::Result<()> {
-    let mut child = Command::new("pkexec")
-        .arg(HELPER)
-        .args(txn.argv())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
-
-    // Both pipes get their own reader: leaving one unread can deadlock a
-    // long pacman run on a full pipe buffer.
-    if let Some(out) = child.stdout.take() {
-        let tx = tx.clone();
-        thread::spawn(move || {
-            for line in std::io::BufReader::new(out).lines().map_while(Result::ok) {
-                let _ = tx.unbounded_send(TxnEvent::Line(line));
-            }
-        });
-    }
-    if let Some(err) = child.stderr.take() {
-        let tx = tx.clone();
-        thread::spawn(move || {
-            for line in std::io::BufReader::new(err).lines().map_while(Result::ok) {
-                let _ = tx.unbounded_send(TxnEvent::Line(line));
-            }
-        });
-    }
+    let mut child = spawn(txn)?;
+    read_pipes(&mut child, &tx);
+    // The caller is not held: the exit status arrives as an event.
     thread::spawn(move || {
         let status = child.wait().map(|s| s.code().unwrap_or(-1));
         let _ = tx.unbounded_send(match status {
@@ -122,6 +114,58 @@ pub fn run(txn: &Txn, tx: UnboundedSender<TxnEvent>) -> std::io::Result<()> {
         });
     });
     Ok(())
+}
+
+/// The same transaction, run to completion on the calling thread, with its
+/// output on `tx` and its exit code as the return value.
+///
+/// This is what lets one user request be several steps: an AUR install brings
+/// its repository dependencies in through here before it builds, and all of
+/// it streams into the one log dialog the request already opened.
+pub fn run_wait(txn: &Txn, tx: &UnboundedSender<TxnEvent>) -> Result<(), i32> {
+    let mut child = match spawn(txn) {
+        Ok(child) => child,
+        Err(e) => {
+            let _ = tx.unbounded_send(TxnEvent::Line(e.to_string()));
+            return Err(-1);
+        }
+    };
+    read_pipes(&mut child, tx);
+    match child.wait() {
+        Ok(status) if status.success() => Ok(()),
+        Ok(status) => Err(status.code().unwrap_or(-1)),
+        Err(_) => Err(-1),
+    }
+}
+
+/// The helper, under pkexec, with both pipes piped and not yet read.
+fn spawn(txn: &Txn) -> std::io::Result<std::process::Child> {
+    Command::new("pkexec")
+        .arg(HELPER)
+        .args(txn.argv())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+}
+
+/// Both pipes get their own reader: leaving one unread can deadlock a long
+/// pacman run on a full pipe buffer.
+fn read_pipes(child: &mut std::process::Child, tx: &UnboundedSender<TxnEvent>) {
+    if let Some(out) = child.stdout.take() {
+        pipe(out, tx);
+    }
+    if let Some(err) = child.stderr.take() {
+        pipe(err, tx);
+    }
+}
+
+fn pipe<R: std::io::Read + Send + 'static>(reader: R, tx: &UnboundedSender<TxnEvent>) {
+    let tx = tx.clone();
+    thread::spawn(move || {
+        for line in std::io::BufReader::new(reader).lines().map_while(Result::ok) {
+            let _ = tx.unbounded_send(TxnEvent::Line(line));
+        }
+    });
 }
 
 #[cfg(test)]
@@ -138,8 +182,13 @@ mod tests {
         );
         assert_eq!(Txn::Upgrade.argv(), ["upgrade"]);
         assert_eq!(
-            Txn::InstallFile("/home/u/x.pkg.tar.zst".into()).argv(),
+            Txn::InstallFiles(vec!["/home/u/x.pkg.tar.zst".into()]).argv(),
             ["file", "/home/u/x.pkg.tar.zst"]
+        );
+        // A split PKGBUILD: several files, one pacman call, in build order.
+        assert_eq!(
+            Txn::InstallFiles(vec!["/t/a.pkg.tar.zst".into(), "/t/b.pkg.tar.zst".into()]).argv(),
+            ["file", "/t/a.pkg.tar.zst", "/t/b.pkg.tar.zst"]
         );
     }
 

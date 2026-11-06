@@ -1,11 +1,11 @@
-//! The window: header, view switcher, and the four pages.
+//! The window: header, view switcher, and the five pages.
 
 use gtk::prelude::*;
 use libadwaita as adw;
 use libadwaita::prelude::*;
 
 use super::app::Ui;
-use super::{browse, distro, installed, updates};
+use super::{aur, browse, distro, installed, updates};
 use crate::i18n;
 use crate::txn::Txn;
 
@@ -58,6 +58,7 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     let (installed_page, installed_root) = installed::build(ui);
     let (browse_page, browse_root) = browse::build(ui);
     let (distro_page, distro_root) = distro::build();
+    let (aur_page, aur_root) = aur::build(ui);
     let (updates_page, updates_root) = updates::build(ui);
     let page = stack.add_titled(&installed_root, Some("installed"), &i18n::t("tabs.installed"));
     page.set_icon_name(Some("package-x-generic-symbolic"));
@@ -68,6 +69,11 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     let page = stack.add_titled(&distro_root, Some("aelum"), &i18n::t("tabs.aelum"));
     page.set_icon_name(Some("starred-symbolic"));
     *ui.aelum_tab.borrow_mut() = Some(page);
+    // AUR: the Arch User Repository. It sits with the other ways to get a
+    // package and, unlike them, says nothing until asked — there is no badge
+    // here because a badge would mean a query the user never made.
+    let page = stack.add_titled(&aur_root, Some("aur"), &i18n::t("tabs.aur"));
+    page.set_icon_name(Some("network-server-symbolic"));
     // Updates last: it is the page you go to when something is wrong, not
     // the one you open to look at your system. Its badge is the signal.
     let page = stack.add_titled(&updates_root, Some("updates"), &i18n::t("tabs.updates"));
@@ -119,6 +125,7 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     *ui.updates.borrow_mut() = Some(updates_page);
     *ui.browse.borrow_mut() = Some(browse_page);
     *ui.distro.borrow_mut() = Some(distro_page);
+    *ui.aur_page.borrow_mut() = Some(aur_page);
     // RTL after the whole tree exists: every control must be covered.
     apply_rtl(&window);
     window.present();

@@ -20,22 +20,28 @@ preinstalled. Updates still come from the repo.
 ## Layout, and the one hard rule
 
 - `src/db.rs` — the formats: sync DBs, the local DB, `.PKGINFO`. **No GTK.**
+- `src/aur.rs` — the AUR's protocol: the RPC URLs, its reply format, and
+  `plan()` (what an install needs, in build order). **No GTK, no network, no
+  process** — the caller brings the answers and the model's answers.
+- `src/remote.rs` — the commands that run **without** root: curl (the RPC and
+  the PKGBUILD snapshot) and makepkg. Holds the sequence one AUR install is.
 - `src/model.rs` — the merged model (sync × local), `Status`/`Reason`
-  classification, search, `updatable`, reverse-deps and orphans. **No GTK.**
+  classification, search, `updatable`, reverse-deps and orphans, what an AUR
+  answer means for this system (`aur_rows`), and whether a dependency is
+  already answered (`dep_satisfied`/`in_repo`). **No GTK.**
 - `src/i18n.rs` — locale selection + the embedded catalogs (the player's
   contract: `LC_ALL`→`LC_MESSAGES`→`LANG` → BCP-47 → supported list →
   en-US; per-key fallback; `{placeholder}` interpolation). **No GTK.**
 - `src/vercmp.rs` — rpmvercmp + epoch, hand-written. **No GTK, no alpm.**
-- `src/txn.rs` — the only place a subprocess runs, and the only place root is
-  asked for.
-- `src/ui/` — thin: `app.rs` is the shared state (`Ui`) and the transaction
-  gate, `window.rs` the four-page `ViewStack`, one module per page,
-  `dialog`/`txnlog`/`fileopen` the dialogs.
+- `src/txn.rs` — the only place root is asked for.
+- `src/ui/` — thin: `app.rs` is the shared state (`Ui`), the transaction gate
+  and the AUR search/job entry points, `window.rs` the five-page `ViewStack`,
+  one module per page, `dialog`/`txnlog`/`fileopen` the dialogs.
 
-The three pure modules hold every decision and carry the tests; a page builds
+The four pure modules hold every decision and carry the tests; a page builds
 rows from what `Model` returns and never classifies anything itself. That is
-what makes the data layer testable without root, a display, or a package
-installed — keep it that way.
+what makes the data layer testable without root, a display, a package
+installed, or the network — keep it that way.
 
 ## Measured facts about pacman's on-disk state
 
@@ -80,12 +86,68 @@ release you target before changing the code that encodes them.
   empty state. An empty list must mean "there is nothing", never "I could not read it".
 - `.PKGINFO` is the first member of the package archive — `read_pkginfo` streams,
   it does not mmap. Package files are routinely hundreds of MB.
+- **`%PROVIDES%` is in both the sync and the local desc files** (measured in
+  extra.db: 7zip → `p7zip`; `pacman -Qi` shows the same for installed
+  packages). A dependency matched by name alone asks for a package that does
+  not exist, and makepkg — which asks alpm — would have built it anyway.
+- **`base` and `base-devel` are metapackages, not pacman groups**:
+  `pacman -Qg base-devel` finds nothing, while core.db's `base-devel-1-2/desc`
+  carries the tool list in `%DEPENDS%`. That entry is what `Model::
+  missing_dependencies("base-devel")` reads, and `pacman -Si base-devel`'s
+  Depends line is the oracle (`--ignored`).
+
+## Measured facts about the AUR
+
+The AUR is someone else's server, and its format is not alpm's. Each of these
+was measured against the live RPC (and `cargo test -- --ignored` re-runs that
+measurement).
+
+- **A refused request is HTTP 200 with an empty `results` array** and a
+  `{"type":"error","error":"Too many package results."}` body — that is what
+  `arg=python` and `arg=git` answer. Reading only `results` would show "no
+  packages found" for a search the server never ran.
+- **`type=info` answers only for the names it has** (measured: one existing
+  and one missing name → `resultcount: 1`). A name with no answer has *no
+  information*, which is not the same as *no dependencies*.
+- **A search answer has no dependency lists**; only `info` carries them, and
+  the field is spelled `MakeDepends`, not the `.SRCINFO` spelling. So an
+  install asks in rounds: a dependency's own dependencies are visible only
+  once that dependency has been asked about (`MAX_INFO_ROUNDS` bounds it).
+- **Every answer carries `URLPath`** — `/cgit/aur.git/snapshot/<base>.tar.gz`,
+  a tarball of `<pkgbase>/PKGBUILD` and its files. That is how a PKGBUILD is
+  fetched without git: curl plus the `tar` crate already in use.
+- **The RPC's `resultcount` equals the number of results** for a query it
+  accepts (`arch` → 3532 in one reply), so there is no paging to implement.
+- **`makepkg` refuses to run as root, and `makepkg -s` asks sudo** for a
+  terminal this process does not have. So the repository dependencies are
+  installed first through the one polkit action, and the build runs as the
+  user with plain `makepkg --noconfirm`.
+- **curl is a pacman dependency** (`pacman -Qi pacman`: `Depends On: … curl …`),
+  so it is on every system this app runs on; no HTTP client crate is needed.
+- **The built archives live *inside* the build directory.** Clearing that tree
+  once the package existed — which is what this did first — deleted the files
+  being installed, and the real install of qtengine ended in
+  `error: '…/aur/qtengine/qtengine-0.2.4-1-x86_64.pkg.tar.zst': could not find
+  or read package` for both halves of a split build that had just been built.
+  `keep_archives` removes the sources, `$srcdir` and `$pkgdir` and keeps the
+  `.pkg.tar.*`.
+- **Which files a build produced is asked of makepkg (`--packagelist`), not
+  read off the directory.** It names every half of a split build and honours
+  `PKGDEST`/`PKGEXT` from the user's makepkg.conf (measured: `PKGDEST=…` puts
+  the archives outside the build directory entirely, so a directory scan finds
+  nothing). With no PKGBUILD it exits 12 with no output — which is why the
+  scan stays as the fallback, and why a path that is not a file is dropped
+  before pacman is asked.
 
 ## The one polkit action
 
 `dev.aelum.package.manage` + `/usr/bin/aelum-package-installer-helper`
 (`{refresh|install|remove|upgrade|file}` → `pacman -Sy|-S -Rns|-Syu|-U`, all
-`--noconfirm`), the `aelum-snapshot-restore` shape: the policy's `exec.path`
+`--noconfirm`), the `aelum-snapshot-restore` shape. An AUR install is three
+steps of one request — `install` (repository dependencies), the build as the
+user, `file` (everything the build produced) — and `txn::run_wait` runs the
+root steps inside the worker so all of it streams into the one log dialog the
+request opened. The AUR adds no verb: the policy's `exec.path`
 annotation authenticates the *program*, and `data/polkit/aelum-package-manage.rules`
 grants it to a local, active, `wheel` session. There is **no raw-pacman
 fallback**: every privileged operation resolves to that one action, and a host
@@ -95,12 +157,25 @@ the annotation — an invariant, not a unit test of a string.
 
 ## UI rules the app holds to
 
-- **Tab order Installed · Aelum · Browse · Updates.** Aelum lists the
+- **Tab order Installed · Browse · Aelum · AUR · Updates.** Aelum lists the
   `[aelum]` repo's packages that are not installed yet — the distribution
   channel as a page; installing one moves it to Installed. Updates is last
   because it is the page you go to when something is waiting, and its
   `needs-attention` badge is the only update signal — the Installed page has
   no banner, a count there was the same fact twice.
+- **The AUR page fetches nothing until asked**: no badge, no startup query.
+  This desktop is offline-first, and "N AUR updates waiting" would be a claim
+  about a third-party server the user never contacted; the app's only
+  automatic network call is `pacman -Sy`, against the user's own mirrors. The
+  search entry debounces (400 ms — the AUR rate-limits), answers are
+  generation-numbered (`Ui::aur_seq`) so a slow older search cannot answer a
+  newer question, and a search that never happened is never rendered as an
+  empty list. The answer is kept as the AUR gave it and rows are classified
+  when the page draws them (`Model::aur_rows`: not installed / installed /
+  older than what the AUR would build), so they say what those names are on
+  this system *now* and a search that beat the model load is not misread as
+  "nothing matches". An AUR "update" is a rebuild — the row says
+  `installed → to build`, because there is no binary to download.
 - **Two dots, one rule.** The Updates badge marks pending updates, the Aelum
   badge marks apps the channel carries that the system lacks; both are
   `needs-attention` on the `ViewStackPage`, both are computed in
@@ -154,23 +229,29 @@ the annotation — an invariant, not a unit test of a string.
 | `tar`, `zstd` | 0.4 / 0.13 | sync DB + `.PKGINFO` reading, no libalpm |
 | `flate2` | 1.1, default (pure-Rust) backend | gzip DBs; no new system dependency in the build image |
 | `futures` | 0.3 | worker → main-thread channels (glib 0.22 removed `MainContext::channel`) |
+| `serde_json` | 1 | the i18n catalogs **and** the AUR RPC replies |
 
 No libalpm, no `alpm` crate, no `pacman` subprocess for reads: the on-disk
 formats are stable and parsing them is what makes search instant. Version
 comparison is `vercmp.rs` — pacman 7 ships no `vercmp` helper and linking a
-library for two strings is overkill.
+library for two strings is overkill. No HTTP client crate either: the AUR is
+asked with curl, which every pacman system already has.
 
 GTK/libadwaita traps already hit: `gtk::Image::from_icon_name` takes `&str`, not
 `Option`; `ViewStack::visible_child_name()` returns `Option<GString>`; glib
 dropped `escape_text`, so `ui::markup_escape` handles it — `ActionRow`
 title/subtitle are Pango markup and package descriptions carry bare `&`
-(firefox's does).
+(firefox's does); `SourceId::remove()` **panics** on an id whose source already
+ran (a one-shot `timeout_add_local` is gone when its callback returns `Break`),
+and a panic inside a signal trampoline aborts the process — the AUR debounce
+dropped the stored id inside its callback for that reason.
 
 ## Commands
 
 ```bash
 cargo test                                 # the data layer + txn invariants, no root needed
-cargo test -- --ignored                    # real Arch host: compares with pacman -Qqe and -Quq
+cargo test -- --ignored                    # real Arch host + live AUR: pacman -Qqe/-Quq, the
+                                           # base-devel entry, the RPC and a real snapshot
 cargo clippy --all-targets                 # must stay at 0 warnings
 cargo run                                  # GUI. Reads work from a source tree; transactions
                                            # need the packaged helper (see below)

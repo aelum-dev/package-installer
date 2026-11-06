@@ -6,8 +6,15 @@ use std::fs;
 use std::path::Path;
 use std::time::SystemTime;
 
+use crate::aur;
 use crate::db::{self, LocalPackage, Reason, SyncPackage};
 use crate::vercmp::vercmp;
+
+/// Where the model lives on every Aelum system.
+pub const PACMAN_ROOT: &str = "/var/lib/pacman";
+/// The configuration that says which of its sync databases are repositories
+/// this system can install from (`Model::load`).
+pub const PACMAN_CONFIG: &str = "/etc/pacman.conf";
 
 /// What a row can do with a package.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -108,6 +115,13 @@ pub struct Model {
     /// this" by scanning every installed package's dependency list is
     /// quadratic, measured at ~2 s per Remove click on a 1258-package system.
     dependents: HashMap<String, Vec<String>>,
+    /// The names an installed package answers for under another name, and the
+    /// same for the configured repositories. alpm resolves a dependency by
+    /// provision as well as by name (measured against extra.db: 7zip carries
+    /// `Provides = p7zip`), so a name-only check asks for packages that do
+    /// not exist.
+    provided_installed: HashSet<String>,
+    provided_repo: HashSet<String>,
     /// The newest mtime among the databases the model actually reads: how
     /// fresh the browse page is. A database for a repository the system does
     /// not use is left out — its date says nothing about this system.
@@ -222,8 +236,17 @@ impl Model {
 
         let db_fresh = order.iter().filter_map(|r| fresh.get(r.as_str()).copied()).max();
         let dependents = dependents_index(&entries);
+        let (provided_installed, provided_repo) = provides_index(&entries);
 
-        Ok(Model { entries, index, dependents, db_fresh, db_errors })
+        Ok(Model {
+            entries,
+            index,
+            dependents,
+            provided_installed,
+            provided_repo,
+            db_fresh,
+            db_errors,
+        })
     }
 
     pub fn get(&self, name: &str) -> Option<&Entry> {
@@ -345,6 +368,100 @@ impl Model {
     fn installed(&self, name: &str) -> Option<&LocalPackage> {
         self.get(name).and_then(|e| e.installed.as_ref())
     }
+
+    /// Whether a dependency string is already answered on this system — by an
+    /// installed package of that name or by one that provides it. The name is
+    /// matched without its version comparator: the cost of ignoring the
+    /// version is asking for something extra, never a build that then fails
+    /// (makepkg asks alpm, which does check it).
+    pub fn dep_satisfied(&self, dep: &str) -> bool {
+        let dep = db::dep_name(dep);
+        self.installed(dep).is_some() || self.provided_installed.contains(dep)
+    }
+
+    /// Whether one of the configured repositories carries this name, by name
+    /// or by provision. This is the question `Model::load` already answered
+    /// when it decided which rows exist, so an AUR dependency that is really
+    /// a repository package is installed with `pacman -S` rather than built
+    /// from source.
+    pub fn in_repo(&self, name: &str) -> bool {
+        let name = db::dep_name(name);
+        self.get(name).is_some_and(|e| e.sync.is_some()) || self.provided_repo.contains(name)
+    }
+
+    /// The packages a repository entry would bring that this system does not
+    /// have — the entry's own `%DEPENDS%`, minus what is installed.
+    ///
+    /// This is how `base` and `base-devel` work on Arch: they are real
+    /// metapackages in the repositories, not pacman groups (measured:
+    /// `pacman -Qg base-devel` finds nothing, while core.db's
+    /// `base-devel-1-2/desc` carries the tool list in `%DEPENDS%`).
+    ///
+    /// `None` means there is nothing to report: the entry is satisfied, or no
+    /// loaded repository carries it. A caller must not read that as "it is
+    /// missing".
+    pub fn missing_dependencies(&self, entry: &str) -> Option<Vec<String>> {
+        let members = self.get(entry)?.sync.as_ref()?.depends.clone();
+        if members.is_empty() {
+            return None;
+        }
+        let missing: Vec<String> = members
+            .iter()
+            .filter(|m| !self.dep_satisfied(m))
+            .map(|m| db::dep_name(m).to_string())
+            .collect();
+        (!missing.is_empty()).then_some(missing)
+    }
+
+    /// What an AUR answer means for this system: the same installed / not
+    /// installed / up-to-date question the sync rows answer, against the
+    /// version the AUR says it would build. The order of `hits` is the AUR's
+    /// own ranking and is kept.
+    pub fn aur_rows(&self, hits: &[aur::Hit]) -> Vec<AurRow> {
+        hits.iter()
+            .map(|hit| {
+                let installed = self
+                    .get(&hit.name)
+                    .and_then(|e| e.installed.as_ref())
+                    .map(|l| l.version.clone());
+                let state = match &installed {
+                    None => AurState::NotInstalled,
+                    Some(version) => {
+                        if vercmp(&hit.version, version) == std::cmp::Ordering::Greater {
+                            AurState::Update
+                        } else {
+                            AurState::Installed
+                        }
+                    }
+                };
+                AurRow {
+                    hit: hit.clone(),
+                    installed_version: installed,
+                    state,
+                }
+            })
+            .collect()
+    }
+}
+
+/// What an AUR package with this name is on this system.
+#[derive(Clone, Debug)]
+pub struct AurRow {
+    pub hit: aur::Hit,
+    pub installed_version: Option<String>,
+    pub state: AurState,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AurState {
+    /// Not on the system: installing it means building it.
+    NotInstalled,
+    /// Installed at the same or a newer version. Nothing is offered: there is
+    /// no version here to move to.
+    Installed,
+    /// Installed, and the AUR carries a newer version. Updating it is a
+    /// rebuild — the AUR publishes no binaries.
+    Update,
 }
 
 /// name → the installed packages whose dependency list names it, each list
@@ -370,6 +487,27 @@ fn dependents_index(entries: &[Entry]) -> HashMap<String, Vec<String>> {
     index
 }
 
+/// provided-by-an-installed-package × provided-by-a-configured-repository. A
+/// provision is matched by its leading token for the same reason a dependency
+/// is: `libp7zip.so=1-64` is a soname with a version, not a name.
+fn provides_index(entries: &[Entry]) -> (HashSet<String>, HashSet<String>) {
+    let mut installed = HashSet::new();
+    let mut repo = HashSet::new();
+    for e in entries {
+        if let Some(l) = e.installed.as_ref() {
+            for p in &l.provides {
+                installed.insert(db::dep_name(p).to_string());
+            }
+        }
+        if let Some(s) = e.sync.as_ref() {
+            for p in &s.provides {
+                repo.insert(db::dep_name(p).to_string());
+            }
+        }
+    }
+    (installed, repo)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -385,6 +523,7 @@ mod tests {
             csize: 0,
             isize: 0,
             depends: vec![],
+            provides: vec![],
         }
     }
 
@@ -395,6 +534,7 @@ mod tests {
             desc: String::new(),
             reason,
             depends: depends.iter().map(|s| s.to_string()).collect(),
+            provides: vec![],
         }
     }
 
@@ -412,7 +552,16 @@ mod tests {
             index.insert(e.name.clone(), i);
         }
         let dependents = dependents_index(&entries);
-        Model { entries, index, dependents, db_fresh: None, db_errors: Vec::new() }
+        let (provided_installed, provided_repo) = provides_index(&entries);
+        Model {
+            entries,
+            index,
+            dependents,
+            provided_installed,
+            provided_repo,
+            db_fresh: None,
+            db_errors: Vec::new(),
+        }
     }
 
     fn entry(name: &str, installed: Option<LocalPackage>, sync_pkg: Option<SyncPackage>) -> Entry {
@@ -597,6 +746,97 @@ mod tests {
             let indexed = m.dependents.get(target.name.as_str()).cloned().unwrap_or_default();
             assert_eq!(indexed, scanned, "dependents of {}", target.name);
         }
+    }
+
+    /// An AUR answer, as `aur::parse_reply` would hand one over.
+    fn hit(name: &str, version: &str) -> aur::Hit {
+        aur::Hit {
+            name: name.into(),
+            version: version.into(),
+            description: "built from the AUR".into(),
+            url: String::new(),
+            url_path: format!("/cgit/aur.git/snapshot/{name}.tar.gz"),
+            votes: 12,
+            out_of_date: false,
+        }
+    }
+
+    #[test]
+    fn an_aur_row_answers_the_same_three_questions_as_any_other_row() {
+        let m = model(vec![
+            // Not on the system at all.
+            entry("newapp", None, None),
+            // Installed and current: the AUR has nothing to offer.
+            entry("htop", Some(local("htop", "3.1-1", Reason::Explicit, &[])), None),
+            // Installed, and the AUR would build something newer.
+            entry("gimp", Some(local("gimp", "2.99-1", Reason::Explicit, &[])), None),
+        ]);
+        let rows = m.aur_rows(&[hit("newapp", "1.0-1"), hit("htop", "3.1-1"), hit("gimp", "3.0-1")]);
+        assert_eq!(rows[0].state, AurState::NotInstalled);
+        assert!(rows[0].installed_version.is_none());
+        assert_eq!(rows[1].state, AurState::Installed);
+        assert_eq!(rows[1].installed_version.as_deref(), Some("3.1-1"));
+        assert_eq!(rows[2].state, AurState::Update);
+        // The AUR's own ranking is kept, and the answer is compared with
+        // vercmp, not with a string compare.
+        assert_eq!(
+            rows.iter().map(|r| r.hit.name.as_str()).collect::<Vec<_>>(),
+            ["newapp", "htop", "gimp"]
+        );
+    }
+
+    #[test]
+    fn an_installed_provision_satisfies_a_dependency() {
+        // Measured in the local DB and in extra.db: a package answers for
+        // names that are not its own (7zip → p7zip). A dependency matched by
+        // name alone would ask the user to install a package that does not
+        // exist, and makepkg would then build something already provided.
+        let mut p = local("7zip", "26.05-1", Reason::Explicit, &[]);
+        p.provides = vec!["p7zip".into()];
+        let mut s = sync("java", "17-1", "jdk");
+        s.provides = vec!["java-runtime=17".into()];
+        let m = model(vec![
+            entry("7zip", Some(p), None),
+            entry("java", None, Some(s)),
+        ]);
+        assert!(m.dep_satisfied("p7zip"));
+        assert!(m.dep_satisfied("7zip"));
+        assert!(m.in_repo("java-runtime"));
+        // A dependency carrying a comparator is still answered by the name:
+        // the version is alpm's business when it installs, not ours here.
+        assert!(m.in_repo("java-runtime>=17"));
+        // Nothing installed answers for it, and nothing in a repository is
+        // called `nonsense` either.
+        assert!(!m.dep_satisfied("nonsense"));
+        assert!(!m.in_repo("nonsense"));
+    }
+
+    #[test]
+    fn a_metapackage_is_its_dependency_list() {
+        // `pacman -Sg base-devel` reads the `base-devel` entry of the sync
+        // DB, whose %DEPENDS% is the member list. Only part of it is here.
+        let mut group = sync("base-devel", "1-2", "Basic tools to build packages");
+        group.depends = vec!["gcc".into(), "make".into(), "patch".into()];
+        let m = model(vec![
+            entry("base-devel", None, Some(group)),
+            entry("gcc", Some(local("gcc", "15-1", Reason::Dependency, &[])), None),
+            entry("make", Some(local("make", "4.4-1", Reason::Dependency, &[])), None),
+        ]);
+        assert_eq!(m.missing_dependencies("base-devel").unwrap(), ["patch"]);
+        // A group no loaded repository describes is not a fact about the
+        // system, so it is reported as nothing to say.
+        assert_eq!(m.missing_dependencies("optdepends"), None);
+    }
+
+    #[test]
+    fn a_satisfied_metapackage_has_nothing_to_report() {
+        let mut group = sync("base-devel", "1-2", "Basic tools");
+        group.depends = vec!["make".into()];
+        let m = model(vec![
+            entry("base-devel", None, Some(group)),
+            entry("make", Some(local("make", "4.4-1", Reason::Dependency, &[])), None),
+        ]);
+        assert_eq!(m.missing_dependencies("base-devel"), None);
     }
 
     /// A scratch directory for on-disk fixtures. Named per test and per
@@ -844,6 +1084,58 @@ mod tests {
         let mut ours = ours;
         ours.sort();
         assert_eq!(ours, theirs);
+    }
+
+    /// The AUR build's one precondition is read the way pacman reads it.
+    /// Ignored by default: it needs a real Arch host with sync databases.
+    /// Run with `cargo test -- --ignored`.
+    #[test]
+    #[ignore]
+    fn the_build_tools_are_the_ones_pacman_would_install() {
+        let m = Model::load(Path::new(PACMAN_ROOT), Path::new(PACMAN_CONFIG))
+            .expect("real pacman root");
+        // base-devel is a metapackage, so the oracle is what pacman says it
+        // depends on — a group listing finds nothing for it.
+        let info = String::from_utf8(
+            std::process::Command::new("pacman")
+                .args(["-Si", "base-devel"])
+                .output()
+                .expect("pacman")
+                .stdout,
+        )
+        .unwrap();
+        let members: Vec<String> = info
+            .lines()
+            .find(|l| l.starts_with("Depends On"))
+            .expect("pacman -Si base-devel answers with a Depends line")
+            .split(':')
+            .nth(1)
+            .expect("a value")
+            .split_whitespace()
+            .map(str::to_string)
+            .collect();
+        assert!(!members.is_empty(), "base-devel brings nothing?");
+        let installed: HashSet<String> = pacman(&["-Qq"]).into_iter().collect();
+        let theirs: Vec<String> = members
+            .iter()
+            .filter(|name| !installed.contains(*name))
+            .cloned()
+            .collect();
+        let ours = m.missing_dependencies("base-devel").unwrap_or_default();
+        assert_eq!(ours, theirs, "what base-devel needs, minus what -Q has");
+    }
+
+    /// pacman's own answers, one per line.
+    fn pacman(args: &[&str]) -> Vec<String> {
+        let out = std::process::Command::new("pacman")
+            .args(args)
+            .output()
+            .expect("pacman");
+        String::from_utf8(out.stdout)
+            .unwrap()
+            .lines()
+            .map(str::to_string)
+            .collect()
     }
 
     /// A press of Remove answers both removal questions on the UI thread

@@ -18,9 +18,11 @@
     and removes them with their orphaned dependencies, showing what would
     break first. Browse searches every configured repository, installs
     with one click, and points out updates; an Aelum page lists the apps
-    Aelum publishes that this system does not have yet. Opening a
-    .pkg.tar.zst file installs that too. Every operation runs as root
-    and shows pacman's own output.</p>
+    Aelum publishes that this system does not have yet; an AUR page
+    searches the Arch User Repository and builds what you install on your
+    own machine. Opening a .pkg.tar.zst file installs that too. Package
+    transactions run as root through one polkit action and show pacman's
+    own output.</p>
   </description>
   <categories>
     <category>System</category>

@@ -62,6 +62,10 @@ pub struct SyncPackage {
     pub csize: u64,
     pub isize: u64,
     pub depends: Vec<String>,
+    /// Names this package answers for besides its own (`p7zip` is how 7zip
+    /// appears to a dependency). A dependency matched only by name would ask
+    /// for a package that does not exist.
+    pub provides: Vec<String>,
 }
 
 /// Unpack a sync DB into the tar stream inside it.
@@ -122,6 +126,7 @@ pub fn parse_sync_db(bytes: &[u8], repository: &str) -> std::io::Result<Vec<Sync
             csize: field_u64(&s, "%CSIZE%"),
             isize: field_u64(&s, "%ISIZE%"),
             depends: multi(&s, "%DEPENDS%"),
+            provides: multi(&s, "%PROVIDES%"),
         });
     }
     Ok(out)
@@ -240,6 +245,10 @@ pub struct LocalPackage {
     pub desc: String,
     pub reason: Reason,
     pub depends: Vec<String>,
+    /// The same `%PROVIDES%` section the sync databases carry: alpm writes it
+    /// into the local DB too, so a dependency answered by an installed
+    /// package under another name is still satisfied.
+    pub provides: Vec<String>,
 }
 
 /// Read the local DB (`/var/lib/pacman/local/*/desc`).
@@ -260,6 +269,7 @@ pub fn read_local_db(dir: &Path) -> std::io::Result<Vec<LocalPackage>> {
             desc: field(&s, "%DESC%").unwrap_or("").to_string(),
             reason: parse_reason(field(&s, "%REASON%")),
             depends: multi(&s, "%DEPENDS%"),
+            provides: multi(&s, "%PROVIDES%"),
         });
     }
     Ok(out)
@@ -366,11 +376,13 @@ mod tests {
             ("VERSION", &["2.12.1-1"]),
             ("DESC", &["example package"]),
             ("DEPENDS", &["glibc", "foo>=1.0"]),
+            ("PROVIDES", &["bar"]),
         ]);
         let s = parse_desc(&text);
         assert_eq!(field(&s, "%NAME%"), Some("hello"));
         assert_eq!(field(&s, "%DESC%"), Some("example package"));
         assert_eq!(multi(&s, "%DEPENDS%"), ["glibc", "foo>=1.0"]);
+        assert_eq!(multi(&s, "%PROVIDES%"), ["bar"]);
         assert_eq!(field_u64(&s, "%ISIZE%"), 0);
     }
 
@@ -381,7 +393,7 @@ mod tests {
             let mut ar = tar::Builder::new(&mut buf);
             for (name, desc_text) in [
                 ("hello", desc(&[("NAME", &["hello"]), ("VERSION", &["2.12.1-1"]), ("DESC", &["example"]), ("CSIZE", &["1234"]), ("ISIZE", &["5678"])])),
-                ("world", desc(&[("NAME", &["world"]), ("VERSION", &["1.0-1"])])),
+                ("world", desc(&[("NAME", &["world"]), ("VERSION", &["1.0-1"]), ("PROVIDES", &["p7zip", "libp7zip.so=1-64"])])),
             ] {
                 let mut header = tar::Header::new_ustar();
                 header.set_entry_type(tar::EntryType::Regular);
@@ -416,6 +428,8 @@ mod tests {
         assert_eq!(pkgs[0].repository, "extra");
         assert_eq!(pkgs[0].csize, 1234);
         assert_eq!(pkgs[1].name, "world");
+        // Measured against extra.db: 7zip's desc carries `Provides: p7zip`.
+        assert_eq!(pkgs[1].provides, ["p7zip", "libp7zip.so=1-64"]);
     }
 
     #[test]

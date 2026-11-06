@@ -54,6 +54,6 @@ pub fn show(ui: &Ui, info: PkgInfo, path: PathBuf) {
         &details,
         &i18n::t("action.install"),
         false,
-        move || ui.start_txn(Txn::InstallFile(path)),
+        move || ui.start_txn(Txn::InstallFiles(vec![path])),
     );
 }
