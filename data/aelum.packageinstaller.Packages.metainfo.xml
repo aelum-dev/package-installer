@@ -32,6 +32,16 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.5.1" date="2026-11-06">
+      <description>
+        <ul>
+          <li>Added an About dialog: the (i) button in the header shows the version and links.</li>
+          <li>The header now shows when the package databases were last refreshed.</li>
+          <li>The AUR page explains that AUR packages are community-published and unreviewed; hovering the vote count explains it.</li>
+          <li>Fixed the spacing above the package list on the Updates and Browse pages.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.0" date="2026-11-06">
       <description>
         <ul>
