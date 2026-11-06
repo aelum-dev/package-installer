@@ -62,8 +62,8 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
 
     let stack = gtk::Stack::new();
     stack.set_vexpand(true);
-    // Nothing sits between the entry and the list here — the row Browse's
-    // freshness label gives, this margin has to.
+    // Nothing sits between the entry and the list here — the gap between
+    // a page's header row and its list card is this margin's job.
     stack.set_margin_top(12);
     stack.add_named(&scrolled, Some("list"));
     stack.add_named(&empty, Some("empty"));

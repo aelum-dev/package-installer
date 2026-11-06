@@ -60,6 +60,9 @@ pub struct Ui {
     /// The header's Refresh button; it doubles as the update-check
     /// indicator (a spinner while any refresh runs).
     pub refresh: Rc<RefCell<Option<gtk::Button>>>,
+    /// The header's mirror-date label (left side, filled by
+    /// [`Ui::refresh_pages`], hidden while no databases exist).
+    pub fresh: Rc<RefCell<Option<gtk::Label>>>,
     /// The page area (the ViewStack, and the "refresh in progress" page
     /// that covers it while a refresh runs — see [`Ui::set_refresh_running`]).
     pub content: Rc<RefCell<Option<gtk::Stack>>>,
@@ -94,6 +97,7 @@ impl Ui {
             aur_searching: Rc::new(Cell::new(false)),
             aur_seq: Rc::new(Cell::new(0)),
             refresh: Rc::new(RefCell::new(None)),
+            fresh: Rc::new(RefCell::new(None)),
             content: Rc::new(RefCell::new(None)),
             load_seq: Rc::new(Cell::new(0)),
             last_check: Rc::new(RefCell::new(None)),
@@ -172,6 +176,26 @@ impl Ui {
         if let Some(page) = self.aur_page.borrow().as_ref() {
             page.refresh(self);
         }
+        // The header's mirror date: the fresher of this session's
+        // successful check and the DB files' mtimes. A successful -Sy can
+        // leave the files untouched (the mirror answers "not modified"),
+        // so the mtime alone goes stale even though the check just ran.
+        // No date means no databases: the label hides rather than claims
+        // "never".
+        let fresh = (*self.last_check.borrow()).max(model.db_fresh);
+        if let Some(label) = self.fresh.borrow().clone() {
+            match fresh {
+                Some(t) => {
+                    label.set_text(&i18n::t_fmt(
+                        "header.fresh",
+                        &[("date", &format_time(t))],
+                    ));
+                    label.set_visible(true);
+                }
+                None => label.set_visible(false),
+            }
+        }
+
         // The tab badge marks pending updates the user is not already
         // looking at; visiting the page clears it (window.rs).
         let want = !model.updatable().is_empty() && !self.on_updates_page.get();
@@ -527,4 +551,20 @@ fn aur_hits(query: &str) -> Result<Vec<aur::Hit>, String> {
 pub struct AurResults {
     pub hits: Vec<aur::Hit>,
     pub error: Option<String>,
+}
+
+/// A database time as date and clock time: the header's second line is
+/// the moment the mirrors last answered (the catalog puts it on its own
+/// line under the words).
+fn format_time(t: std::time::SystemTime) -> String {
+    let Ok(secs) = t.duration_since(std::time::UNIX_EPOCH) else {
+        return "unknown".into();
+    };
+    match glib::DateTime::from_unix_local(secs.as_secs() as i64) {
+        Ok(dt) => dt
+            .format("%Y-%m-%d %H:%M")
+            .map(|s| s.to_string())
+            .unwrap_or_else(|_| "unknown".into()),
+        Err(_) => "unknown".into(),
+    }
 }

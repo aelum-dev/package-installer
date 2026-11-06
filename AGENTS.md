@@ -79,7 +79,9 @@ release you target before changing the code that encodes them.
 - **`pacman -Sy` sends a conditional request**: when the mirror answers
   *not-modified* the `.db` files are not rewritten, so their mtimes cannot prove
   when a check last ran. The app records successful check times itself
-  (`Ui::last_check`) and the freshness line shows the newer of that and the mtimes.
+  (`Ui::last_check`) and the header's mirror-date label shows the newer of
+  that and the mtimes (two centered lines — words, then date and time;
+  hidden while no databases exist).
 - **An alpm hook `Depends` value is stored verbatim** (pacman `hook.c` does no
   word splitting): one dependency per line, or the hook never runs.
 - `filesystem` owns `/etc/polkit-1/rules.d` at **750**; `install -D` records a

@@ -2,9 +2,6 @@
 //! searched client-side. The repo tag makes `[aelum]` visible next to the
 //! official repos — this page is where the distribution channel shows up.
 
-use std::time::{SystemTime, UNIX_EPOCH};
-
-use gtk::glib;
 use gtk::prelude::*;
 use libadwaita as adw;
 use libadwaita::prelude::*;
@@ -23,7 +20,6 @@ pub struct Page {
     search: gtk::SearchEntry,
     list: gtk::ListBox,
     stack: gtk::Stack,
-    freshness: gtk::Label,
 }
 
 pub fn build(ui: &Ui) -> (Page, gtk::Box) {
@@ -35,12 +31,6 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
     search.set_margin_end(12);
     search.set_margin_top(12);
     root.append(&search);
-
-    let freshness = gtk::Label::new(None);
-    freshness.add_css_class("dim-label");
-    freshness.set_margin_start(14);
-    freshness.set_margin_bottom(4);
-    root.append(&freshness);
 
     let list = gtk::ListBox::new();
     list.set_selection_mode(gtk::SelectionMode::None);
@@ -71,6 +61,9 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
 
     let stack = gtk::Stack::new();
     stack.set_vexpand(true);
+    // Nothing sits between the entry and the list here — the gap the
+    // freshness row used to give, this margin has to.
+    stack.set_margin_top(12);
     stack.add_named(&scrolled, Some("list"));
     stack.add_named(&empty, Some("empty"));
     stack.set_visible_child_name("empty");
@@ -80,7 +73,6 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
         search: search.clone(),
         list: list.clone(),
         stack: stack.clone(),
-        freshness: freshness.clone(),
     };
     {
         let ui = ui.clone();
@@ -117,16 +109,6 @@ impl Page {
             more.set_margin_top(6);
             self.list.append(&more);
         }
-
-        // The fresher of: this session's successful check, or the DB
-        // files' mtimes. A successful -Sy can leave the files untouched
-        // (the mirror answers "not modified"), so the mtime alone goes
-        // stale even though the check just ran.
-        let fresh = (*ui.last_check.borrow()).max(model.db_fresh);
-        self.freshness.set_text(&match fresh {
-            Some(t) => i18n::t_fmt("browse.fresh", &[("time", &format_time(t))]),
-            None => i18n::t("browse.noDbs"),
-        });
 
         if hits.is_empty() {
             let title = if query.is_empty() {
@@ -276,15 +258,3 @@ pub(crate) fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
     row
 }
 
-fn format_time(t: SystemTime) -> String {
-    let Ok(secs) = t.duration_since(UNIX_EPOCH) else {
-        return "unknown".into();
-    };
-    match glib::DateTime::from_unix_local(secs.as_secs() as i64) {
-        Ok(dt) => dt
-            .format("%Y-%m-%d %H:%M")
-            .map(|s| s.to_string())
-            .unwrap_or_else(|_| "unknown".into()),
-        Err(_) => "unknown".into(),
-    }
-}

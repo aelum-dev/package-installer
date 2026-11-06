@@ -61,9 +61,33 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     // AdwToolbarView, which becomes the window's content.
     let toolbar = adw::ToolbarView::new();
     let header = adw::HeaderBar::new();
+    // The window controls move into the title's end box (below). With the
+    // header's own end bin empty, the title widget gets the full width:
+    // a packed end bin reserves its width on BOTH sides of the title
+    // (gtkcenterlayout: center_size = size - 2 * MAX(start, end)), which
+    // would off-center everything the title centers.
+    header.set_show_end_title_buttons(false);
+
     let switcher = adw::ViewSwitcher::new();
     switcher.set_stack(Some(&stack));
-    header.set_title_widget(Some(&switcher));
+
+    // The mirror date, left of the switcher: it is a fact about the
+    // databases every page reads, not about one page. Two centered lines,
+    // centered in the space between the window edge and the switcher —
+    // the CenterBox's start child gets exactly that space (hexpand +
+    // centered xalign), and its center child keeps the switcher
+    // window-centered. (A pack_start label can't do this: AdwHeaderBar
+    // pins its start box to the edge, halign START.) Hidden until a check
+    // or a database mtime proves one happened; Ui::refresh_pages fills it.
+    let fresh = gtk::Label::new(None);
+    fresh.add_css_class("dim-label");
+    fresh.add_css_class("caption");
+    fresh.set_justify(gtk::Justification::Center);
+    fresh.set_xalign(0.5);
+    fresh.set_hexpand(true);
+    fresh.set_valign(gtk::Align::Center);
+    fresh.set_visible(false);
+    *ui.fresh.borrow_mut() = Some(fresh.clone());
 
     let refresh = gtk::Button::from_icon_name("view-refresh-symbolic");
     refresh.add_css_class("flat");
@@ -72,8 +96,47 @@ pub fn build(app: &adw::Application, ui: &Ui) {
         let ui = ui.clone();
         refresh.connect_clicked(move |_| ui.start_txn(Txn::Refresh));
     }
-    header.pack_end(&refresh);
+
+    // The (i) button. `AdwAboutDialog` is the GNOME-standard About: it draws
+    // itself from these fields, follows the theme, and closes on Escape. The
+    // version is the crate's — `bump-version.sh` moves it and this dialog
+    // cannot drift — and the icon name is the app ID, under which the package
+    // installs the SVG (hicolor). Same dialog and fields as the video-player.
+    let about = gtk::Button::from_icon_name("help-about-symbolic");
+    about.add_css_class("flat");
+    about.set_tooltip_text(Some(&i18n::t("about.label")));
+    {
+        let window = window.clone();
+        about.connect_clicked(move |_| {
+            adw::AboutDialog::builder()
+                .application_name(i18n::t("app.name"))
+                .application_icon(crate::APP_ID)
+                .developer_name("Aelum")
+                .version(env!("CARGO_PKG_VERSION"))
+                .website("https://aelum.dev")
+                .license_type(gtk::License::Gpl30Only)
+                .build()
+                .present(Some(&window));
+        });
+    }
+    // The buttons live in the title's end box, not the header's: the title
+    // owns the full width now (see show-end-title-buttons above). Append
+    // order is left-to-right — refresh, then (i), then the window controls
+    // outermost-right; the box hugs the right edge.
+    let end = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+    end.set_halign(gtk::Align::End);
+    end.append(&refresh);
+    end.append(&about);
+    end.append(&gtk::WindowControls::new(gtk::PackType::End));
     *ui.refresh.borrow_mut() = Some(refresh);
+
+    let title = gtk::CenterBox::new();
+    title.set_start_widget(Some(&fresh));
+    title.set_center_widget(Some(&switcher));
+    title.set_end_widget(Some(&end));
+    title.set_hexpand(true);
+    header.set_title_widget(Some(&title));
+
     toolbar.add_top_bar(&header);
 
     let (installed_page, installed_root) = installed::build(ui);

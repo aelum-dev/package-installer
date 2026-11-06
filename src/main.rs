@@ -29,7 +29,7 @@ use std::rc::Rc;
 use gtk::prelude::*;
 use libadwaita as adw;
 
-const APP_ID: &str = "aelum.packageinstaller.Packages";
+pub(crate) const APP_ID: &str = "aelum.packageinstaller.Packages";
 
 fn main() -> gtk::glib::ExitCode {
     // Locale + catalogs, before any string is built.
