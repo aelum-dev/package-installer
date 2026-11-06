@@ -32,6 +32,14 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.4.1" date="2026-11-06">
+      <description>
+        <ul>
+          <li>The list frame now ends at the bottom of the window: rows scroll inside a fixed outline instead of the outline running on to the end of the list.</li>
+          <li>The Installed and AUR tabs gained a gap between the search field and the list, matching Browse.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.4.0" date="2026-11-06">
       <description>
         <ul>
