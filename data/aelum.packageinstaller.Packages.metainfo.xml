@@ -32,6 +32,16 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.5.0" date="2026-11-06">
+      <description>
+        <ul>
+          <li>A request whose dependency is a virtual with several providers now asks which one to install — names, repositories and sizes listed, pacman's default preselected — instead of silently taking the first.</li>
+          <li>The transaction dialog gained a real progress bar with honest counts: download progress tracks what pacman has actually proven finished, and its output arrives as it is printed instead of at the end.</li>
+          <li>Packages installed as the answer to a provider question are marked as dependencies, so removing the package that needed them takes them back.</li>
+          <li>The transaction dialog stays compact and grows only while pacman's output is shown.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.4.1" date="2026-11-06">
       <description>
         <ul>
