@@ -9,7 +9,7 @@
 pkgname=aelum-package-installer
 # Keep in sync with [package].version in the root Cargo.toml —
 # scripts/build-pkg.sh fails the build when the two drift apart.
-pkgver=0.2.3
+pkgver=0.3.0
 pkgrel=1
 pkgdesc='GTK4/libadwaita package manager for the Aelum desktop'
 arch=('x86_64')

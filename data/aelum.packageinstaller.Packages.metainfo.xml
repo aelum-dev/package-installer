@@ -32,6 +32,15 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.3.0" date="2026-11-06">
+      <description>
+        <ul>
+          <li>New AUR tab: search the AUR and install what you find. The PKGBUILD is downloaded, built on this machine, and the result installed</li>
+          <li>An AUR package's dependencies come from the repositories whenever a repository has one; only the AUR parts are built, and the whole install is one confirmation and one log</li>
+          <li>Nothing is fetched from the AUR until you search: the tab has no badge, and the app never asks the AUR on its own</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.2.3" date="2026-11-05">
       <description>
         <ul>
