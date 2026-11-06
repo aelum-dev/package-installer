@@ -43,6 +43,8 @@
   "aur.unresolved": "Burada şunu karşılayan yok: {names}",
   "aur.buildDir": "Derleme dosyaları {path} konumunda tutuluyor",
   "aur.buildNote": "AUR ikili dosya yayımlamaz: paket önce bu makinede derlenir.",
+  "aur.cleanupDeps": "Artık gerekli olmayan derleme bağımlılıkları kaldırılıyor",
+  "aur.cleanupFailed": "Derleme bağımlılıkları kaldırılamadı",
   "updates.countOne": "{count} güncelleme kullanılabilir.",
   "updates.countMany": "{count} güncelleme kullanılabilir.",
   "updates.empty": "Her şey güncel",

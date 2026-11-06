@@ -15,11 +15,16 @@ shift || true
 case "$cmd" in
     refresh) exec pacman -Sy --noconfirm "$@" ;;
     install) exec pacman -S --needed --noconfirm -- "$@" ;;
+    # the asdeps verbs carry the marking makepkg's -s uses: what the AUR
+    # flow brings that the user did not name is a dependency, never an
+    # Explicit package that outlives every -Rns and reads as installed.
+    install-asdeps) exec pacman -S --needed --asdeps --noconfirm -- "$@" ;;
     remove)  exec pacman -Rns --noconfirm -- "$@" ;;
     upgrade) exec pacman -Syu --noconfirm ;;
     file)    exec pacman -U --noconfirm -- "$@" ;;
+    file-asdeps) exec pacman -U --asdeps --noconfirm -- "$@" ;;
     *)
-        echo "usage: aelum-package-installer-helper {refresh|install|remove|upgrade|file} [args...]" >&2
+        echo "usage: aelum-package-installer-helper {refresh|install|install-asdeps|remove|upgrade|file|file-asdeps} [args...]" >&2
         exit 2
         ;;
 esac

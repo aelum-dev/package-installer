@@ -43,6 +43,8 @@
   "aur.unresolved": "这里没有任何东西能提供：{names}",
   "aur.buildDir": "构建文件保留在 {path}",
   "aur.buildNote": "AUR 不提供预编译二进制：会先在本机构建该软件包。",
+  "aur.cleanupDeps": "正在移除不再需要的构建依赖",
+  "aur.cleanupFailed": "无法移除构建依赖",
   "updates.countOne": "有 {count} 个更新可用。",
   "updates.countMany": "有 {count} 个更新可用。",
   "updates.empty": "全部已是最新",

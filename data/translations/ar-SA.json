@@ -43,6 +43,8 @@
   "aur.unresolved": "لا شيء هنا يوفّر: {names}",
   "aur.buildDir": "تُحتفظ بملفات البناء في {path}",
   "aur.buildNote": "لا ينشر AUR ملفات تنفيذية جاهزة: تُبنى الحزمة أولًا على هذا الجهاز.",
+  "aur.cleanupDeps": "تُزال اعتماديات وقت البناء التي لم تعد مطلوبة",
+  "aur.cleanupFailed": "تعذّرت إزالة اعتماديات وقت البناء",
   "updates.countOne": "{count} تحديث متاح.",
   "updates.countMany": "{count} تحديثات متاحة.",
   "updates.empty": "كل شيء محدَّث",

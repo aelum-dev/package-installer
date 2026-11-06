@@ -43,6 +43,8 @@
   "aur.unresolved": "Mikään täällä ei voi tarjota: {names}",
   "aur.buildDir": "Käännöstiedostot säilyvät hakemistossa {path}",
   "aur.buildNote": "AUR ei julkaise valmiita binäärejä: paketti käännetään ensin tällä koneella.",
+  "aur.cleanupDeps": "Poistetaan tarpeettomat käännösriippuvuudet",
+  "aur.cleanupFailed": "Käännösriippuvuuksia ei voitu poistaa",
   "updates.countOne": "{count} päivitys on saatavilla.",
   "updates.countMany": "{count} päivitystä on saatavilla.",
   "updates.empty": "Kaikki on ajan tasalla",

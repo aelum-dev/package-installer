@@ -385,6 +385,8 @@ mod tests {
             "aur.unresolved",
             "aur.buildDir",
             "aur.buildNote",
+            "aur.cleanupDeps",
+            "aur.cleanupFailed",
             "updates.countOne",
             "updates.countMany",
             "updates.empty",

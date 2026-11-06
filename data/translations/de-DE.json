@@ -43,6 +43,8 @@
   "aur.unresolved": "Nichts hier kann bereitstellen: {names}",
   "aur.buildDir": "Baudateien bleiben in {path}",
   "aur.buildNote": "Das AUR stellt keine fertigen Programmdateien bereit: Das Paket wird zuerst auf diesem Rechner gebaut.",
+  "aur.cleanupDeps": "Nicht mehr benötigte Build-Abhängigkeiten werden entfernt",
+  "aur.cleanupFailed": "Die Build-Abhängigkeiten konnten nicht entfernt werden",
   "updates.countOne": "{count} Aktualisierung ist verfügbar.",
   "updates.countMany": "{count} Aktualisierungen sind verfügbar.",
   "updates.empty": "Alles auf dem neuesten Stand",

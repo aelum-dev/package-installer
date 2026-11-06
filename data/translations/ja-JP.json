@@ -43,6 +43,8 @@
   "aur.unresolved": "次に提供できるものはありません: {names}",
   "aur.buildDir": "ビルドファイルは {path} に残しています",
   "aur.buildNote": "AUR はバイナリを公開していません: まずこのマシンでパッケージをビルドします。",
+  "aur.cleanupDeps": "不要になったビルド依存を削除しています",
+  "aur.cleanupFailed": "ビルド依存を削除できませんでした",
   "updates.countOne": "{count} 件の更新が利用可能です。",
   "updates.countMany": "{count} 件の更新が利用可能です。",
   "updates.empty": "すべて最新です",

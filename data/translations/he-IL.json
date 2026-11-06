@@ -43,6 +43,8 @@
   "aur.unresolved": "שום דבר כאן אינו מספק: {names}",
   "aur.buildDir": "קבצי הבנייה נשמרים ב־{path}",
   "aur.buildNote": "ה־AUR אינו מפרסם קבצים בינאריים: החבילה נבנית תחילה במכונה הזאת.",
+  "aur.cleanupDeps": "הסרת תלויות זמן בנייה שאינן נחוצות עוד",
+  "aur.cleanupFailed": "לא ניתן היה להסיר את תלויות זמן הבנייה",
   "updates.countOne": "{count} עדכון זמין.",
   "updates.countMany": "זמינים {count} עדכונים.",
   "updates.empty": "הכול מעודכן",

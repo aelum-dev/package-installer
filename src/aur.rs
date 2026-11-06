@@ -8,7 +8,7 @@
 //! only way to install one is to fetch it, build it on this machine, and
 //! hand the result to `pacman -U`.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use crate::db::dep_name;
 
@@ -290,6 +290,61 @@ fn provider(dep: &str, infos: &BTreeMap<String, Info>, done: &HashSet<String>) -
         .map(|(name, _)| name.clone())
 }
 
+/// The names one AUR install brought that nothing needs any more — the
+/// build-time dependencies, once the finished package is installed.
+///
+/// `brought` are the names the request put on the system: the repository
+/// half and the pkgnames of every built *dependency*. `requested` is never
+/// among them — the user asked for that package, so it stays whatever else
+/// the answer says. `needed_by` is the system's answer for one name: `None`
+/// when the name is not on the system (there is nothing to remove), else the
+/// installed packages that still need it — by name or by provision, the rule
+/// `-Rns` itself respects.
+///
+/// What is left was needed by the build alone: makepkg writes a built
+/// package's runtime dependencies into its `%DEPENDS%` and its build-only
+/// ones nowhere, so a runtime dependency is named by an installed package
+/// and a build dependency is named by nothing. `-Rns` may take those.
+///
+/// The answer is about the set, not one name at a time: a candidate needed
+/// only by *another candidate* is still a leftover. `extra-cmake-modules`
+/// names `cmake` in its `%DEPENDS%` and both are build-only — asked singly,
+/// `cmake` survives through its own grave-mate and stays on the system. A
+/// candidate is kept only when a package *outside* the set needs it, and
+/// that shrinking is iterated to a fixed point, so a chain that ends in a
+/// keeper is kept too.
+pub fn unneeded_build_deps(
+    requested: &str,
+    brought: &[String],
+    needed_by: &dyn Fn(&str) -> Option<Vec<String>>,
+) -> Vec<String> {
+    let mut candidates: BTreeSet<String> = brought
+        .iter()
+        .filter(|n| n.as_str() != requested)
+        .cloned()
+        .collect();
+    loop {
+        let kept: Vec<String> = candidates
+            .iter()
+            .filter(|n| {
+                // Not on the system: nothing to remove. Named by a package
+                //    outside the set: it stays.
+                needed_by(n).is_none_or(|d| {
+                    d.iter().any(|x| !candidates.contains(x.as_str()))
+                })
+            })
+            .cloned()
+            .collect();
+        if kept.is_empty() {
+            break;
+        }
+        for name in kept {
+            candidates.remove(&name);
+        }
+    }
+    candidates.into_iter().collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -491,5 +546,80 @@ mod tests {
         let p = plan("lonely", &BTreeMap::new(), &classify(&BTreeMap::new()));
         assert_eq!(p.build, ["lonely"]);
         assert!(p.repository.is_empty() && p.unknown.is_empty());
+    }
+
+    #[test]
+    fn names_only_the_build_needed_are_left_after_the_install() {
+        // myapp needs kconfig at runtime and cmake to build; helper is
+        // built and needed at runtime; tool is built and needed only to
+        // build. The system the caller answers with: an installed package
+        // (myapp) names kconfig and helper in its %DEPENDS% and names cmake
+        // and tool nowhere.
+        let brought = ["kconfig", "cmake", "helper", "tool", "myapp"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>();
+        let needed = |n: &str| match n {
+            "kconfig" | "helper" => Some(vec!["myapp".to_string()]),
+            "cmake" | "tool" => Some(vec![]),
+            _ => None,
+        };
+        let left = unneeded_build_deps("myapp", &brought, &needed);
+        assert_eq!(left, ["cmake", "tool"]);
+    }
+
+    #[test]
+    fn the_requested_package_and_absent_names_are_never_left_over() {
+        // myapp is not needed by anything either — it is what the user
+        // asked for, so it stays. A name that is not on the system has
+        // nothing to remove.
+        let brought = ["myapp", "cmake", "gone", "cmake"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>();
+        let needed = |n: &str| match n {
+            "cmake" => Some(vec![]),
+            _ => None,
+        };
+        let left = unneeded_build_deps("myapp", &brought, &needed);
+        assert_eq!(left, ["cmake"], "sorted and deduplicated");
+    }
+
+    #[test]
+    fn leftovers_that_need_each_other_go_too() {
+        // Measured on a real qtengine install: its makedepend
+        // extra-cmake-modules names cmake in its %DEPENDS%, and both were
+        // build-only. Asked one name at a time, cmake survives through its
+        // own grave-mate; about the set, both go.
+        let brought = ["cmake", "extra-cmake-modules", "ninja", "qtengine"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>();
+        let needed = |n: &str| match n {
+            "cmake" => Some(vec!["extra-cmake-modules".to_string()]),
+            "extra-cmake-modules" | "ninja" => Some(vec![]),
+            _ => None,
+        };
+        let left = unneeded_build_deps("qtengine", &brought, &needed);
+        assert_eq!(left, ["cmake", "extra-cmake-modules", "ninja"]);
+    }
+
+    #[test]
+    fn a_chain_into_a_keeper_is_kept() {
+        // qt6-base is needed by kconfig, kconfig by the requested qtengine.
+        // kconfig is kept on the first pass, and that makes qt6-base needed
+        // by something outside the set on the next — the fixed point is
+        // what -Rns would resolve to.
+        let brought = ["qt6-base", "kconfig", "qtengine"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>();
+        let needed = |n: &str| match n {
+            "qt6-base" => Some(vec!["kconfig".to_string()]),
+            "kconfig" => Some(vec!["qtengine".to_string()]),
+            _ => None,
+        };
+        let left = unneeded_build_deps("qtengine", &brought, &needed);
+        assert!(left.is_empty());
     }
 }

@@ -322,6 +322,24 @@ impl Model {
         self.dependents.get(name).cloned().unwrap_or_default()
     }
 
+    /// Which installed packages need `name` — by that name or by one of its
+    /// provisions. This is the rule `-Rns` itself respects: a removal that
+    /// breaks a dependency, spelled either way, fails in pacman, so anything
+    /// that plans a removal asks this first. The names are reported, not a
+    /// yes/no, because a *set* of removals resolves together: a name needed
+    /// only by another member of the set is still removable.
+    pub fn needed_by_names(&self, name: &str) -> Vec<String> {
+        let mut out = self.reverse_deps(name);
+        if let Some(l) = self.installed(name) {
+            for p in &l.provides {
+                out.extend(self.reverse_deps(db::dep_name(p)));
+            }
+        }
+        out.sort();
+        out.dedup();
+        out
+    }
+
     /// The dependencies `-Rns <name>` would take along: the packages in that
     /// dependency tree which nothing outside the removal needs — pacman's own
     /// rule, so it recurses into the target's dependencies and never sweeps up
@@ -682,6 +700,27 @@ mod tests {
         let m = fixture();
         assert_eq!(m.reverse_deps("glibc"), ["myapp"]);
         assert!(m.reverse_deps("firefox").is_empty());
+    }
+
+    #[test]
+    fn needed_by_names_answers_name_and_provision() {
+        // The rule `-Rns` respects: myapp needs java-runtime, which only
+        // the installed jdk provides — removing jdk breaks myapp exactly as
+        // removing a name-sake dependency would. A build-only name is named
+        // by nothing.
+        let mut jdk = local("jdk", "17-1", Reason::Dependency, &[]);
+        jdk.provides = vec!["java-runtime>=17".into()];
+        let m = model(vec![
+            entry("myapp", Some(local("myapp", "1.0-1", Reason::Explicit, &["java-runtime>=17", "glibc"])), None),
+            entry("jdk", Some(jdk), None),
+            entry("glibc", Some(local("glibc", "2.40-1", Reason::Dependency, &[])), None),
+            entry("cmake", Some(local("cmake", "4.0-1", Reason::Explicit, &[])), None),
+        ]);
+        assert_eq!(m.needed_by_names("jdk"), ["myapp"], "needed through its provision");
+        assert_eq!(m.needed_by_names("java-runtime"), ["myapp"], "the provision itself");
+        assert_eq!(m.needed_by_names("glibc"), ["myapp"], "needed by name");
+        assert!(m.needed_by_names("cmake").is_empty(), "nothing names it");
+        assert!(m.needed_by_names("absent").is_empty(), "not on the system at all");
     }
 
     #[test]

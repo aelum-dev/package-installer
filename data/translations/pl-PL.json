@@ -43,6 +43,8 @@
   "aur.unresolved": "Nic tutaj nie może zapewnić: {names}",
   "aur.buildDir": "Pliki budowania pozostają w {path}",
   "aur.buildNote": "AUR nie publikuje plików binarnych: pakiet jest najpierw budowany na tej maszynie.",
+  "aur.cleanupDeps": "Usuwanie już niepotrzebnych zależności czasu budowania",
+  "aur.cleanupFailed": "Nie można usunąć zależności czasu budowania",
   "updates.countOne": "Dostępna jest {count} aktualizacja.",
   "updates.countMany": "Dostępne aktualizacje: {count}.",
   "updates.empty": "Wszystko jest aktualne",

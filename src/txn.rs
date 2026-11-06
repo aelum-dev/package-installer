@@ -27,12 +27,22 @@ pub const HELPER: &str = "/usr/bin/aelum-package-installer-helper";
 pub enum Txn {
     Refresh,
     Install(Vec<String>),
+    /// The AUR plan's repository half — installed **as dependencies**, the
+    /// marking makepkg's `-s` uses (`run_pacman -S --asdeps`). A name
+    /// installed by name is Explicit: it survives every `-Rns` and the next
+    /// plan reads it as already satisfied, so a build dep left behind by a
+    /// failed cleanup would be a permanent ghost.
+    InstallAsDeps(Vec<String>),
     Remove(Vec<String>),
     Upgrade,
-    /// Local package files — an opened `.pkg.tar.zst`, or everything one AUR
-    /// build produced. Several files are one transaction: pacman resolves the
+    /// Local package files — an opened `.pkg.tar.zst`, or the requested
+    /// package's own files. Several files are one transaction: pacman resolves the
     /// order between them, which is what a split PKGBUILD needs.
     InstallFiles(Vec<PathBuf>),
+    /// The built *dependencies'* archives — the same marking as
+    /// `InstallAsDeps`. The requested package stays Explicit; a dependency
+    /// that outlives the cleanup should be an orphan, not a ghost.
+    InstallFilesAsDeps(Vec<PathBuf>),
 }
 
 impl Txn {
@@ -46,14 +56,23 @@ impl Txn {
                 a.extend(pkgs.iter().cloned());
                 a
             }
+            Txn::InstallAsDeps(pkgs) => {
+                let mut a = vec!["install-asdeps".into()];
+                a.extend(pkgs.iter().cloned());
+                a
+            }
             Txn::Remove(pkgs) => {
                 let mut a = vec!["remove".into()];
                 a.extend(pkgs.iter().cloned());
                 a
             }
             Txn::Upgrade => vec!["upgrade".into()],
-            Txn::InstallFiles(paths) => {
-                let mut a = vec!["file".into()];
+            Txn::InstallFiles(paths) | Txn::InstallFilesAsDeps(paths) => {
+                let verb = match self {
+                    Txn::InstallFilesAsDeps(_) => "file-asdeps",
+                    _ => "file",
+                };
+                let mut a = vec![verb.into()];
                 a.extend(paths.iter().map(|p| p.display().to_string()));
                 a
             }
@@ -64,12 +83,12 @@ impl Txn {
     pub fn summary(&self) -> String {
         match self {
             Txn::Refresh => i18n::t("txn.summaryRefresh"),
-            Txn::Install(pkgs) => {
+            Txn::Install(pkgs) | Txn::InstallAsDeps(pkgs) => {
                 i18n::t_fmt("txn.summaryInstall", &[("names", &pkgs.join(", "))])
             }
             Txn::Remove(pkgs) => i18n::t_fmt("txn.summaryRemove", &[("names", &pkgs.join(", "))]),
             Txn::Upgrade => i18n::t("txn.summaryUpgrade"),
-            Txn::InstallFiles(paths) => i18n::t_fmt(
+            Txn::InstallFiles(paths) | Txn::InstallFilesAsDeps(paths) => i18n::t_fmt(
                 "txn.summaryFile",
                 &[(
                     "file",
@@ -177,6 +196,10 @@ mod tests {
         assert_eq!(Txn::Refresh.argv(), ["refresh"]);
         assert_eq!(Txn::Install(vec!["htop".into()]).argv(), ["install", "htop"]);
         assert_eq!(
+            Txn::InstallAsDeps(vec!["cmake".into()]).argv(),
+            ["install-asdeps", "cmake"]
+        );
+        assert_eq!(
             Txn::Remove(vec!["a".into(), "b".into()]).argv(),
             ["remove", "a", "b"]
         );
@@ -190,6 +213,11 @@ mod tests {
             Txn::InstallFiles(vec!["/t/a.pkg.tar.zst".into(), "/t/b.pkg.tar.zst".into()]).argv(),
             ["file", "/t/a.pkg.tar.zst", "/t/b.pkg.tar.zst"]
         );
+        // Built dependencies' archives carry makepkg's marking.
+        assert_eq!(
+            Txn::InstallFilesAsDeps(vec!["/t/helper.pkg.tar.zst".into()]).argv(),
+            ["file-asdeps", "/t/helper.pkg.tar.zst"]
+        );
     }
 
     #[test]
@@ -201,7 +229,15 @@ mod tests {
         let policy = include_str!("../data/polkit/dev.aelum.package.manage.policy");
         assert!(policy.contains(&format!("exec.path\">{HELPER}<")));
         let helper = include_str!("../data/helper/aelum-package-installer-helper");
-        for verb in ["refresh", "install", "remove", "upgrade", "file"] {
+        for verb in [
+            "refresh",
+            "install",
+            "install-asdeps",
+            "remove",
+            "upgrade",
+            "file",
+            "file-asdeps",
+        ] {
             assert!(helper.contains(&format!("{verb})")), "helper lacks {verb}");
             assert!(helper.contains("--noconfirm"));
         }

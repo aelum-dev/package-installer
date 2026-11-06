@@ -19,6 +19,7 @@ use std::process::{Command, Stdio};
 use futures::channel::mpsc::UnboundedSender;
 
 use crate::aur;
+use crate::db;
 use crate::i18n;
 use crate::model::{self, Model};
 use crate::txn::{self, Txn, TxnEvent};
@@ -288,16 +289,17 @@ fn stream(
 /// The event stream is the one `txn::run` produces — lines, then a final
 /// status — so the log dialog, the running gate and the model reload are the
 /// same code path as a plain `pacman -S`. One request, one dialog, even
-/// though it is three kinds of work.
+/// though it is several kinds of work.
 pub fn aur_install(hit: &aur::Hit, tx: &UnboundedSender<TxnEvent>) {
     // The steps' result *is* the Finished event, so the caller's log dialog,
     // running gate and model reload are the ones every transaction uses.
     let _ = tx.unbounded_send(TxnEvent::Finished(aur_steps(hit, tx)));
 }
 
-/// The three steps. A command's own output is already in the log by the time
-/// it fails, so a failure here adds a line only when the app is the one that
-/// knows something the command did not say.
+/// The steps: plan, bring the repository half, build, install, and take back
+/// what only the build needed. A command's own output is already in the log
+/// by the time it fails, so a failure here adds a line only when the app is
+/// the one that knows something the command did not say.
 fn aur_steps(hit: &aur::Hit, tx: &UnboundedSender<TxnEvent>) -> Result<(), i32> {
     if !safe_name(&hit.name) {
         return fail(tx, &format!("{}: not a package name", hit.name));
@@ -363,17 +365,28 @@ fn aur_steps(hit: &aur::Hit, tx: &UnboundedSender<TxnEvent>) -> Result<(), i32> 
     }
 
     // 2. The repository half, in one transaction through the one polkit
-    //    action. makepkg without -s refuses to build while its dependencies
-    //    are missing, and a `makepkg -s` would ask sudo for a terminal this
-    //    process does not have.
+    //    action, marked as deps — makepkg's own marking (`run_pacman -S
+    //    --asdeps`), so a name left behind is an orphan pacman can see and
+    //    never an Explicit ghost the next plan reads as satisfied. makepkg
+    //    without -s refuses to build while its dependencies are missing,
+    //    and a `makepkg -s` would ask sudo for a terminal this process
+    //    does not have.
     if !plan.repository.is_empty()
-        && let Err(code) = txn::run_wait(&Txn::Install(plan.repository.clone()), tx)
+        && let Err(code) = txn::run_wait(&Txn::InstallAsDeps(plan.repository.clone()), tx)
     {
         return Err(code);
     }
 
-    // 3. Build, in the order the plan produced.
-    let mut built: Vec<PathBuf> = Vec::new();
+    // 3. Build, in the order the plan produced. The archives split in two
+    //    halves of one request: what the build produced *as a dependency*
+    //    and what the user asked for — step 4 marks them differently.
+    let mut dep_files: Vec<PathBuf> = Vec::new();
+    let mut requested_files: Vec<PathBuf> = Vec::new();
+    // The names this request puts on the system: the repository half, and
+    // the pkgnames of every built *dependency* — never the requested
+    // package's own halves. Step 5 decides from these what was only needed
+    // for the build.
+    let mut brought: Vec<String> = plan.repository.clone();
     for name in &plan.build {
         // The snapshot URL every answer carries; the AUR's own layout is the
         //    fallback for an answer that left it out, and a wrong one fails
@@ -412,12 +425,67 @@ fn aur_steps(hit: &aur::Hit, tx: &UnboundedSender<TxnEvent>) -> Result<(), i32> 
         //    no copy of a file it installs with -U — but the archives are in
         //    this directory, so they are what stays.
         keep_archives(&dir, &files);
-        built.extend(files);
+        if *name != hit.name {
+            // A split PKGBUILD's halves carry names of their own, so the
+            //    archives answer for what was installed; the plan's name is
+            //    the fallback for an archive that cannot be read.
+            for file in &files {
+                match db::read_pkginfo(file) {
+                    Ok(info) => brought.push(info.name),
+                    Err(_) => brought.push(name.clone()),
+                }
+            }
+            dep_files.extend(files);
+        } else {
+            requested_files.extend(files);
+        }
     }
 
-    // 4. Everything this request produced, in one pacman call: a split
-    //    PKGBUILD's packages belong to one transaction.
-    txn::run_wait(&Txn::InstallFiles(built), tx)
+    // 4. Everything this request produced: the built dependencies' archives
+    //    first and as deps (makepkg's marking again), then the requested
+    //    package itself, Explicit. A split PKGBUILD's packages stay in one
+    //    pacman call: it resolves the order between them.
+    if !dep_files.is_empty() {
+        txn::run_wait(&Txn::InstallFilesAsDeps(dep_files), tx)?;
+    }
+    txn::run_wait(&Txn::InstallFiles(requested_files), tx)?;
+
+    // 5. Take back what only the build needed. Which of the brought names
+    //    those are is answered by the installed packages, not by the plan:
+    //    makepkg writes a built package's runtime dependencies into its
+    //    %DEPENDS% and its build-only ones nowhere, so a name no installed
+    //    package outside the leftovers needs — by name or by provision, the
+    //    rule -Rns itself resolves a set by — was needed for the build
+    //    alone. The system is read again here for the same reason it was
+    //    read at the start: the answer has to be about the machine as it is
+    //    now.
+    let after = match Model::load(Path::new(model::PACMAN_ROOT), Path::new(model::PACMAN_CONFIG)) {
+        Ok(model) => model,
+        Err(e) => {
+            let _ = tx.unbounded_send(TxnEvent::Line(e.to_string()));
+            let _ = tx.unbounded_send(TxnEvent::Line(i18n::t("aur.cleanupFailed")));
+            return Ok(());
+        }
+    };
+    let leftovers = aur::unneeded_build_deps(&hit.name, &brought, &|name| {
+        // Not on the system: there is nothing here to remove. Otherwise
+        //    the installed packages that need it, by name or provision —
+        //    aur weighs them against the set.
+        after
+            .get(name)
+            .and_then(|e| e.installed.as_ref())
+            .map(|_| after.needed_by_names(name))
+    });
+    if leftovers.is_empty() {
+        return Ok(());
+    }
+    let _ = tx.unbounded_send(TxnEvent::Line(i18n::t("aur.cleanupDeps")));
+    if txn::run_wait(&Txn::Remove(leftovers), tx).is_err() {
+        // pacman's own reason is already in the log; what this adds is
+        //    that the install succeeded and only the cleanup did not.
+        let _ = tx.unbounded_send(TxnEvent::Line(i18n::t("aur.cleanupFailed")));
+    }
+    Ok(())
 }
 
 /// One line the app is adding to the log, then the failure.

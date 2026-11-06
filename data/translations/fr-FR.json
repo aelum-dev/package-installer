@@ -43,6 +43,8 @@
   "aur.unresolved": "Rien ici ne peut fournir : {names}",
   "aur.buildDir": "Fichiers de compilation conservés dans {path}",
   "aur.buildNote": "L'AUR ne publie pas de binaires : le paquet est d'abord compilé sur cette machine.",
+  "aur.cleanupDeps": "Suppression des dépendances de compilation devenues inutiles",
+  "aur.cleanupFailed": "Les dépendances de compilation n'ont pas pu être supprimées",
   "updates.countOne": "{count} mise à jour est disponible.",
   "updates.countMany": "{count} mises à jour sont disponibles.",
   "updates.empty": "Tout est à jour",

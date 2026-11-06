@@ -43,6 +43,8 @@
   "aur.unresolved": "Tidak ada di sini yang dapat menyediakan: {names}",
   "aur.buildDir": "Berkas build disimpan di {path}",
   "aur.buildNote": "AUR tidak menerbitkan binari: paket dibangun terlebih dahulu di mesin ini.",
+  "aur.cleanupDeps": "Menghapus dependensi waktu build yang tidak lagi diperlukan",
+  "aur.cleanupFailed": "Dependensi waktu build tidak dapat dihapus",
   "updates.countOne": "{count} pembaruan tersedia.",
   "updates.countMany": "{count} pembaruan tersedia.",
   "updates.empty": "Semua sudah terbaru",

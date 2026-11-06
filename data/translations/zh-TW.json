@@ -43,6 +43,8 @@
   "aur.unresolved": "這裡沒有任何東西可以提供：{names}",
   "aur.buildDir": "建置檔案保留在 {path}",
   "aur.buildNote": "AUR 不發布二進位檔：會先在本機建置該套件。",
+  "aur.cleanupDeps": "正在移除不再需要的建置相依套件",
+  "aur.cleanupFailed": "無法移除建置相依套件",
   "updates.countOne": "有 {count} 個更新可用。",
   "updates.countMany": "有 {count} 個更新可用。",
   "updates.empty": "全部已是最新",

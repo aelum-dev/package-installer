@@ -43,6 +43,8 @@
   "aur.unresolved": "Không có gì ở đây cung cấp được: {names}",
   "aur.buildDir": "Các tệp dựng được giữ tại {path}",
   "aur.buildNote": "AUR không công bố nhị phân: gói sẽ được dựng trên máy này trước.",
+  "aur.cleanupDeps": "Đang gỡ các phụ thuộc lúc dựng không còn cần",
+  "aur.cleanupFailed": "Không thể gỡ các phụ thuộc lúc dựng",
   "updates.countOne": "Có {count} bản cập nhật khả dụng.",
   "updates.countMany": "Có {count} bản cập nhật khả dụng.",
   "updates.empty": "Mọi thứ đều đã cập nhật",

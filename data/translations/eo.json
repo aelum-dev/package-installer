@@ -43,6 +43,8 @@
   "aur.unresolved": "Nenio ĉi tie povas provizi: {names}",
   "aur.buildDir": "La konstruaj dosieroj restas en {path}",
   "aur.buildNote": "AUR ne eldonas duumojn: la pako unue konstruiĝas sur ĉi tiu maŝino.",
+  "aur.cleanupDeps": "Forigado de konstruaj dependaĵoj, kiuj ne plu bezoniĝas",
+  "aur.cleanupFailed": "Ne eblis forigi la konstruajn dependaĵojn",
   "updates.countOne": "{count} ĝisdatigo haveblas.",
   "updates.countMany": "{count} ĝisdatigoj haveblas.",
   "updates.empty": "Ĉio ĝisdatigita",

@@ -43,6 +43,8 @@
   "aur.unresolved": "Semmi itt nem biztosítja: {names}",
   "aur.buildDir": "A fordítás fájljai itt maradnak: {path}",
   "aur.buildNote": "Az AUR nem ad ki bináris fájlokat: a csomagot először ezen a gépen fordítja le.",
+  "aur.cleanupDeps": "Már nem szükséges fordítási függőségek eltávolítása",
+  "aur.cleanupFailed": "Nem sikerült eltávolítani a fordítási függőségeket",
   "updates.countOne": "{count} frissítés érhető el.",
   "updates.countMany": "{count} frissítés érhető el.",
   "updates.empty": "Minden naprakész",

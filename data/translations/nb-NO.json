@@ -43,6 +43,8 @@
   "aur.unresolved": "Ingenting her kan skaffe: {names}",
   "aur.buildDir": "Byggefilene beholdes i {path}",
   "aur.buildNote": "AUR publiserer ingen ferdige programfiler: pakken bygges først på denne maskinen.",
+  "aur.cleanupDeps": "Fjerner byggeavhengigheter som ikke lenger trengs",
+  "aur.cleanupFailed": "Byggeavhengighetene kunne ikke fjernes",
   "updates.countOne": "{count} oppdatering er tilgjengelig.",
   "updates.countMany": "{count} oppdateringer er tilgjengelige.",
   "updates.empty": "Alt er oppdatert",

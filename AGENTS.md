@@ -143,16 +143,45 @@ measurement).
   nothing). With no PKGBUILD it exits 12 with no output — which is why the
   scan stays as the fallback, and why a path that is not a file is dropped
   before pacman is asked.
+- **Which of the names an AUR install brought were build-only is answered by
+  the local DB after the install, not by the plan.** makepkg writes a built
+  package's runtime dependencies into its `%DEPENDS%` and its build-only ones
+  nowhere, so a name no installed package needs — by name or by provision,
+  the rule `-Rns` itself respects — was needed by the build alone, and
+  `remove` takes it back. A name the system already had was never brought by
+  the request and is never touched; the requested package is never a
+  candidate whatever the answer says. A split build's dependency halves carry
+  their own pkgnames — `.PKGINFO` answers for them, the plan's name is only
+  the fallback for an archive that cannot be read. The answer is about the
+  **set**: a candidate needed only by *another candidate* is still a leftover
+  (measured with qtengine: its makedepend `extra-cmake-modules` names
+  `cmake` in its `%DEPENDS%` — asked one name at a time, `cmake` survived
+  through its own grave-mate). Candidates are weighed against the packages
+  outside them, to a fixed point — what `-Rns` resolves a set to.
+- **makepkg marks everything it installs as a dependency** (`/usr/bin/makepkg`:
+  `run_pacman -S --asdeps`), and its `--rmdeps` takes back only what its own
+  run installed (a `pacman -Qq` diff before/after — which is why step 5 keeps
+  its own `brought` list instead of delegating). The AUR flow copies that
+  marking: the repository half arrives through `install-asdeps` and built
+  dependencies' archives through `file-asdeps`; only the requested package is
+  Explicit. The failure this holds: a name installed *by name* is Explicit,
+  survives every `-Rns`, and the next plan reads it as satisfied — an earlier
+  install's cmake was never a cleanup candidate at all.
 
 ## The one polkit action
 
 `dev.aelum.package.manage` + `/usr/bin/aelum-package-installer-helper`
-(`{refresh|install|remove|upgrade|file}` → `pacman -Sy|-S -Rns|-Syu|-U`, all
-`--noconfirm`), the `aelum-snapshot-restore` shape. An AUR install is three
-steps of one request — `install` (repository dependencies), the build as the
-user, `file` (everything the build produced) — and `txn::run_wait` runs the
-root steps inside the worker so all of it streams into the one log dialog the
-request opened. The AUR adds no verb: the policy's `exec.path`
+(`{refresh|install|install-asdeps|remove|upgrade|file|file-asdeps}` →
+`pacman -Sy|-S|-S --asdeps|-Rns|-Syu|-U|-U --asdeps`, all `--noconfirm`),
+the `aelum-snapshot-restore` shape. An AUR install is one request of several
+steps — `install-asdeps` (repository dependencies, makepkg's marking), the
+build as the user, `file-asdeps` (the built dependencies' archives), `file`
+(the requested package, Explicit), `remove` (the build-only dependencies the
+finished system does not need) — and `txn::run_wait` runs
+the root steps inside the worker so all of it streams into the one log
+dialog the request opened. A failed cleanup is a line in the log, not a
+failed install: the package is on the system by then. The AUR adds verbs but
+no action: the policy's `exec.path`
 annotation authenticates the *program*, and `data/polkit/aelum-package-manage.rules`
 grants it to a local, active, `wheel` session. There is **no raw-pacman
 fallback**: every privileged operation resolves to that one action, and a host

@@ -391,7 +391,8 @@ impl Ui {
     /// Build one AUR package and install what the build produces. The whole
     /// request is one job in one log dialog: repository dependencies first
     /// through the same polkit action as everything else, then makepkg as
-    /// this user, then `pacman -U` for the files it made.
+    /// this user, then `pacman -U` for the files it made — and finally
+    /// `pacman -Rns` for the dependencies only the build needed.
     pub fn install_aur(&self, hit: aur::Hit) {
         if self.running.get() {
             self.toast(&i18n::t("toast.busy"));

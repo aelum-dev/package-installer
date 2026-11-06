@@ -43,6 +43,8 @@
   "aur.unresolved": "Niets hier kan leveren: {names}",
   "aur.buildDir": "Bestanden voor de bouw blijven in {path}",
   "aur.buildNote": "Het AUR publiceert geen binaire bestanden: het pakket wordt eerst op deze machine gebouwd.",
+  "aur.cleanupDeps": "Niet langer benodigde bouw-afhankelijkheden worden verwijderd",
+  "aur.cleanupFailed": "De bouw-afhankelijkheden konden niet worden verwijderd",
   "updates.countOne": "Er is {count} update beschikbaar.",
   "updates.countMany": "Er zijn {count} updates beschikbaar.",
   "updates.empty": "Alles is up-to-date",

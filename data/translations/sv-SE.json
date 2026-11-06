@@ -43,6 +43,8 @@
   "aur.unresolved": "Inget här kan tillhandahålla: {names}",
   "aur.buildDir": "Byggfilerna behålls i {path}",
   "aur.buildNote": "AUR publicerar inga färdiga binärer: paketet byggs först på den här maskinen.",
+  "aur.cleanupDeps": "Tar bort byggberoenden som inte längre behövs",
+  "aur.cleanupFailed": "Byggberoendena kunde inte tas bort",
   "updates.countOne": "{count} uppdatering är tillgänglig.",
   "updates.countMany": "{count} uppdateringar är tillgängliga.",
   "updates.empty": "Allt är uppdaterat",

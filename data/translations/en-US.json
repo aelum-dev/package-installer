@@ -43,6 +43,8 @@
   "aur.unresolved": "Nothing here can provide: {names}",
   "aur.buildDir": "Build files kept in {path}",
   "aur.buildNote": "The AUR publishes no binaries: this builds the package on this machine first.",
+  "aur.cleanupDeps": "Removing build-time dependencies no longer needed",
+  "aur.cleanupFailed": "The build-time dependencies could not be removed",
   "updates.countOne": "{count} update is available.",
   "updates.countMany": "{count} updates are available.",
   "updates.empty": "Everything up to date",
