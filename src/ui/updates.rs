@@ -72,6 +72,9 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
 
     let stack = gtk::Stack::new();
     stack.set_vexpand(true);
+    // The card must not sit flush under the count row — the same gap the
+    // other pages leave between their search field and the list.
+    stack.set_margin_top(12);
     stack.add_named(&scrolled, Some("list"));
     stack.add_named(&empty, Some("empty"));
     stack.set_visible_child_name("empty");
