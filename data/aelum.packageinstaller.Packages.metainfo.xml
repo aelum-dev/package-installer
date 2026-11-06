@@ -32,6 +32,14 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.4.0" date="2026-11-06">
+      <description>
+        <ul>
+          <li>Build-only dependencies are now removed automatically after a package built from the AUR is installed.</li>
+          <li>AUR dependencies are installed as dependencies, not as explicit packages, so leftovers are recognized and removable when nothing needs them any more.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.3.0" date="2026-11-06">
       <description>
         <ul>
