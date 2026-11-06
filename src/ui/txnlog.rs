@@ -27,6 +27,14 @@ use crate::progress::{self, Phase, StepKind, Track};
 /// front past the cap.
 const MAX_LOG_LINES: i32 = 2000;
 
+/// The dialog's width — pacman's output lines and the summary wrap at it.
+const CONTENT_WIDTH: i32 = 640;
+
+/// The height asked for only while the output is open: the log needs a
+/// real viewport. Closed, the dialog fits its content instead — a bar, a
+/// phase line and a button do not need 420 px of empty space.
+const LOG_HEIGHT: i32 = 420;
+
 /// Handles into the dialog — cheap to clone, shared between the event
 /// receiver, the ticker, and the failure path.
 #[derive(Clone)]
@@ -47,9 +55,8 @@ pub struct TxnLog {
 pub fn show(window: &adw::ApplicationWindow, summary: &str, verb: progress::Verb) -> TxnLog {
     let dialog = adw::Dialog::builder()
         .title(i18n::t("txnlog.title"))
-        .content_width(640)
-        .content_height(420)
-        .build();
+        .content_width(CONTENT_WIDTH)
+        .build(); // no content height: closed, the dialog is its content's natural size
 
     let content = gtk::Box::new(gtk::Orientation::Vertical, 10);
 
@@ -137,9 +144,20 @@ pub fn show(window: &adw::ApplicationWindow, summary: &str, verb: progress::Verb
         done: Rc::new(Cell::new(false)),
     };
 
+    let dialog_size = dialog.clone();
+    let content_size = content.clone();
     disclosure.connect_toggled(move |button| {
         let open = button.is_active();
         scrolled.set_visible(open);
+        // Grow only while the output is open; closing asks the content
+        // itself how tall it is at this width and fits back to that.
+        if open {
+            dialog_size.set_content_height(LOG_HEIGHT);
+        } else {
+            let (_, natural, _, _) =
+                content_size.measure(gtk::Orientation::Vertical, CONTENT_WIDTH);
+            dialog_size.set_content_height(natural);
+        }
         button.set_label(&i18n::t(if open {
             "txnlog.hideOutput"
         } else {
