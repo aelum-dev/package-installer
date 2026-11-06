@@ -35,6 +35,8 @@
   "aur.search": "AUR'da ara",
   "aur.idle": "Henüz bir şey aranmadı",
   "aur.idleBody": "AUR bu sistemin depolarından biri değildir. Siz aramadıkça hiçbir şey alınmaz.",
+  "aur.warn": "Herkes Arch User Repository'de (AUR) yayımlayabilir: Arch Linux tarafından hiçbir şey incelenmez veya garanti edilmez ve kurulum paketi bu makinede derler.",
+  "aur.votesTip": "AUR'da {votes} oy — bu paketi kaç kişinin onayladığı. Çok oy almış ve güncel paketleri tercih edin.",
   "aur.searching": "AUR'da aranıyor…",
   "aur.empty": "Bu aramaya uyan bir AUR paketi yok",
   "aur.failed": "AUR araması başarısız oldu",

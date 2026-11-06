@@ -35,6 +35,8 @@
   "aur.search": "Serĉi en AUR",
   "aur.idle": "Ankoraŭ nenio serĉita",
   "aur.idleBody": "AUR ne estas deponejo de ĉi tiu sistemo. Nenio estas elŝutita ĝis vi serĉas en ĝi.",
+  "aur.warn": "Ĉiu povas publikigi en la Arch User Repository (AUR): nenio estas kontrolata aŭ garantita de Arch Linux, kaj instalado kunmetas la pakon sur ĉi tiu maŝino.",
+  "aur.votesTip": "{votes} voĉdonoj en la AUR — kiom da homoj apogis tiun pakon. Preferu bonvoĉdonitajn, ĝisdatajn pako.",
   "aur.searching": "Serĉata en AUR…",
   "aur.empty": "Neniu AUR-pako kongruas kun tiu serĉo",
   "aur.failed": "La serĉo en AUR malsukcesis",

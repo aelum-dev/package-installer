@@ -35,6 +35,8 @@
   "aur.search": "Zoek in het AUR",
   "aur.idle": "Er is nog niets gezocht",
   "aur.idleBody": "Het AUR is geen repository van dit systeem. Er wordt niets opgehaald totdat u erin zoekt.",
+  "aur.warn": "Iedereen kan publiceren in het Arch User Repository (AUR): niets wordt door Arch Linux beoordeeld of gegarandeerd, en installeren bouwt het pakket op deze machine.",
+  "aur.votesTip": "{votes} stemmen in de AUR — het aantal mensen dat dit pakket beoordeelt. Kies goed beoordeelde, actuele pakketten.",
   "aur.searching": "Zoeken in het AUR…",
   "aur.empty": "Geen enkel AUR-pakket komt met deze zoekopdracht overeen",
   "aur.failed": "Zoeken in het AUR is mislukt",

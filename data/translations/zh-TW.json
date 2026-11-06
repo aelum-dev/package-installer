@@ -35,6 +35,8 @@
   "aur.search": "搜尋 AUR",
   "aur.idle": "尚未搜尋任何東西",
   "aur.idleBody": "AUR 不是本系統的軟體庫。在你搜尋之前不會抓取任何內容。",
+  "aur.warn": "任何人都可以在 Arch User Repository (AUR) 發布：Arch Linux 不審核也不保證任何套件，安裝會在這台機器上建置它。",
+  "aur.votesTip": "該套件在 AUR 的票數：{votes}——表示有多少人認可它。請選擇票數多、最新的套件。",
   "aur.searching": "正在搜尋 AUR…",
   "aur.empty": "沒有符合該搜尋的 AUR 套件",
   "aur.failed": "AUR 搜尋失敗",

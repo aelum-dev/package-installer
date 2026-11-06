@@ -35,6 +35,8 @@
   "aur.search": "Rechercher dans l'AUR",
   "aur.idle": "Aucune recherche pour le moment",
   "aur.idleBody": "L'AUR n'est pas un dépôt de ce système. Rien n'est récupéré tant que vous ne l'avez pas interrogé.",
+  "aur.warn": "N'importe qui peut publier sur l'Arch User Repository (AUR) : rien n'est examiné ni garanti par Arch Linux, et installer construit le paquet sur cette machine.",
+  "aur.votesTip": "{votes} votes dans la AUR : c'est le nombre de personnes qui approuvent ce paquet. Préférez les paquets bien notés et à jour.",
   "aur.searching": "Recherche dans l'AUR…",
   "aur.empty": "Aucun paquet AUR ne correspond à cette recherche",
   "aur.failed": "La recherche dans l'AUR a échoué",

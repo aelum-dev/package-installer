@@ -35,6 +35,8 @@
   "aur.search": "AUR を検索",
   "aur.idle": "まだ検索していません",
   "aur.idleBody": "AUR はこのシステムのリポジトリではありません。検索するまで何も取得しません。",
+  "aur.warn": "誰でも Arch User Repository (AUR) に公開できます: Arch Linuxによる審査も保証もありません。インストールするとパッケージはこのマシンでビルドされます。",
+  "aur.votesTip": "AURでの投票数: {votes} — このパッケージを多くの人が支持している目安です。投票数が多く最新のものを選んでください。",
   "aur.searching": "AUR を検索中…",
   "aur.empty": "この検索に一致する AUR パッケージはありません",
   "aur.failed": "AUR の検索に失敗しました",

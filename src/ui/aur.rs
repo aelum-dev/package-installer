@@ -42,6 +42,7 @@ pub struct Page {
     stack: gtk::Stack,
     status: adw::StatusPage,
     spinner: gtk::Spinner,
+    idle_warn: gtk::Label,
     /// The debounce timer: one pending search per page, replaced on every
     /// keystroke.
     pending: Rc<RefCell<Option<glib::SourceId>>>,
@@ -66,11 +67,23 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
 
     let spinner = gtk::Spinner::new();
     spinner.set_size_request(32, 32);
+    // The idle state says what the page is (no search yet, nothing fetched
+    // unasked) and, below that, what kind of place the AUR is: community-
+    // published, unreviewed, built here. The rows' vote counts and
+    // out-of-date tags are the practical follow-through.
+    let idle_warn = gtk::Label::new(Some(&i18n::t("aur.warn")));
+    idle_warn.set_wrap(true);
+    idle_warn.set_justify(gtk::Justification::Center);
+    idle_warn.set_max_width_chars(48);
+    idle_warn.set_margin_top(18);
+    idle_warn.set_margin_start(24);
+    idle_warn.set_margin_end(24);
     let status = adw::StatusPage::builder()
         .icon_name("system-search-symbolic")
         .title(i18n::t("aur.idle"))
         .description(i18n::t("aur.idleBody"))
         .build();
+    status.set_child(Some(&idle_warn));
 
     // A ListBox is not scrollable: its minimum height is the whole list, so
     // unscrolled rows grow the window instead of the scrollbar.
@@ -89,8 +102,8 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
 
     let stack = gtk::Stack::new();
     stack.set_vexpand(true);
-    // Nothing sits between the entry and the list here — the row Browse's
-    // freshness label gives, this margin has to.
+    // Nothing sits between the entry and the list here — the gap between
+    // a page's header row and its list card is this margin's job.
     stack.set_margin_top(12);
     stack.add_named(&scrolled, Some("list"));
     stack.add_named(&status, Some("empty"));
@@ -103,6 +116,7 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
         stack,
         status,
         spinner,
+        idle_warn,
         pending: Rc::new(RefCell::new(None)),
     };
     {
@@ -219,10 +233,11 @@ impl Page {
             self.status.set_description(Some(error));
         } else if self.search.text().is_empty() {
             self.spinner.set_spinning(false);
-            self.status.set_child(None::<&gtk::Widget>);
             self.status.set_icon_name(Some("system-search-symbolic"));
             self.status.set_title(&i18n::t("aur.idle"));
             self.status.set_description(Some(&i18n::t("aur.idleBody")));
+            // The search note first, the trust warning below it.
+            self.status.set_child(Some(&self.idle_warn));
         } else {
             self.spinner.set_spinning(false);
             self.status.set_child(None::<&gtk::Widget>);
@@ -256,8 +271,13 @@ fn make_row(ui: &Ui, row: &AurRow) -> adw::ActionRow {
 
     // The vote count is the AUR's own signal about a package nobody has
     // tested for you, and the number the AUR's site shows next to the name.
+    // The count alone reads as a bare glyph, so the tooltip says what it is.
     let votes = gtk::Label::new(Some(&format!("▲ {}", hit.votes)));
     votes.add_css_class("dim-label");
+    votes.set_tooltip_text(Some(&i18n::t_fmt(
+        "aur.votesTip",
+        &[("votes", &hit.votes.to_string())],
+    )));
     row_widget.add_suffix(&votes);
 
     if hit.out_of_date {

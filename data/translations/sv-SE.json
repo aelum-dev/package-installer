@@ -35,6 +35,8 @@
   "aur.search": "Sök i AUR",
   "aur.idle": "Inget har sökts än",
   "aur.idleBody": "AUR är inte ett av systemets förråd. Inget hämtas förrän du söker i det.",
+  "aur.warn": "Vem som helst kan publicera i Arch User Repository (AUR): inget granskas eller garanteras av Arch Linux, och installation bygger paketet på den här maskinen.",
+  "aur.votesTip": "{votes} röster i AUR — så många har godkänt det här paketet. Föredra väl röstade och aktuella paket.",
   "aur.searching": "Söker i AUR…",
   "aur.empty": "Inget AUR-paket matchar den sökningen",
   "aur.failed": "Sökningen i AUR misslyckades",

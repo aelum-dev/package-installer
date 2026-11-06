@@ -243,6 +243,10 @@ the annotation — an invariant, not a unit test of a string.
   This desktop is offline-first, and "N AUR updates waiting" would be a claim
   about a third-party server the user never contacted; the app's only
   automatic network call is `pacman -Sy`, against the user's own mirrors. The
+  idle state carries the search note and, below it, the trust warning
+  (`aur.warn`: community-published, unreviewed, built on the user's
+  machine); the install confirmation repeats it in one line
+  (`aur.buildNote`). The
   search entry debounces (400 ms — the AUR rate-limits), answers are
   generation-numbered (`Ui::aur_seq`) so a slow older search cannot answer a
   newer question, and a search that never happened is never rendered as an

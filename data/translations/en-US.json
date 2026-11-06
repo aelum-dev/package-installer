@@ -35,6 +35,8 @@
   "aur.search": "Search the AUR",
   "aur.idle": "Nothing searched yet",
   "aur.idleBody": "The AUR is not one of this system's repositories. Nothing is fetched until you search it.",
+  "aur.warn": "Anyone can publish on the Arch User Repository (AUR): nothing is reviewed or guaranteed by Arch Linux, and installing builds the package on this machine.",
+  "aur.votesTip": "{votes} votes in the AUR — how many people approved this package. Prefer well-voted, current recipes.",
   "aur.searching": "Searching the AUR…",
   "aur.empty": "No AUR package matches that search",
   "aur.failed": "The AUR search failed",

@@ -377,6 +377,8 @@ mod tests {
             "aur.search",
             "aur.idle",
             "aur.idleBody",
+            "aur.warn",
+            "aur.votesTip",
             "aur.searching",
             "aur.empty",
             "aur.failed",

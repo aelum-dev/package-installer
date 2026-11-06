@@ -35,6 +35,8 @@
   "aur.search": "Søk i AUR",
   "aur.idle": "Ingenting er søkt ennå",
   "aur.idleBody": "AUR er ikke en av systemets pakkebrønner. Ingenting hentes før du søker i den.",
+  "aur.warn": "Hvem som helst kan publisere i Arch User Repository (AUR): ingenting er kontrollert eller garantert av Arch Linux, og installering bygger pakken på denne maskinen.",
+  "aur.votesTip": "{votes} stemmer i AUR — så mange har godkjent denne pakken. Foretrekke godt voterte og oppdaterte pakker.",
   "aur.searching": "Søker i AUR…",
   "aur.empty": "Ingen AUR-pakke samsvarer med det søket",
   "aur.failed": "Søket i AUR mislyktes",

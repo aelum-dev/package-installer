@@ -35,6 +35,8 @@
   "aur.search": "Hae AUR:sta",
   "aur.idle": "Mitään ei ole haettu",
   "aur.idleBody": "AUR ei ole tämän järjestelmän arkisto. Mitään ei haeta, ennen kuin haet sieltä.",
+  "aur.warn": "Kuka tahansa voi julkaista Arch User Repositoryssä (AUR): Arch Linux ei tarkista tai takaa mitään, ja asennus kääntää paketin tällä koneella.",
+  "aur.votesTip": "{votes} ääntä AUR:ssa — näin moni on hyväksynyt tämän paketin. Suosia hyvin arvioituja ja ajan tasalla olevia paketteja.",
   "aur.searching": "Haetaan AUR:sta…",
   "aur.empty": "Yksikään AUR-paketti ei vastaa tätä hakua",
   "aur.failed": "Haku AUR:sta epäonnistui",

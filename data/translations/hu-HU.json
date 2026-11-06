@@ -35,6 +35,8 @@
   "aur.search": "Keresés az AUR-ban",
   "aur.idle": "Még semmit nem kerestek",
   "aur.idleBody": "Az AUR nem a rendszer egyik tárolója. Addig semmit nem tölt le, amíg nem keres benne.",
+  "aur.warn": "Bárki publikálhat az Arch User Repositoryban (AUR): semmit sem ellenőriz vagy garantál az Arch Linux, és a telepítés a csomagot ezen a gépen fordítja.",
+  "aur.votesTip": "{votes} szavazat az AUR-ban – ennyien ajánlották ezt a csomagot. Válasszon jól szavazott, naprakész csomagokat.",
   "aur.searching": "Keresés az AUR-ban…",
   "aur.empty": "Egyik AUR-csomag sem felel meg ennek a keresésnek",
   "aur.failed": "Az AUR-keresés sikertelen",

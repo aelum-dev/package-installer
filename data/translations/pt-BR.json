@@ -35,6 +35,8 @@
   "aur.search": "Pesquisar no AUR",
   "aur.idle": "Nada foi pesquisado ainda",
   "aur.idleBody": "O AUR não é um dos repositórios deste sistema. Nada é obtido até que você o pesquise.",
+  "aur.warn": "Qualquer pessoa pode publicar no Arch User Repository (AUR): nada é revisado ou garantido pelo Arch Linux, e instalar compila o pacote nesta máquina.",
+  "aur.votesTip": "{votes} votos no AUR — quantas pessoas aprovam este pacote. Prefira pacotes bem votados e atuais.",
   "aur.searching": "Pesquisando no AUR…",
   "aur.empty": "Nenhum pacote do AUR corresponde a essa pesquisa",
   "aur.failed": "A pesquisa no AUR falhou",

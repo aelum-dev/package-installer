@@ -35,6 +35,8 @@
   "aur.search": "Cari di AUR",
   "aur.idle": "Belum ada yang dicari",
   "aur.idleBody": "AUR bukan salah satu repositori sistem ini. Tidak ada yang diambil sampai Anda mencarinya.",
+  "aur.warn": "Siapa pun dapat menerbitkan di Arch User Repository (AUR): tidak ada yang ditelaah atau dijamin oleh Arch Linux, dan memasang akan membangun paket di mesin ini.",
+  "aur.votesTip": "{votes} suara di AUR — berapa banyak orang menyetujui paket ini. Utamakan paket yang banyak suara dan terkini.",
   "aur.searching": "Mencari di AUR…",
   "aur.empty": "Tidak ada paket AUR yang cocok dengan pencarian itu",
   "aur.failed": "Pencarian AUR gagal",

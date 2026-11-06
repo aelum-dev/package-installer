@@ -35,6 +35,8 @@
   "aur.search": "Tìm trên AUR",
   "aur.idle": "Chưa tìm kiếm gì",
   "aur.idleBody": "AUR không phải là một kho của hệ thống này. Không có gì được tải về cho tới khi bạn tìm kiếm.",
+  "aur.warn": "Bất kỳ ai đều có thể đăng tải trên Arch User Repository (AUR): không gì được Arch Linux kiểm duyệt hay bảo đảm, và việc cài đặt sẽ xây dựng gói trên máy này.",
+  "aur.votesTip": "{votes} phiếu bầu trên AUR — số người ủng hộ gói này. Hãy ưu tiên gói được bầu chọn nhiều và cập nhật.",
   "aur.searching": "Đang tìm trên AUR…",
   "aur.empty": "Không có gói AUR nào khớp với tìm kiếm đó",
   "aur.failed": "Việc tìm kiếm trên AUR đã thất bại",

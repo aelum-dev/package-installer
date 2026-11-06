@@ -35,6 +35,8 @@
   "aur.search": "搜索 AUR",
   "aur.idle": "尚未搜索任何内容",
   "aur.idleBody": "AUR 不是本系统的软件仓库。在你搜索它之前不会获取任何内容。",
+  "aur.warn": "任何人都可以在 Arch User Repository (AUR) 发布：Arch Linux 不审核也不担保任何包，安装会在本机上构建它。",
+  "aur.votesTip": "该包在 AUR 中的票数：{votes}——表示有多少人认可它。请选择票数多、更新及时的包。",
   "aur.searching": "正在搜索 AUR…",
   "aur.empty": "没有匹配的 AUR 软件包",
   "aur.failed": "AUR 搜索失败",
