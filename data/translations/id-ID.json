@@ -86,5 +86,21 @@
   "toast.openExtra": "Hanya satu paket yang dibuka dalam satu waktu; mengabaikan {name}.",
   "toast.openFallbackName": "sebuah paket",
   "toast.openNotLocal": "Berkas yang dibuka bukan berkas lokal.",
-  "toast.startFailed": "Operasi tidak dapat dimulai: {error}"
+  "toast.startFailed": "Operasi tidak dapat dimulai: {error}",
+  "txnlog.showOutput": "Tampilkan keluaran",
+  "txnlog.hideOutput": "Sembunyikan keluaran",
+  "txn.count": "{done} dari {total}",
+  "phase.sync": "Menyinkronkan basis data paket…",
+  "phase.resolve": "Menyelesaikan dependensi…",
+  "phase.retrieve": "Mengunduh paket…",
+  "phase.check": "Memeriksa paket…",
+  "phase.process": "Menerapkan perubahan paket…",
+  "phase.hooks": "Menjalankan kait transaksi…",
+  "phase.plan": "Merencanakan build…",
+  "phase.fetchDeps": "Memasang dependensi…",
+  "phase.build": "Membangun paket…",
+  "phase.installBuilt": "Memasang paket hasil build…",
+  "phase.cleanup": "Menghapus dependensi waktu build…",
+  "chooser.title": "Pilih penyedia",
+  "chooser.body": "Paket-paket ini memerlukan pemilihan penyedia. Pilih paket mana yang memenuhi tiap syarat — yang pertama adalah yang akan dipasang secara bawaan."
 }

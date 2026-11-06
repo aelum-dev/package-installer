@@ -86,5 +86,21 @@
   "toast.openExtra": "Es wird jeweils nur ein Paket geöffnet; {name} wird ignoriert.",
   "toast.openFallbackName": "ein Paket",
   "toast.openNotLocal": "Die geöffnete Datei ist keine lokale Datei.",
-  "toast.startFailed": "Der Vorgang konnte nicht gestartet werden: {error}"
+  "toast.startFailed": "Der Vorgang konnte nicht gestartet werden: {error}",
+  "txnlog.showOutput": "Ausgabe anzeigen",
+  "txnlog.hideOutput": "Ausgabe ausblenden",
+  "txn.count": "{done} von {total}",
+  "phase.sync": "Paketdatenbanken werden synchronisiert…",
+  "phase.resolve": "Abhängigkeiten werden aufgelöst…",
+  "phase.retrieve": "Pakete werden heruntergeladen…",
+  "phase.check": "Pakete werden geprüft…",
+  "phase.process": "Paketänderungen werden angewendet…",
+  "phase.hooks": "Transaktions-Hooks werden ausgeführt…",
+  "phase.plan": "Der Build wird geplant…",
+  "phase.fetchDeps": "Abhängigkeiten werden installiert…",
+  "phase.build": "Das Paket wird gebaut…",
+  "phase.installBuilt": "Die gebauten Pakete werden installiert…",
+  "phase.cleanup": "Build-Abhängigkeiten werden entfernt…",
+  "chooser.title": "Anbieter wählen",
+  "chooser.body": "Für diese Pakete muss ein Anbieter gewählt werden. Wählen Sie, welches Paket jede Anforderung erfüllt — das erste wäre standardmäßig installiert worden."
 }

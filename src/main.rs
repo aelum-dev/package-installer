@@ -18,6 +18,7 @@ mod aur;
 mod db;
 mod i18n;
 mod model;
+mod progress;
 mod remote;
 mod txn;
 mod ui;

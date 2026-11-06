@@ -14,6 +14,7 @@ use crate::aur;
 use crate::db;
 use crate::i18n;
 use crate::model::{Model, PACMAN_CONFIG, PACMAN_ROOT};
+use crate::progress;
 use crate::remote;
 use crate::txn::{self, Txn, TxnEvent};
 
@@ -211,6 +212,37 @@ impl Ui {
     /// second concurrent run a guaranteed failure, and a gate is kinder
     /// than a lock error.
     pub fn start_txn(&self, txn: Txn) {
+        // A virtual with several providers is the one place a request
+        // hides a decision: pacman would silently take candidate #1. Ask
+        // once, up front, and put the concrete names in the transaction —
+        // the same request never asks twice, and the helper's --noconfirm
+        // is never the one answering.
+        if let Txn::Install(names) = &txn {
+            let questions = self
+                .model
+                .borrow()
+                .as_ref()
+                .map(|m| m.unanswered_providers(names))
+                .unwrap_or_default();
+            if !questions.is_empty() {
+                let Some(window) = self.window.borrow().clone() else {
+                    return;
+                };
+                let ui = self.clone();
+                let names = names.clone();
+                super::dialog::choose_providers(&window, &questions, move |chosen| {
+                    // The chosen providers go in **as dependencies** — the
+                    // marking pacman's own interactive provider prompt uses.
+                    // Installed by name they would be Explicit: they would
+                    // survive every -Rns of the package they were fetched
+                    // for, and the next install would read the virtual as
+                    // already answered with nothing left to ask or fetch.
+                    let steps = vec![Txn::InstallAsDeps(chosen), Txn::Install(names)];
+                    ui.run_steps(steps, false, false);
+                });
+                return;
+            }
+        }
         // A refresh never opens a log dialog: the dialog would cover the
         // window and hide the two things that say the check is running —
         // the spinning button and the progress page over the tabs. Its
@@ -233,6 +265,13 @@ impl Ui {
     }
 
     fn run_txn(&self, txn: Txn, quiet: bool, auto: bool) {
+        self.run_steps(vec![txn], quiet, auto);
+    }
+
+    /// Several transactions as one job in one log dialog. The summary and
+    /// the progress verb come from the last step — for a chooser-answered
+    /// request that is the install the user actually asked for.
+    fn run_steps(&self, steps: Vec<Txn>, quiet: bool, auto: bool) {
         if self.running.get() {
             if !quiet {
                 self.toast(&i18n::t("toast.busy"));
@@ -256,19 +295,21 @@ impl Ui {
             return;
         };
         self.running.set(true);
-        let spinning = matches!(txn, Txn::Refresh);
+        let last = steps.last().expect("run_steps takes at least one step");
+        let spinning = steps.len() == 1 && matches!(last, Txn::Refresh);
         if spinning {
             self.set_refresh_running(true);
         }
-        let summary = txn.summary();
+        let summary = last.summary();
+        let verb = last.verb(); // Copy: the quiet failure path rebuilds the dialog
         let log = if quiet {
             None
         } else {
-            Some(super::txnlog::show(&window, &summary))
+            Some(super::txnlog::show(&window, &summary, verb))
         };
 
         let (tx, mut rx) = futures::channel::mpsc::unbounded();
-        let run = txn::run(&txn, tx);
+        let run = txn::run_all(&steps, tx);
         let ui = self.clone();
         // The task streams into its own handle; `log` stays here for the
         // spawn-failure path.
@@ -282,6 +323,11 @@ impl Ui {
                         Some(log) => log.append(&line),
                         None => buffered.push(line),
                     },
+                    TxnEvent::Step(kind) => {
+                        if let Some(log) = log.as_mut() {
+                            log.step(kind);
+                        }
+                    }
                     TxnEvent::Finished(result) => {
                         ui.running.set(false);
                         if spinning {
@@ -290,7 +336,7 @@ impl Ui {
                         // A quiet failure still gets its log: the buffered
                         // output is the explanation.
                         if log.is_none() && result.is_err() {
-                            let shown = super::txnlog::show(&window, &summary);
+                            let shown = super::txnlog::show(&window, &summary, verb);
                             for line in buffered.drain(..) {
                                 shown.append(&line);
                             }
@@ -419,7 +465,11 @@ impl Ui {
             return;
         };
         self.running.set(true);
-        let log = super::txnlog::show(&window, &i18n::t_fmt("txn.summaryBuild", &[("name", &hit.name)]));
+        let log = super::txnlog::show(
+            &window,
+            &i18n::t_fmt("txn.summaryBuild", &[("name", &hit.name)]),
+            progress::Verb::Aur,
+        );
 
         let (tx, mut rx) = futures::channel::mpsc::unbounded();
         let spawned = std::thread::Builder::new().spawn(move || remote::aur_install(&hit, &tx));
@@ -435,6 +485,7 @@ impl Ui {
             while let Some(event) = rx.next().await {
                 match event {
                     TxnEvent::Line(line) => log.append(&line),
+                    TxnEvent::Step(kind) => log.step(kind),
                     TxnEvent::Finished(result) => {
                         answered = true;
                         ui.running.set(false);

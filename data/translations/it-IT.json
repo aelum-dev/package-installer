@@ -86,5 +86,21 @@
   "toast.openExtra": "Viene aperto un solo pacchetto alla volta; {name} ignorato.",
   "toast.openFallbackName": "un pacchetto",
   "toast.openNotLocal": "Il file aperto non è un file locale.",
-  "toast.startFailed": "Impossibile avviare l'operazione: {error}"
+  "toast.startFailed": "Impossibile avviare l'operazione: {error}",
+  "txnlog.showOutput": "Mostra l'output",
+  "txnlog.hideOutput": "Nascondi l'output",
+  "txn.count": "{done} di {total}",
+  "phase.sync": "Sincronizzazione dei database dei pacchetti…",
+  "phase.resolve": "Risoluzione delle dipendenze…",
+  "phase.retrieve": "Scaricamento dei pacchetti…",
+  "phase.check": "Controllo dei pacchetti…",
+  "phase.process": "Applicazione delle modifiche ai pacchetti…",
+  "phase.hooks": "Esecuzione degli hook della transazione…",
+  "phase.plan": "Pianificazione della compilazione…",
+  "phase.fetchDeps": "Installazione delle dipendenze…",
+  "phase.build": "Compilazione del pacchetto…",
+  "phase.installBuilt": "Installazione dei pacchetti compilati…",
+  "phase.cleanup": "Rimozione delle dipendenze di compilazione…",
+  "chooser.title": "Scegli un fornitore",
+  "chooser.body": "Questi pacchetti richiedono la scelta di un fornitore. Scegli quale pacchetto soddisfa ogni requisito — il primo è quello che verrebbe installato per impostazione predefinita."
 }

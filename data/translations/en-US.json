@@ -86,5 +86,21 @@
   "toast.openExtra": "Only one package is opened at a time; ignoring {name}.",
   "toast.openFallbackName": "a package",
   "toast.openNotLocal": "The opened file is not a local file.",
-  "toast.startFailed": "Could not start the operation: {error}"
+  "toast.startFailed": "Could not start the operation: {error}",
+  "txnlog.showOutput": "Show output",
+  "txnlog.hideOutput": "Hide output",
+  "txn.count": "{done} of {total}",
+  "phase.sync": "Synchronizing package databases…",
+  "phase.resolve": "Resolving dependencies…",
+  "phase.retrieve": "Downloading packages…",
+  "phase.check": "Checking packages…",
+  "phase.process": "Applying package changes…",
+  "phase.hooks": "Running transaction hooks…",
+  "phase.plan": "Planning the build…",
+  "phase.fetchDeps": "Installing dependencies…",
+  "phase.build": "Building the package…",
+  "phase.installBuilt": "Installing the built packages…",
+  "phase.cleanup": "Removing build-time dependencies…",
+  "chooser.title": "Choose a provider",
+  "chooser.body": "These packages need a provider chosen. Pick which package answers each requirement — the first one is what would be installed by default."
 }

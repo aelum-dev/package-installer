@@ -86,5 +86,21 @@
   "toast.openExtra": "لا تُفتح إلا حزمة واحدة في كل مرة؛ سيتم تجاهل {name}.",
   "toast.openFallbackName": "حزمة",
   "toast.openNotLocal": "الملف المفتوح ليس ملفًا محليًا.",
-  "toast.startFailed": "تعذّر بدء العملية: {error}"
+  "toast.startFailed": "تعذّر بدء العملية: {error}",
+  "txnlog.showOutput": "إظهار المخرجات",
+  "txnlog.hideOutput": "إخفاء المخرجات",
+  "txn.count": "{done} من {total}",
+  "phase.sync": "مزامنة قواعد بيانات الحزم…",
+  "phase.resolve": "حلّ الاعتماديات…",
+  "phase.retrieve": "تنزيل الحزم…",
+  "phase.check": "فحص الحزم…",
+  "phase.process": "تطبيق تغييرات الحزم…",
+  "phase.hooks": "تشغيل خطافات المعاملة…",
+  "phase.plan": "تخطيط البناء…",
+  "phase.fetchDeps": "تثبيت الاعتماديات…",
+  "phase.build": "بناء الحزمة…",
+  "phase.installBuilt": "تثبيت الحزم المبنية…",
+  "phase.cleanup": "إزالة اعتماديات وقت البناء…",
+  "chooser.title": "اختيار مزوّد",
+  "chooser.body": "تحتاج هذه الحزم إلى اختيار مزوّد. اختر الحزمة التي تلبي كل متطلب — الأول هو ما سيُثبَّت افتراضيًا."
 }

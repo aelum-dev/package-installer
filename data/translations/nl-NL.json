@@ -86,5 +86,21 @@
   "toast.openExtra": "Er kan slechts één pakket tegelijk worden geopend; {name} wordt genegeerd.",
   "toast.openFallbackName": "een pakket",
   "toast.openNotLocal": "Het geopende bestand is geen lokaal bestand.",
-  "toast.startFailed": "De bewerking kon niet worden gestart: {error}"
+  "toast.startFailed": "De bewerking kon niet worden gestart: {error}",
+  "txnlog.showOutput": "Uitvoer tonen",
+  "txnlog.hideOutput": "Uitvoer verbergen",
+  "txn.count": "{done} van {total}",
+  "phase.sync": "Pakketsdatabases synchroniseren…",
+  "phase.resolve": "Afhankelijkheden oplossen…",
+  "phase.retrieve": "Pakketten downloaden…",
+  "phase.check": "Pakketten controleren…",
+  "phase.process": "Pakketwijzigingen toepassen…",
+  "phase.hooks": "Transactiehooks uitvoeren…",
+  "phase.plan": "De build plannen…",
+  "phase.fetchDeps": "Afhankelijkheden installeren…",
+  "phase.build": "Het pakket bouwen…",
+  "phase.installBuilt": "De gebouwde pakketten installeren…",
+  "phase.cleanup": "Bouwtijd-afhankelijkheden verwijderen…",
+  "chooser.title": "Kies een aanbieder",
+  "chooser.body": "Deze pakketten vereisen een keuze voor een aanbieder. Kies welk pakket aan elke vereiste voldoet — de eerste zou standaard worden geïnstalleerd."
 }

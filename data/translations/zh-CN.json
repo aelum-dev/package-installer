@@ -86,5 +86,21 @@
   "toast.openExtra": "一次只能打开一个软件包；已忽略 {name}。",
   "toast.openFallbackName": "一个软件包",
   "toast.openNotLocal": "打开的文件不是本地文件。",
-  "toast.startFailed": "无法启动操作：{error}"
+  "toast.startFailed": "无法启动操作：{error}",
+  "txnlog.showOutput": "显示输出",
+  "txnlog.hideOutput": "隐藏输出",
+  "txn.count": "{done}/{total}",
+  "phase.sync": "正在同步软件包数据库…",
+  "phase.resolve": "正在解析依赖关系…",
+  "phase.retrieve": "正在下载软件包…",
+  "phase.check": "正在检查软件包…",
+  "phase.process": "正在应用软件包变更…",
+  "phase.hooks": "正在运行事务钩子…",
+  "phase.plan": "正在规划构建…",
+  "phase.fetchDeps": "正在安装依赖…",
+  "phase.build": "正在构建软件包…",
+  "phase.installBuilt": "正在安装构建的软件包…",
+  "phase.cleanup": "正在移除构建时依赖…",
+  "chooser.title": "选择提供者",
+  "chooser.body": "这些软件包需要选择提供者。请选择满足每项要求的软件包 — 第一个是默认会安装的。"
 }

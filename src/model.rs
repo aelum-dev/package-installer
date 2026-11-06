@@ -431,6 +431,64 @@ impl Model {
         (!missing.is_empty()).then_some(missing)
     }
 
+    /// For a set of names about to be installed, the dependencies that are
+    /// virtuals with several possible providers — the questions pacman would
+    /// otherwise answer by silently taking provider #1.
+    ///
+    /// Each requested sync entry's `%DEPENDS%` is read; a dependency already
+    /// answered on the system (installed by name or provision) is skipped,
+    /// because pacman would not ask about it either. A name no repository
+    /// package *is* but some packages *provide* is a virtual; its candidates
+    /// come back in pacman's own order — the `entries` order is repository
+    /// configuration order, then database order within a repository, the same
+    /// rule `Model::load` took from `-Sp` — minus candidates already installed.
+    /// One candidate is not a question: pacman takes it without asking.
+    pub fn unanswered_providers(&self, names: &[String]) -> Vec<ProviderQuestion> {
+        let mut questions: Vec<ProviderQuestion> = Vec::new();
+        let mut asked: HashSet<&str> = HashSet::new();
+        for name in names {
+            let Some(requested) = self.get(name) else { continue };
+            // A local-only package has no %DEPENDS% to read; its requirements
+            // are whatever pacman resolves at install time, same as ever.
+            let Some(sync) = requested.sync.as_ref() else { continue };
+            for dep in &sync.depends {
+                let dep = db::dep_name(dep);
+                if self.dep_satisfied(dep) || !asked.insert(dep) {
+                    continue;
+                }
+                // A concrete name resolves directly; only a virtual asks.
+                if self.get(dep).is_some_and(|e| e.sync.is_some()) {
+                    continue;
+                }
+                let candidates: Vec<ProviderChoice> = self
+                    .entries
+                    .iter()
+                    .filter(|e| {
+                        e.installed.is_none()
+                            && e.sync.as_ref().is_some_and(|s| {
+                                s.provides.iter().any(|p| db::dep_name(p) == dep)
+                            })
+                    })
+                    .filter_map(|e| {
+                        let s = e.sync.as_ref()?;
+                        Some(ProviderChoice {
+                            name: s.name.clone(),
+                            repository: s.repository.clone(),
+                            csize: s.csize,
+                        })
+                    })
+                    .collect();
+                if candidates.len() > 1 {
+                    questions.push(ProviderQuestion {
+                        virtual_name: dep.to_string(),
+                        candidates,
+                    });
+                }
+            }
+        }
+        questions
+    }
+
     /// What an AUR answer means for this system: the same installed / not
     /// installed / up-to-date question the sync rows answer, against the
     /// version the AUR says it would build. The order of `hits` is the AUR's
@@ -460,6 +518,23 @@ impl Model {
             })
             .collect()
     }
+}
+
+/// One virtual a request needs answered, and the packages that could answer
+/// it — in pacman's own order, the first being what pacman would pick
+/// silently. The candidate carries its display facts so the dialog never
+/// reaches back into the model.
+#[derive(Clone, Debug)]
+pub struct ProviderQuestion {
+    pub virtual_name: String,
+    pub candidates: Vec<ProviderChoice>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ProviderChoice {
+    pub name: String,
+    pub repository: String,
+    pub csize: u64,
 }
 
 /// What an AUR package with this name is on this system.
@@ -878,6 +953,169 @@ mod tests {
         assert_eq!(m.missing_dependencies("base-devel"), None);
     }
 
+    /// A sync entry providing virtuals, with a download size — what the
+    /// provider chooser lists.
+    fn sync_provides(name: &str, repo: &str, provides: &[&str], csize: u64) -> SyncPackage {
+        SyncPackage {
+            depends: vec![],
+            provides: provides.iter().map(|s| s.to_string()).collect(),
+            repository: repo.into(),
+            csize,
+            ..sync(name, "1.0-1", "a provider")
+        }
+    }
+
+    #[test]
+    fn a_virtual_with_several_providers_asks_once_in_pacman_s_order() {
+        // `steam` depends on the virtuals `vulkan-driver` and
+        // `lib32-vulkan-driver`, never on a driver by name — and a system
+        // with no driver installed gets provider #1 silently. The candidate
+        // order is the entries order, which is the order the config resolves
+        // names in, so the first candidate is pacman's default.
+        let mut steam = sync("steam", "1.1-1", "the platform");
+        steam.depends = vec![
+            "glibc".into(),
+            "vulkan-driver".into(),
+            "lib32-vulkan-driver>=1.3".into(),
+        ];
+        let m = model(vec![
+            entry("steam", None, Some(steam)),
+            entry("glibc", Some(local("glibc", "2.40-1", Reason::Dependency, &[])), None),
+            entry("vulkan-radeon", None, Some(sync_provides("vulkan-radeon", "extra", &["vulkan-driver"], 100))),
+            entry("vulkan-intel", None, Some(sync_provides("vulkan-intel", "extra", &["vulkan-driver"], 90))),
+            entry("nvidia-utils", None, Some(sync_provides("nvidia-utils", "extra", &["vulkan-driver"], 400))),
+            entry("lib32-vulkan-radeon", None, Some(sync_provides("lib32-vulkan-radeon", "multilib", &["lib32-vulkan-driver"], 80))),
+            entry("lib32-nvidia-utils", None, Some(sync_provides("lib32-nvidia-utils", "multilib", &["lib32-nvidia-utils"], 300))),
+            entry("lib32-mesa", None, Some(sync_provides("lib32-mesa", "multilib", &["lib32-vulkan-driver", "lib32-vulkan-radeon", "lib32-vulkan-intel"], 500))),
+        ]);
+        let q = m.unanswered_providers(&["steam".into()]);
+        assert_eq!(q.len(), 2, "one question per unanswered virtual");
+        assert_eq!(q[0].virtual_name, "vulkan-driver");
+        assert_eq!(
+            q[0].candidates.iter().map(|c| c.name.as_str()).collect::<Vec<_>>(),
+            ["vulkan-radeon", "vulkan-intel", "nvidia-utils"]
+        );
+        assert_eq!(q[0].candidates[0].repository, "extra");
+        assert_eq!(q[0].candidates[0].csize, 100);
+        assert_eq!(
+            q[1].candidates.iter().map(|c| c.name.as_str()).collect::<Vec<_>>(),
+            ["lib32-vulkan-radeon", "lib32-mesa"],
+            "a provider of the versioned virtual only; a provision of another name does not count"
+        );
+    }
+
+    #[test]
+    fn an_installed_provider_or_a_single_candidate_is_never_a_question() {
+        // Measured: a virtual with an already-installed provider pulls no
+        // vulkan package at all — pacman does not ask. One candidate is not
+        // a decision either. A concrete dependency resolves by name.
+        let mut radeon = local("vulkan-radeon", "1:25-1", Reason::Dependency, &[]);
+        radeon.provides = vec!["vulkan-driver".into()];
+        let mut req = sync("requester", "1-1", "asks for things");
+        req.depends = vec!["vulkan-driver".into(), "only-one".into(), "glibc".into()];
+        let m = model(vec![
+            entry("requester", None, Some(req)),
+            entry("vulkan-radeon", Some(radeon), None),
+            entry("nvidia-utils", None, Some(sync_provides("nvidia-utils", "extra", &["vulkan-driver"], 400))),
+            entry("only-one", None, Some(sync_provides("only-one", "extra", &["single-virtual"], 10))),
+            entry("other-thing", None, Some(sync("other-thing", "1-1", "not a provider"))),
+            entry("glibc", None, Some(sync("glibc", "2.40-1", "libc"))),
+        ]);
+        let q = m.unanswered_providers(&["requester".into()]);
+        assert!(q.is_empty(), "answered, single-candidate, and concrete deps ask nothing");
+    }
+
+    #[test]
+    fn a_virtual_nothing_provides_asks_nothing() {
+        // An unanswerable virtual is pacman's error, not a chooser with zero
+        // candidates.
+        let mut req = sync("requester", "1-1", "asks");
+        req.depends = vec!["nonexistent-virtual".into()];
+        let m = model(vec![entry("requester", None, Some(req))]);
+        assert!(m.unanswered_providers(&["requester".into()]).is_empty());
+        // A name the model does not have at all (an AUR build, a local file)
+        // has no %DEPENDS% to read here.
+        assert!(m.unanswered_providers(&["some-aur-package".into()]).is_empty());
+    }
+
+    #[test]
+    fn provider_candidates_follow_the_repository_order_of_the_config() {
+        // The same measured rule as the one-row-per-name tests: pacman
+        // resolves through pacman.conf, first section wins — and its provider
+        // prompt lists candidates in that order. Swapping the sections must
+        // flip our list exactly like it flips `-Sp`.
+        for (order, first, second) in [
+            ("[core]\n[extra]\n", "core-jdk", "extra-jdk"),
+            ("[extra]\n[core]\n", "extra-jdk", "core-jdk"),
+        ] {
+            let name = format!("provider_order_{first}");
+            write_pacman_root(
+                &name,
+                &format!("[options]\n{order}"),
+                &[
+                    ("core", &[("core-jdk", "17-1", "%PROVIDES%\njava-runtime>=17\n\n",)]),
+                    ("extra", &[
+                        ("extra-jdk", "17-1", "%PROVIDES%\njava-runtime>=17\n\n"),
+                        ("requester", "1-1", "%DEPENDS%\njava-runtime>=17\n\n"),
+                    ]),
+                ],
+                &[],
+            );
+            let m = load_fixture(&name);
+            let q = m.unanswered_providers(&["requester".into()]);
+            assert_eq!(q.len(), 1, "config: {order}");
+            assert_eq!(
+                q[0].candidates.iter().map(|c| c.name.as_str()).collect::<Vec<_>>(),
+                [first, second],
+                "config: {order}"
+            );
+        }
+    }
+
+    /// The provider questions must agree with pacman's own prompt on a real
+    /// system. Ignored by default: it needs an Arch host with sync databases.
+    /// Run with `cargo test -- --ignored`.
+    #[test]
+    #[ignore]
+    fn the_provider_questions_match_pacman_s_prompt() {
+        let m = Model::load(Path::new(PACMAN_ROOT), Path::new(PACMAN_CONFIG))
+            .expect("real pacman root");
+        let ours = m.unanswered_providers(&["steam".into()]);
+        // `pacman -Sp steam` prints "There are N providers available for X:"
+        // followed by ":: [repo] name" lines — the exact list and order the
+        // chooser must show. With every virtual already answered it prints
+        // none, and neither may we.
+        let out = std::process::Command::new("pacman")
+            .args(["-Sp", "steam"])
+            .stdin(std::process::Stdio::null())
+            .output()
+            .expect("pacman");
+        let text = format!(
+            "{}{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let mut asked: Vec<(String, Vec<String>)> = Vec::new();
+        for line in text.lines() {
+            if let Some(rest) = line.strip_prefix(":: There are ")
+                && let Some(v) = rest.split(" providers available for ").nth(1)
+            {
+                let v = v.trim().trim_start_matches('`').trim_end_matches('`').to_string();
+                asked.push((v, Vec::new()));
+            } else if let Some((_, list)) = asked.last_mut()
+                && let Some(rest) = line.strip_prefix(":: [")
+                && let Some(name) = rest.split(' ').nth(1)
+            {
+                list.push(name.to_string());
+            }
+        }
+        let ours: Vec<(String, Vec<String>)> = ours
+            .iter()
+            .map(|q| (q.virtual_name.clone(), q.candidates.iter().map(|c| c.name.clone()).collect()))
+            .collect();
+        assert_eq!(ours, asked, "pacman's prompt is the oracle");
+    }
+
     /// A scratch directory for on-disk fixtures. Named per test and per
     /// process so tests running in parallel cannot collide.
     fn fixture_dir(name: &str) -> std::path::PathBuf {
@@ -886,11 +1124,21 @@ mod tests {
         dir
     }
 
+    /// One sync-repository package for the fixture writer: name, version,
+    /// and any extra desc sections.
+    type SyncSpec<'a> = &'a [(&'a str, &'a str, &'a str)];
+
     /// A pacman root on disk, the way a real system has one: `sync/<repo>.db`
     /// in the compression a mirror sends (gzip) and `local/<name>-<ver>/desc`.
     /// `Model::load` reads it as written, so these tests hold the whole path
-    /// the Browse page's rows come from.
-    fn write_pacman_root(name: &str, config: &str, sync: &[(&str, &[(&str, &str)])], local: &[(&str, &str)]) {
+    /// the Browse page's rows come from. The third sync field is extra desc
+    /// sections (`"%DEPENDS%\n…\n\n"`) the entry carries beyond the basics.
+    fn write_pacman_root(
+        name: &str,
+        config: &str,
+        sync: &[(&str, SyncSpec)],
+        local: &[(&str, &str)],
+    ) {
         let dir = fixture_dir(name);
         fs::create_dir_all(dir.join("sync")).unwrap();
         fs::create_dir_all(dir.join("local")).unwrap();
@@ -899,9 +1147,9 @@ mod tests {
             let mut tar = Vec::new();
             {
                 let mut ar = tar::Builder::new(&mut tar);
-                for (pkg, version) in *pkgs {
+                for (pkg, version, extra) in *pkgs {
                     let text = format!(
-                        "%NAME%\n{pkg}\n\n%VERSION%\n{version}\n\n%DESC%\ntest package\n\n"
+                        "%NAME%\n{pkg}\n\n%VERSION%\n{version}\n\n%DESC%\ntest package\n\n{extra}"
                     );
                     let mut header = tar::Header::new_ustar();
                     header.set_entry_type(tar::EntryType::Regular);
@@ -952,8 +1200,8 @@ mod tests {
             "two_repos",
             "[options]\n[core]\n[extra]\n[aelum]\n",
             &[
-                ("aelum-offline", &[("adwaita-icon-theme", "51.0-1")]),
-                ("extra", &[("adwaita-icon-theme", "51.0-1")]),
+                ("aelum-offline", &[("adwaita-icon-theme", "51.0-1", "")]),
+                ("extra", &[("adwaita-icon-theme", "51.0-1", "")]),
             ],
             &[("adwaita-icon-theme", "51.0-1")],
         );
@@ -980,7 +1228,7 @@ mod tests {
             write_pacman_root(
                 &name,
                 &format!("[options]\n{order}"),
-                &[("extra", &[("hello", "1.0-1")]), ("aelum", &[("hello", "2.0-1")])],
+                &[("extra", &[("hello", "1.0-1", "")]), ("aelum", &[("hello", "2.0-1", "")])],
                 &[("hello", "0.9-1")],
             );
             let m = load_fixture(&name);
@@ -1004,8 +1252,8 @@ mod tests {
             "stale_update",
             "[options]\n[extra]\n",
             &[
-                ("aelum-offline", &[("hello", "9.9-1")]),
-                ("extra", &[("hello", "1.0-1")]),
+                ("aelum-offline", &[("hello", "9.9-1", "")]),
+                ("extra", &[("hello", "1.0-1", "")]),
             ],
             &[("hello", "1.0-1")],
         );
@@ -1024,7 +1272,7 @@ mod tests {
         write_pacman_root(
             "no_config",
             "",
-            &[("zz-a", &[("hello", "1.0-1")]), ("zz-b", &[("hello", "2.0-1")])],
+            &[("zz-a", &[("hello", "1.0-1", "")]), ("zz-b", &[("hello", "2.0-1", "")])],
             &[],
         );
         let dir = std::env::temp_dir().join(format!(
@@ -1046,7 +1294,7 @@ mod tests {
         write_pacman_root(
             "no_distro_repo",
             "[options]\n[core]\n[extra]\n",
-            &[("aelum", &[("aelum-newapp", "1.0-1")])],
+            &[("aelum", &[("aelum-newapp", "1.0-1", "")])],
             &[],
         );
         let m = load_fixture("no_distro_repo");

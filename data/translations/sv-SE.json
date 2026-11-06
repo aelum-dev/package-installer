@@ -86,5 +86,21 @@
   "toast.openExtra": "Endast ett paket kan öppnas åt gången; ignorerar {name}.",
   "toast.openFallbackName": "ett paket",
   "toast.openNotLocal": "Den öppnade filen är inte en lokal fil.",
-  "toast.startFailed": "Åtgärden kunde inte starta: {error}"
+  "toast.startFailed": "Åtgärden kunde inte starta: {error}",
+  "txnlog.showOutput": "Visa utdata",
+  "txnlog.hideOutput": "Dölj utdata",
+  "txn.count": "{done} av {total}",
+  "phase.sync": "Synkroniserar paketdatabaser…",
+  "phase.resolve": "Löser beroenden…",
+  "phase.retrieve": "Hämtar paket…",
+  "phase.check": "Kontrollerar paket…",
+  "phase.process": "Tillämpar paketändringar…",
+  "phase.hooks": "Kör transaktionskrokar…",
+  "phase.plan": "Planerar bygget…",
+  "phase.fetchDeps": "Installerar beroenden…",
+  "phase.build": "Bygger paketet…",
+  "phase.installBuilt": "Installerar de byggda paketen…",
+  "phase.cleanup": "Tar bort byggberoenden…",
+  "chooser.title": "Välj en leverantör",
+  "chooser.body": "Dessa paket behöver ett val av leverantör. Välj vilket paket som uppfyller varje krav — det första skulle ha installerats som standard."
 }

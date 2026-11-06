@@ -86,5 +86,21 @@
   "toast.openExtra": "Samtempe malfermiĝas nur unu pakaĵo; {name} estas ignorata.",
   "toast.openFallbackName": "pakaĵo",
   "toast.openNotLocal": "La malfermita dosiero ne estas loka dosiero.",
-  "toast.startFailed": "Ne eblis komenci la operacion: {error}"
+  "toast.startFailed": "Ne eblis komenci la operacion: {error}",
+  "txnlog.showOutput": "Montri eligon",
+  "txnlog.hideOutput": "Kaŝi eligon",
+  "txn.count": "{done} el {total}",
+  "phase.sync": "Sinkronigante paketajn datumbazojn…",
+  "phase.resolve": "Rezolvante dependecojn…",
+  "phase.retrieve": "Elŝutante pakojn…",
+  "phase.check": "Kontrolante pakojn…",
+  "phase.process": "Aplikante pakajn ŝanĝojn…",
+  "phase.hooks": "Rulante transakciajn hokojn…",
+  "phase.plan": "Planante la kompiladon…",
+  "phase.fetchDeps": "Instalante dependecojn…",
+  "phase.build": "Kompilante la pakon…",
+  "phase.installBuilt": "Instalante la kompilitajn pako…",
+  "phase.cleanup": "Forigante kompiltajn dependecojn…",
+  "chooser.title": "Elektu provizanton",
+  "chooser.body": "Ĉi tiuj pakoj bezonas elekton de provizanto. Elektu kiu pako plenumas ĉiun postulon — la unua estus instalita defaŭlte."
 }

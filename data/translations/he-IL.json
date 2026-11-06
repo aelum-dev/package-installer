@@ -86,5 +86,21 @@
   "toast.openExtra": "ניתן לפתוח חבילה אחת בלבד בכל פעם; {name} יוּתעלם.",
   "toast.openFallbackName": "חבילה",
   "toast.openNotLocal": "הקובץ שנפתח אינו קובץ מקומי.",
-  "toast.startFailed": "לא ניתן להפעיל את הפעולה: {error}"
+  "toast.startFailed": "לא ניתן להפעיל את הפעולה: {error}",
+  "txnlog.showOutput": "הצג פלט",
+  "txnlog.hideOutput": "הסתר פלט",
+  "txn.count": "{done} מתוך {total}",
+  "phase.sync": "סנכרון מאגרי חבילות…",
+  "phase.resolve": "פתירת תלויות…",
+  "phase.retrieve": "הורדת חבילות…",
+  "phase.check": "בדיקת חבילות…",
+  "phase.process": "החלת שינויי חבילות…",
+  "phase.hooks": "הרצית וווי פעולה…",
+  "phase.plan": "תכנון הבנייה…",
+  "phase.fetchDeps": "התקנת תלויות…",
+  "phase.build": "בניית החבילה…",
+  "phase.installBuilt": "התקנת החבילות שנבנו…",
+  "phase.cleanup": "הסרת תלויות זמן בנייה…",
+  "chooser.title": "בחירת ספק",
+  "chooser.body": "חבילות אלו דורשות בחירת ספק. נא לבחור איזו חבילה עונה על כל דרישה — הראשונה היא מה שהיה מותקן כברירת מחדל."
 }

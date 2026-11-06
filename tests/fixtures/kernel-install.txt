@@ -1,0 +1,48 @@
+resolving dependencies...
+looking for conflicting packages...
+
+Packages (1) linux-7.2.14.arch1-1
+
+Total Installed Size:  161.64 MiB
+
+:: Proceed with installation? [Y/n] 
+checking keyring...
+checking package integrity...
+loading package files...
+checking for file conflicts...
+checking available disk space...
+:: Running pre-transaction hooks...
+(1/1) 90-aelum-snapper-pre.hook
+:: Processing package changes...
+installing linux...
+Optional dependencies for linux
+    linux-headers: headers and scripts for building modules
+    linux-firmware: firmware images needed for some devices [installed]
+    scx-scheds: to use sched-ext schedulers
+    wireless-regdb: to set the correct wireless channels of your country
+:: Running post-transaction hooks...
+(1/4) Arming ConditionNeedsUpdate...
+(2/4) Updating module dependencies...
+(3/4) Updating linux initcpios...
+==> Building image from preset: /etc/mkinitcpio.d/linux.preset: 'default'
+==> Using default configuration file: '/etc/mkinitcpio.conf'
+  -> -k /boot/vmlinuz-linux -g /boot/initramfs-linux.img
+==> Starting build: '7.2.14-arch1-1'
+  -> Running build hook: [base]
+  -> Running build hook: [systemd]
+  -> Running build hook: [plymouth]
+  -> Running build hook: [autodetect]
+  -> Running build hook: [microcode]
+  -> Running build hook: [modconf]
+  -> Running build hook: [kms]
+  -> Running build hook: [keyboard]
+  -> Running build hook: [sd-vconsole]
+  -> Running build hook: [block]
+  -> Running build hook: [filesystems]
+  -> Running build hook: [fsck]
+==> Generating module dependencies
+==> Creating zstd-compressed initcpio image: '/boot/initramfs-linux.img'
+  -> Early uncompressed CPIO image generation successful
+==> Initcpio image generation successful
+(4/4) 91-aelum-snapper-post.hook
+exit=0

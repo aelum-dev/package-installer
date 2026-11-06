@@ -86,5 +86,21 @@
   "toast.openExtra": "Vain yksi paketti kerrallaan; {name} jätetään huomiotta.",
   "toast.openFallbackName": "paketti",
   "toast.openNotLocal": "Avattu tiedosto ei ole paikallinen tiedosto.",
-  "toast.startFailed": "Tointoa ei voitu aloittaa: {error}"
+  "toast.startFailed": "Tointoa ei voitu aloittaa: {error}",
+  "txnlog.showOutput": "Näytä tulos",
+  "txnlog.hideOutput": "Piilota tulos",
+  "txn.count": "{done} / {total}",
+  "phase.sync": "Synkronoidaan pakkitietokantoja…",
+  "phase.resolve": "Ratkaistaan riippuvuuksia…",
+  "phase.retrieve": "Ladataan paketteja…",
+  "phase.check": "Tarkistetaan paketteja…",
+  "phase.process": "Käytetään pakettimuutoksia…",
+  "phase.hooks": "Suoritetaan transaktion koukut…",
+  "phase.plan": "Suunnitellaan käännöstä…",
+  "phase.fetchDeps": "Asennetaan riippuvuuksia…",
+  "phase.build": "Käännetään pakettia…",
+  "phase.installBuilt": "Asennetaan käännetyt paketit…",
+  "phase.cleanup": "Poistetaan käännösaikaiset riippuvuudet…",
+  "chooser.title": "Valitse tarjoaja",
+  "chooser.body": "Nämä paketit tarvitsevat tarjoajan valinnan. Valitse, kumpi paketti täyttää kunkin vaatimuksen — ensimmäinen asennettaisiin oletuksena."
 }

@@ -86,5 +86,21 @@
   "toast.openExtra": "一次只能開啟一個軟體包；已忽略 {name}。",
   "toast.openFallbackName": "一個軟體包",
   "toast.openNotLocal": "開啟的檔案不是本地檔案。",
-  "toast.startFailed": "無法啟動操作：{error}"
+  "toast.startFailed": "無法啟動操作：{error}",
+  "txnlog.showOutput": "顯示輸出",
+  "txnlog.hideOutput": "隱藏輸出",
+  "txn.count": "{done}/{total}",
+  "phase.sync": "正在同步套件資料庫…",
+  "phase.resolve": "正在解析相依關係…",
+  "phase.retrieve": "正在下載套件…",
+  "phase.check": "正在檢查套件…",
+  "phase.process": "正在套用套件變更…",
+  "phase.hooks": "正在執行交易鉤子…",
+  "phase.plan": "正在規劃建置…",
+  "phase.fetchDeps": "正在安裝相依…",
+  "phase.build": "正在建置套件…",
+  "phase.installBuilt": "正在安裝建置的套件…",
+  "phase.cleanup": "正在移除建置時相依…",
+  "chooser.title": "選擇提供者",
+  "chooser.body": "這些套件需要選擇提供者。請選擇滿足每項要求的套件 — 第一個是預設會安裝的。"
 }

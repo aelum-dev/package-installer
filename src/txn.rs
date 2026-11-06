@@ -18,6 +18,7 @@ use std::thread;
 use futures::channel::mpsc::UnboundedSender;
 
 use crate::i18n;
+use crate::progress;
 
 /// The helper shipped by the package; pkexec resolves it to the
 /// `dev.aelum.package.manage` action through the policy's exec.path.
@@ -101,12 +102,29 @@ impl Txn {
             ),
         }
     }
+
+    /// Which progress bands this request runs through (`progress::Track`).
+    /// The AUR job is not a `Txn` — its steps are announced, not parsed —
+    /// and builds its track as `Verb::Aur` directly.
+    pub fn verb(&self) -> crate::progress::Verb {
+        match self {
+            Txn::Refresh => crate::progress::Verb::Refresh,
+            Txn::Install(_) | Txn::InstallAsDeps(_) => crate::progress::Verb::Install,
+            Txn::Remove(_) => crate::progress::Verb::Remove,
+            Txn::Upgrade => crate::progress::Verb::Upgrade,
+            Txn::InstallFiles(_) | Txn::InstallFilesAsDeps(_) => crate::progress::Verb::File,
+        }
+    }
 }
 
 /// Progress of a running transaction, streamed to the UI.
 #[derive(Clone, Debug)]
 pub enum TxnEvent {
     Line(String),
+    /// A named step of a multi-step job (the AUR flow) began. The progress
+    /// bar follows these for that flow — driving it by scraping translated
+    /// log text is exactly what breaks in another language.
+    Step(progress::StepKind),
     /// Ok(0) on success; Err(code) for anything else (pkexec's 127 means
     /// the action was refused, 1 means the user dismissed the agent).
     Finished(Result<(), i32>),
@@ -131,6 +149,29 @@ pub fn run(txn: &Txn, tx: UnboundedSender<TxnEvent>) -> std::io::Result<()> {
             Ok(code) => TxnEvent::Finished(Err(code)),
             Err(_) => TxnEvent::Finished(Err(-1)),
         });
+    });
+    Ok(())
+}
+
+/// Several transactions as one job: every step runs in order on a worker
+/// (stopping at the first failure), all output streams into the same
+/// channel, and the exit status of the job is the failing step's. This is
+/// what lets a chooser-answered request install its providers `--asdeps`
+/// before the names the user asked for, in one log dialog.
+pub fn run_all(steps: &[Txn], tx: UnboundedSender<TxnEvent>) -> std::io::Result<()> {
+    if let [only] = steps {
+        return run(only, tx);
+    }
+    let steps = steps.to_vec();
+    thread::spawn(move || {
+        let mut outcome = Ok(());
+        for step in &steps {
+            if let Err(code) = run_wait(step, &tx) {
+                outcome = Err(code);
+                break;
+            }
+        }
+        let _ = tx.unbounded_send(TxnEvent::Finished(outcome));
     });
     Ok(())
 }
@@ -241,5 +282,9 @@ mod tests {
             assert!(helper.contains(&format!("{verb})")), "helper lacks {verb}");
             assert!(helper.contains("--noconfirm"));
         }
+        // Line-buffered: with stdout a pipe glibc holds pacman's output in
+        // 4 KiB blocks, and the app would watch a frozen log through a
+        // whole download (measured: 53 s of silence for ~200 MiB).
+        assert!(helper.contains("stdbuf -oL"), "helper must line-buffer");
     }
 }

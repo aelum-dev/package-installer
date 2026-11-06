@@ -86,5 +86,21 @@
   "toast.openExtra": "Bir seferde yalnızca bir paket açılır; {name} yoksayılıyor.",
   "toast.openFallbackName": "bir paket",
   "toast.openNotLocal": "Açılan dosya yerel bir dosya değil.",
-  "toast.startFailed": "İşlem başlatılamadı: {error}"
+  "toast.startFailed": "İşlem başlatılamadı: {error}",
+  "txnlog.showOutput": "Çıktıyı göster",
+  "txnlog.hideOutput": "Çıktıyı gizle",
+  "txn.count": "{done}/{total}",
+  "phase.sync": "Paket veritabanları eşitleniyor…",
+  "phase.resolve": "Bağımlılıklar çözümleniyor…",
+  "phase.retrieve": "Paketler indiriliyor…",
+  "phase.check": "Paketler denetleniyor…",
+  "phase.process": "Paket değişiklikleri uygulanıyor…",
+  "phase.hooks": "İşlem kancaları çalıştırılıyor…",
+  "phase.plan": "Derleme planlanıyor…",
+  "phase.fetchDeps": "Bağımlılıklar kuruluyor…",
+  "phase.build": "Paket derleniyor…",
+  "phase.installBuilt": "Derlenen paketler kuruluyor…",
+  "phase.cleanup": "Derleme bağımlılıkları kaldırılıyor…",
+  "chooser.title": "Bir sağlayıcı seçin",
+  "chooser.body": "Bu paketler bir sağlayıcı seçimi gerektiriyor. Her gereksinimi hangi paketin karşıladığını seçin — ilki varsayılan olarak kurulacak olandır."
 }

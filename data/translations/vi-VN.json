@@ -86,5 +86,21 @@
   "toast.openExtra": "Chỉ mở được một gói mỗi lần; bỏ qua {name}.",
   "toast.openFallbackName": "một gói",
   "toast.openNotLocal": "Tệp được mở không phải là tệp cục bộ.",
-  "toast.startFailed": "Không thể bắt đầu thao tác: {error}"
+  "toast.startFailed": "Không thể bắt đầu thao tác: {error}",
+  "txnlog.showOutput": "Hiển thị kết quả",
+  "txnlog.hideOutput": "Ẩn kết quả",
+  "txn.count": "{done} trong số {total}",
+  "phase.sync": "Đồng bộ cơ sở dữ liệu gói…",
+  "phase.resolve": "Đang giải quyết phụ thuộc…",
+  "phase.retrieve": "Tải các gói…",
+  "phase.check": "Kiểm tra các gói…",
+  "phase.process": "Áp dụng thay đổi gói…",
+  "phase.hooks": "Chạy hook của giao dịch…",
+  "phase.plan": "Lên kế hoạch xây dựng…",
+  "phase.fetchDeps": "Cài các phụ thuộc…",
+  "phase.build": "Đang xây dựng gói…",
+  "phase.installBuilt": "Cài các gói đã xây dựng…",
+  "phase.cleanup": "Gỡ các phụ thuộc khi xây dựng…",
+  "chooser.title": "Chọn nhà cung cấp",
+  "chooser.body": "Những gói này cần chọn một nhà cung cấp. Hãy chọn gói nào đáp ứng từng yêu cầu — gói đầu tiên là gói sẽ được cài đặt theo mặc định."
 }

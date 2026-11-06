@@ -86,5 +86,21 @@
   "toast.openExtra": "Egyszerre csak egy csomag nyitható meg; {name} kihagyva.",
   "toast.openFallbackName": "egy csomag",
   "toast.openNotLocal": "A megnyitott fájl nem helyi fájl.",
-  "toast.startFailed": "A művelet nem indítható el: {error}"
+  "toast.startFailed": "A művelet nem indítható el: {error}",
+  "txnlog.showOutput": "Kimenet megjelenítése",
+  "txnlog.hideOutput": "Kimenet elrejtése",
+  "txn.count": "{done} / {total}",
+  "phase.sync": "A package-adatbázisok szinkronizálása…",
+  "phase.resolve": "A függőségek feloldása…",
+  "phase.retrieve": "A csomagok letöltése…",
+  "phase.check": "A csomagok ellenőrzése…",
+  "phase.process": "A csomagmódosítások alkalmazása…",
+  "phase.hooks": "A tranzakciós horgok futtatása…",
+  "phase.plan": "A fordítás tervezése…",
+  "phase.fetchDeps": "A függőségek telepítése…",
+  "phase.build": "A csomag fordítása…",
+  "phase.installBuilt": "A lefordított csomagok telepítése…",
+  "phase.cleanup": "A fordítási függőségek eltávolítása…",
+  "chooser.title": "Válasszon szolgáltatót",
+  "chooser.body": "Ezekhez a csomagokhoz szolgáltatóválasztás szükséges. Válassza ki, melyik csomag teljesíti minden követelményt — az első lenne alapértelmezésben telepítve."
 }

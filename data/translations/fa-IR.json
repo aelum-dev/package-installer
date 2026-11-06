@@ -86,5 +86,21 @@
   "toast.openExtra": "هم‌زمان فقط یک بسته باز می‌شود؛ {name} نادیده گرفته شد.",
   "toast.openFallbackName": "یک بسته",
   "toast.openNotLocal": "فایل باز شده محلی نیست.",
-  "toast.startFailed": "عملیات آغاز نشد: {error}"
+  "toast.startFailed": "عملیات آغاز نشد: {error}",
+  "txnlog.showOutput": "نمایش خروجی",
+  "txnlog.hideOutput": "پنهان‌سازی خروجی",
+  "txn.count": "{done} از {total}",
+  "phase.sync": "همگام‌سازی پایگاه‌های داده بسته‌ها…",
+  "phase.resolve": "حل وابستگی‌ها…",
+  "phase.retrieve": "بارگیری بسته‌ها…",
+  "phase.check": "بررسی بسته‌ها…",
+  "phase.process": "اعمال تغییرات بسته‌ها…",
+  "phase.hooks": "اجرای قلاب‌های تراکنش…",
+  "phase.plan": "برنامه‌ریزی ساخت…",
+  "phase.fetchDeps": "نصب وابستگی‌ها…",
+  "phase.build": "ساخت بسته…",
+  "phase.installBuilt": "نصب بسته‌های ساخته‌شده…",
+  "phase.cleanup": "حذف وابستگی‌های زمان ساخت…",
+  "chooser.title": "انتخاب ارائهنده",
+  "chooser.body": "این بسته‌ها به انتخاب ارائهنده نیاز دارند. انتخاب کنید کدام بسته هر نیاز را برآورده می‌کند — اولی به‌طور پیش‌فرض نصب می‌شد."
 }

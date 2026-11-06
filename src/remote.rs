@@ -301,6 +301,9 @@ pub fn aur_install(hit: &aur::Hit, tx: &UnboundedSender<TxnEvent>) {
 /// by the time it fails, so a failure here adds a line only when the app is
 /// the one that knows something the command did not say.
 fn aur_steps(hit: &aur::Hit, tx: &UnboundedSender<TxnEvent>) -> Result<(), i32> {
+    // The bar follows these announcements, not the log text: an AUR job is
+    // several kinds of work and only this process knows where one ends.
+    let _ = tx.unbounded_send(TxnEvent::Step(crate::progress::StepKind::Plan));
     if !safe_name(&hit.name) {
         return fail(tx, &format!("{}: not a package name", hit.name));
     }
@@ -371,6 +374,7 @@ fn aur_steps(hit: &aur::Hit, tx: &UnboundedSender<TxnEvent>) -> Result<(), i32> 
     //    without -s refuses to build while its dependencies are missing,
     //    and a `makepkg -s` would ask sudo for a terminal this process
     //    does not have.
+    let _ = tx.unbounded_send(TxnEvent::Step(crate::progress::StepKind::FetchDeps));
     if !plan.repository.is_empty()
         && let Err(code) = txn::run_wait(&Txn::InstallAsDeps(plan.repository.clone()), tx)
     {
@@ -380,6 +384,7 @@ fn aur_steps(hit: &aur::Hit, tx: &UnboundedSender<TxnEvent>) -> Result<(), i32> 
     // 3. Build, in the order the plan produced. The archives split in two
     //    halves of one request: what the build produced *as a dependency*
     //    and what the user asked for — step 4 marks them differently.
+    let _ = tx.unbounded_send(TxnEvent::Step(crate::progress::StepKind::Build));
     let mut dep_files: Vec<PathBuf> = Vec::new();
     let mut requested_files: Vec<PathBuf> = Vec::new();
     // The names this request puts on the system: the repository half, and
@@ -445,6 +450,7 @@ fn aur_steps(hit: &aur::Hit, tx: &UnboundedSender<TxnEvent>) -> Result<(), i32> 
     //    first and as deps (makepkg's marking again), then the requested
     //    package itself, Explicit. A split PKGBUILD's packages stay in one
     //    pacman call: it resolves the order between them.
+    let _ = tx.unbounded_send(TxnEvent::Step(crate::progress::StepKind::InstallBuilt));
     if !dep_files.is_empty() {
         txn::run_wait(&Txn::InstallFilesAsDeps(dep_files), tx)?;
     }
@@ -467,6 +473,7 @@ fn aur_steps(hit: &aur::Hit, tx: &UnboundedSender<TxnEvent>) -> Result<(), i32> 
             return Ok(());
         }
     };
+    let _ = tx.unbounded_send(TxnEvent::Step(crate::progress::StepKind::Cleanup));
     let leftovers = aur::unneeded_build_deps(&hit.name, &brought, &|name| {
         // Not on the system: there is nothing here to remove. Otherwise
         //    the installed packages that need it, by name or provision —

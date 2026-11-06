@@ -34,12 +34,14 @@ installs ship it preinstalled. Updates still come from the repo.
   contract: `LC_ALL`→`LC_MESSAGES`→`LANG` → BCP-47 → supported list →
   en-US; per-key fallback; `{placeholder}` interpolation). **No GTK.**
 - `src/vercmp.rs` — rpmvercmp + epoch, hand-written. **No GTK, no alpm.**
+- `src/progress.rs` — transaction progress: the phase bands per verb, and reading
+  pacman's output into honest counts (`Track`). **No GTK.**
 - `src/txn.rs` — the only place root is asked for.
 - `src/ui/` — thin: `app.rs` is the shared state (`Ui`), the transaction gate
   and the AUR search/job entry points, `window.rs` the five-page `ViewStack`,
   one module per page, `dialog`/`txnlog`/`fileopen` the dialogs.
 
-The four pure modules hold every decision and carry the tests; a page builds
+The pure modules hold every decision and carry the tests; a page builds
 rows from what `Model` returns and never classifies anything itself. That is
 what makes the data layer testable without root, a display, a package
 installed, or the network — keep it that way.
@@ -96,6 +98,43 @@ release you target before changing the code that encodes them.
   carries the tool list in `%DEPENDS%`. That entry is what `Model::
   missing_dependencies("base-devel")` reads, and `pacman -Si base-devel`'s
   Depends line is the oracle (`--ignored`).
+
+## Measured facts about pacman's progress output
+
+Captured through the packaged helper on the QEMU test system (pacman 7.1) and held under
+`tests/fixtures/`; `progress.rs`'s replay tests feed every file through `Track` and assert the
+fraction never goes backwards and ends where the work says it ends. A pacman that rewrites these
+lines degrades the bar to phase-creep — which is why the bar must never invent a number.
+
+- **Through a pipe there are no `( i/n)` counters and no progress bars at all** — pacman draws
+  those on a TTY only. What *is* there: the `Packages (N) …` header, one bare
+  `installing/upgrading/removing X...` line per package, download lines, and `( i/n)` counters on
+  the *hook* lines. The counted numerators are those lines against `Packages (N)`; a real
+  counter, when one appears, overrides the count.
+- **One ` name downloading...` line per download, printed at its start** — through a pipe there
+  are no `\r` redraws and no speed lines even on a 1.3 GB download (measured: CR=0). libalpm
+  fetches **five at a time**, and no line ever says a single download finished, so Retrieve
+  counts **distinct line subjects** (the first token) less the batch in flight: a start proves a
+  finished download only once it frees a slot. The count lags the truth by at most the batch —
+  never ahead, which is the direction that matters; the in-flight batch earns a bounded credit
+  in the fraction, never a whole package.
+- **The ` name downloading...` line marks a download's start, and pacman starts up to five at a
+  time** (measured through a pipe with timestamped lines): the count lags the truth by the batch —
+  never ahead, which is the direction that matters.
+- **With stdout a pipe, pacman's own output is block-buffered and arrives at the end** — measured:
+  53 s of silence for a ~200 MiB download, the log frozen right after `:: Retrieving packages...`
+  (the confirmation prompt flushes the buffer, which is why everything *before* it shows). The
+  helper runs pacman under `stdbuf -oL`; with line buffering the same lines arrive as they are
+  printed. The `the_helper_is_annotated_by_the_policy` test pins the stdbuf.
+- **`--noprogressbar` strips the counters too** (measured): the helper does not use it; the
+  parser strips bar and speed columns instead.
+- **A pre-transaction hook's `(1/1)` arrives before `:: Processing package changes...`** and
+  belongs to neither the package count nor the Hooks band — counting it there moves the bar past
+  work that has not happened.
+- Per-verb openings: `-Syu` adds `:: Synchronizing package databases...` and `:: Starting full
+  system upgrade...` (and ` there is nothing to do` when there is nothing); `-Rns` opens with
+  `checking dependencies...` and `:: Do you want to remove these packages? [Y/n]`; `-U` opens
+  with `loading packages...`. `--noconfirm` answers the prompts, so they are not phases.
 
 ## Measured facts about the AUR
 
@@ -172,7 +211,8 @@ measurement).
 
 `dev.aelum.package.manage` + `/usr/bin/aelum-package-installer-helper`
 (`{refresh|install|install-asdeps|remove|upgrade|file|file-asdeps}` →
-`pacman -Sy|-S|-S --asdeps|-Rns|-Syu|-U|-U --asdeps`, all `--noconfirm`),
+`stdbuf -oL pacman -Sy|-S|-S --asdeps|-Rns|-Syu|-U|-U --asdeps`, all `--noconfirm` —
+the stdbuf is what makes the output arrive during the download, not after it),
 the `aelum-snapshot-restore` shape. An AUR install is one request of several
 steps — `install-asdeps` (repository dependencies, makepkg's marking), the
 build as the user, `file-asdeps` (the built dependencies' archives), `file`
@@ -251,6 +291,22 @@ the annotation — an invariant, not a unit test of a string.
   still needs the package (three names maximum, then a count) and how many
   unneeded dependencies go along. Sizes, "this runs as root", and the full
   orphan list are not there — the transaction log names every package it touches.
+- **Ask instead of taking #1.** A request whose dependency is a virtual with
+  several candidates gets one chooser, before the transaction, listing
+  `name — repository — size` in pacman's candidate order with pacman's default
+  preselected; every question is asked in that one dialog. The chosen providers
+  are installed **as dependencies** first (the marking pacman's own provider
+  prompt uses — by name they would be Explicit, survive the request's `-Rns`,
+  and silently answer the virtual forever after), then the requested names
+  Explicit — one job, one log (`txn::run_all`). A single candidate or an
+  already-installed provider is never asked about — pacman would not ask either.
+- **The bar never claims a number it does not have.** `ui/txnlog.rs` paints
+  what `progress::Track` says and decides nothing: a phase label, the band
+  fraction, and an "i of n" only when `Track::counts` returns one; un-counted
+  phases creep inside their band. The output lives behind a disclosure that
+  opens itself on failure. Appends and repaints coalesce into one ~80 ms tick
+  (the stored `SourceId` is dropped inside the callback — the GTK trap below),
+  and the text view keeps the last 2000 lines, dropping from the front.
 - Model loads are generation-numbered (`Ui::load_seq`): the startup load and the
   post-refresh load overlap, and only the newest may install its result.
 

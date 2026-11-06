@@ -86,5 +86,21 @@
   "toast.openExtra": "一度に開けるパッケージは 1 つだけです。{name} は無視しました。",
   "toast.openFallbackName": "パッケージ",
   "toast.openNotLocal": "開かれたファイルはローカルファイルではありません。",
-  "toast.startFailed": "操作を開始できませんでした: {error}"
+  "toast.startFailed": "操作を開始できませんでした: {error}",
+  "txnlog.showOutput": "出力を表示",
+  "txnlog.hideOutput": "出力を隠す",
+  "txn.count": "{done}/{total}",
+  "phase.sync": "パッケージデータベースを同期中…",
+  "phase.resolve": "依存関係を解決中…",
+  "phase.retrieve": "パッケージをダウンロード中…",
+  "phase.check": "パッケージを確認中…",
+  "phase.process": "パッケージの変更を適用中…",
+  "phase.hooks": "トランザクションフックを実行中…",
+  "phase.plan": "ビルドを計画中…",
+  "phase.fetchDeps": "依存関係をインストール中…",
+  "phase.build": "パッケージをビルド中…",
+  "phase.installBuilt": "ビルドしたパッケージをインストール中…",
+  "phase.cleanup": "ビルド時の依存を削除中…",
+  "chooser.title": "プロバイダーを選択",
+  "chooser.body": "これらのパッケージはプロバイダーの選択が必要です。それぞれの要求を満たすパッケージを選択してください — 先頭が既定でインストールされるものです。"
 }
