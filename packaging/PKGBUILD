@@ -4,7 +4,7 @@
 # `git ls-files`, runs makepkg here, then signs + checksums the result into
 # dist/. Published to the [aelum] repository with ../repo/publish-repo.sh —
 # and listed in live-iso/packages.x86_64, so the ISO build bakes it into the
-# offline mirror and fresh installs ship it preinstalled (see package-installer-plan.md).
+# offline mirror and fresh installs ship it preinstalled.
 
 pkgname=aelum-package-installer
 # Keep in sync with [package].version in the root Cargo.toml —

@@ -33,8 +33,9 @@ proving new apps can reach installed users through the repo.
 sudo pacman -S aelum-package-installer   # on any Aelum install (repo is pre-trusted)
 ```
 
-It is deliberately **not** in the ISO/offline mirror yet; see
-`../package-installer-plan.md` for the plan and the measured caveats.
+It is listed in `live-iso/packages.x86_64` too: the ISO build resolves `[aelum]`,
+bakes the result into the offline mirror, and fresh installs ship it preinstalled.
+Updates still come from the repo.
 
 ## Commands
 

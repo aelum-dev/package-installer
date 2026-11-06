@@ -13,10 +13,6 @@ preinstalled. Updates still come from the repo.
 
 ## Read these first
 
-- **`../package-installer-plan.md`** — the plan of record: the page design, the
-  decisions already taken, and every measured fact below with its evidence. It
-  lives at the workspace root and is untracked by design (the root is not a git
-  repo); if it is missing you are in a fresh clone of this repo alone.
 - `../AGENTS.md` → the `package-installer/` section, for how this repo fits the
   distro (polkit pattern, the repo channel, the QEMU test guest).
 - `../repo/REPO.md` — the `[aelum]` repo: publisher runbook, R2/pacman caveats.
@@ -211,7 +207,8 @@ cargo run                                  # GUI. Reads work from a source tree;
   and preserve them when moving code. Never narrate the request that prompted a
   change — the history of asks belongs to git.
 - Commit messages: one conventional subject (≤72 chars), at most two or three
-  body lines for the *why*. Measured data goes in the code comment or the plan.
+  body lines for the *why*. Measured data goes in the code comment or the doc
+  it belongs to.
 - A claim about classification is settled against pacman, not by reading its
   source: `-Qqe` / `-Qqd` / `-Quq` are the oracles and the ignored tests hold them.
 - **i18n is wired (M4, 2026-11-05):** every UI string is an `i18n::t()`/
