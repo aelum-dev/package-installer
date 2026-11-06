@@ -39,7 +39,7 @@
   "aur.empty": "Egyik AUR-csomag sem felel meg ennek a keresésnek",
   "aur.failed": "Az AUR-keresés sikertelen",
   "aur.outOfDate": "elavult",
-  "aur.noBuildTools": "Az AUR-csomagok fordításához a base-devel csomagcsoport kell, amely nincs telepítve.",
+  "aur.noBuildTools": "Az AUR-csomagok fordításához a base-devel csomag kell, amely nincs telepítve.",
   "aur.unresolved": "Semmi itt nem biztosítja: {names}",
   "aur.buildDir": "A fordítás fájljai itt maradnak: {path}",
   "aur.buildNote": "Az AUR nem ad ki bináris fájlokat: a csomagot először ezen a gépen fordítja le.",

@@ -39,7 +39,7 @@
   "aur.empty": "Yksikään AUR-paketti ei vastaa tätä hakua",
   "aur.failed": "Haku AUR:sta epäonnistui",
   "aur.outOfDate": "vanhentunut",
-  "aur.noBuildTools": "AUR-pakettien kääntäminen vaatii ryhmän base-devel, jota ei ole asennettu.",
+  "aur.noBuildTools": "AUR-pakettien kääntäminen vaatii base-devel-pakettia, jota ei ole asennettu.",
   "aur.unresolved": "Mikään täällä ei voi tarjota: {names}",
   "aur.buildDir": "Käännöstiedostot säilyvät hakemistossa {path}",
   "aur.buildNote": "AUR ei julkaise valmiita binäärejä: paketti käännetään ensin tällä koneella.",

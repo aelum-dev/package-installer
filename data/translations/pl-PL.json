@@ -39,7 +39,7 @@
   "aur.empty": "Żaden pakiet AUR nie pasuje do tego wyszukiwania",
   "aur.failed": "Wyszukiwanie w AUR nie powiodło się",
   "aur.outOfDate": "nieaktualny",
-  "aur.noBuildTools": "Budowanie pakietów AUR wymaga grupy base-devel, która nie jest zainstalowana.",
+  "aur.noBuildTools": "Budowanie pakietów AUR wymaga pakietu base-devel, który nie jest zainstalowany.",
   "aur.unresolved": "Nic tutaj nie może zapewnić: {names}",
   "aur.buildDir": "Pliki budowania pozostają w {path}",
   "aur.buildNote": "AUR nie publikuje plików binarnych: pakiet jest najpierw budowany na tej maszynie.",

@@ -7,9 +7,10 @@ shells out only for transactions.
 
 **Distribution channel: the `[aelum]` repository** — published with
 `../repo/publish-repo.sh`, installed on installed systems with `pacman -S`. The channel
-is proven, so the package is also listed in `live-iso/packages.x86_64`: the ISO build
-resolves `[aelum]`, bakes it into the offline mirror, and fresh installs ship it
-preinstalled. Updates still come from the repo.
+is proven, so the package is also listed in the installer's
+`installdesktop.DesktopPackages`: the ISO build resolves `[aelum]` alongside the mirrors (that list
+is what the offline mirror is built from, together with the live profile's), bakes it in, and fresh
+installs ship it preinstalled. Updates still come from the repo.
 
 ## Read these first
 
@@ -124,6 +125,10 @@ measurement).
   user with plain `makepkg --noconfirm`.
 - **curl is a pacman dependency** (`pacman -Qi pacman`: `Depends On: … curl …`),
   so it is on every system this app runs on; no HTTP client crate is needed.
+- **An Aelum install has the build tools**: `base-devel` is in the installer's
+  own base set, so the
+  refusal below is for hosts that are not an Aelum install — it is still the
+  right answer there, and it is checked in `verify-installed.sh`.
 - **The built archives live *inside* the build directory.** Clearing that tree
   once the package existed — which is what this did first — deleted the files
   being installed, and the real install of qtengine ended in

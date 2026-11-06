@@ -39,7 +39,7 @@
   "aur.empty": "Kein AUR-Paket entspricht dieser Suche",
   "aur.failed": "Die AUR-Suche ist fehlgeschlagen",
   "aur.outOfDate": "veraltet",
-  "aur.noBuildTools": "Zum Bauen von AUR-Paketen wird die Gruppe base-devel benötigt, die nicht installiert ist.",
+  "aur.noBuildTools": "Zum Bauen von AUR-Paketen wird base-devel benötigt, das nicht installiert ist.",
   "aur.unresolved": "Nichts hier kann bereitstellen: {names}",
   "aur.buildDir": "Baudateien bleiben in {path}",
   "aur.buildNote": "Das AUR stellt keine fertigen Programmdateien bereit: Das Paket wird zuerst auf diesem Rechner gebaut.",
