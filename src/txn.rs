@@ -232,6 +232,19 @@ fn pipe<R: std::io::Read + Send + 'static>(reader: R, tx: &UnboundedSender<TxnEv
 mod tests {
     use super::*;
 
+    /// The helper's whole interface, in its own order. The tests that read
+    /// the helper script ask about exactly these, so a verb added to the
+    /// helper cannot be missed by one of them.
+    const VERBS: [&str; 7] = [
+        "refresh",
+        "install",
+        "install-asdeps",
+        "remove",
+        "upgrade",
+        "file",
+        "file-asdeps",
+    ];
+
     #[test]
     fn argv_matches_the_helper_subcommands() {
         assert_eq!(Txn::Refresh.argv(), ["refresh"]);
@@ -270,15 +283,7 @@ mod tests {
         let policy = include_str!("../data/polkit/dev.aelum.package.manage.policy");
         assert!(policy.contains(&format!("exec.path\">{HELPER}<")));
         let helper = include_str!("../data/helper/aelum-package-installer-helper");
-        for verb in [
-            "refresh",
-            "install",
-            "install-asdeps",
-            "remove",
-            "upgrade",
-            "file",
-            "file-asdeps",
-        ] {
+        for verb in VERBS {
             assert!(helper.contains(&format!("{verb})")), "helper lacks {verb}");
             assert!(helper.contains("--noconfirm"));
         }
@@ -286,5 +291,34 @@ mod tests {
         // 4 KiB blocks, and the app would watch a frozen log through a
         // whole download (measured: 53 s of silence for ~200 MiB).
         assert!(helper.contains("stdbuf -oL"), "helper must line-buffer");
+    }
+
+    #[test]
+    fn every_verb_clears_a_stale_db_lock_but_never_a_live_one() {
+        let helper = include_str!("../data/helper/aelum-package-installer-helper");
+        // The lock lives in the DB root this app reads its databases from:
+        // one path, not a second copy of it.
+        assert!(
+            helper.contains(&format!("DB_LOCK={}/db.lck", crate::model::PACMAN_ROOT)),
+            "the lock must be the one in the DB root the model reads"
+        );
+        // One clear, for every verb, before any pacman runs. alpm never drops
+        // a leftover db.lck itself — measured on pacman 7.1: an empty O_EXCL
+        // file, no PID written, and no dead-lock check anywhere — so the lock
+        // a killed transaction leaves behind is every later transaction's
+        // "unable to lock database", whichever verb it asked for.
+        let gated = VERBS.join("|");
+        assert!(
+            helper.contains(&format!("    {gated}) clear_stale_lock ;;")),
+            "every verb must clear the lock"
+        );
+        assert!(
+            helper.find("clear_stale_lock ;;").unwrap_or(usize::MAX)
+                < helper.find("exec stdbuf -oL pacman").unwrap_or(0),
+            "the lock must be cleared before pacman runs"
+        );
+        // A live pacman is a transaction in progress: dropping its lock would
+        // let two of them write the same databases.
+        assert!(helper.contains("pacman_running"), "must keep a live lock");
     }
 }

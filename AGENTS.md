@@ -82,6 +82,18 @@ release you target before changing the code that encodes them.
   (`Ui::last_check`) and the header's mirror-date label shows the newer of
   that and the mtimes (two centered lines — words, then date and time;
   hidden while no databases exist).
+- **`db.lck` is an empty file, and alpm never clears one.** `_alpm_handle_lock`
+  is `open(<dbpath>/db.lck, O_WRONLY|O_CREAT|O_EXCL, 0000)` — measured on
+  pacman 7.1 during a download: mode `0000`, **zero bytes, no PID written** —
+  and no dead-lock check survives anywhere in alpm 16 (the old
+  `check_lockfile`/`kill(pid, 0)` path is gone). A lock left by a killed or
+  crashed pacman therefore fails every later call forever: `error: failed to
+  synchronize all databases (unable to lock database)`, exit 1. So the helper
+  removes it before **every** verb — after checking `/proc/*/comm` for a live
+  `pacman`, because the app's own gate means a lock nothing is holding is
+  nobody's, while a live one is a transaction that must not run twice.
+  `txn.rs::every_verb_clears_a_stale_db_lock_but_never_a_live_one` pins the
+  path against `model::PACMAN_ROOT` and all seven verbs.
 - **An alpm hook `Depends` value is stored verbatim** (pacman `hook.c` does no
   word splitting): one dependency per line, or the hook never runs.
 - `filesystem` owns `/etc/polkit-1/rules.d` at **750**; `install -D` records a
@@ -215,7 +227,12 @@ measurement).
 (`{refresh|install|install-asdeps|remove|upgrade|file|file-asdeps}` →
 `stdbuf -oL pacman -Sy|-S|-S --asdeps|-Rns|-Syu|-U|-U --asdeps`, all `--noconfirm` —
 the stdbuf is what makes the output arrive during the download, not after it),
-the `aelum-snapshot-restore` shape. An AUR install is one request of several
+the `aelum-snapshot-restore` shape. Every verb first drops a leftover
+`db.lck` when no pacman is running (see the measured fact above): one left by
+a killed transaction — closing the app mid-sync does exactly that — would
+otherwise leave every later transaction failing with "unable to lock
+database", and the log says which of the two happened.
+An AUR install is one request of several
 steps — `install-asdeps` (repository dependencies, makepkg's marking), the
 build as the user, `file-asdeps` (the built dependencies' archives), `file`
 (the requested package, Explicit), `remove` (the build-only dependencies the

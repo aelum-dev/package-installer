@@ -20,6 +20,48 @@ set -euo pipefail
 cmd="${1:-}"
 shift || true
 
+# pacman's DB lock is an empty file it opens with O_EXCL — measured on pacman
+# 7.1: mode 0000, zero bytes, no PID written — and alpm has no dead-lock
+# check at all. A lock left by a killed or crashed pacman therefore answers
+# every later transaction "unable to lock database", whatever verb it asked
+# for, forever. So every verb below clears one first — but only with no live
+# pacman anywhere: the app runs one transaction at a time, so a lock nothing
+# is holding is nobody's, while a live one is a transaction that must not be
+# run twice at once and is left for pacman to refuse honestly.
+DB_LOCK=/var/lib/pacman/db.lck
+
+pacman_running() {
+    local comm name
+    for comm in /proc/[0-9]*/comm; do
+        # 2>/dev/null first: a process that exits mid-scan fails the
+        # redirect, and bash would print that into the app's log.
+        read -r name 2>/dev/null <"$comm" || continue
+        [[ "$name" == pacman ]] && return 0
+    done
+    return 1
+}
+
+clear_stale_lock() {
+    [[ -e "$DB_LOCK" ]] || return 0
+    if pacman_running; then
+        echo ":: another pacman is running — leaving its database lock"
+        return 0
+    fi
+    echo ":: removing stale database lock: $DB_LOCK"
+    rm -f -- "$DB_LOCK"
+}
+
+# The verbs are named here before anything is touched, so an unknown one is
+# refused instead of clearing a lock on a call that runs no pacman at all.
+# The dispatch below is exhaustive for them.
+case "$cmd" in
+    refresh|install|install-asdeps|remove|upgrade|file|file-asdeps) clear_stale_lock ;;
+    *)
+        echo "usage: aelum-package-installer-helper {refresh|install|install-asdeps|remove|upgrade|file|file-asdeps} [args...]" >&2
+        exit 2
+        ;;
+esac
+
 case "$cmd" in
     refresh) exec stdbuf -oL pacman -Sy --noconfirm "$@" ;;
     install) exec stdbuf -oL pacman -S --needed --noconfirm -- "$@" ;;
@@ -31,8 +73,4 @@ case "$cmd" in
     upgrade) exec stdbuf -oL pacman -Syu --noconfirm ;;
     file)    exec stdbuf -oL pacman -U --noconfirm -- "$@" ;;
     file-asdeps) exec stdbuf -oL pacman -U --asdeps --noconfirm -- "$@" ;;
-    *)
-        echo "usage: aelum-package-installer-helper {refresh|install|install-asdeps|remove|upgrade|file|file-asdeps} [args...]" >&2
-        exit 2
-        ;;
 esac
