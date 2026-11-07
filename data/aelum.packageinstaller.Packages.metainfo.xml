@@ -32,6 +32,13 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.5.3" date="2026-11-07">
+      <description>
+        <ul>
+          <li>The AUR list now marks vote counts with a star instead of a triangle.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.2" date="2026-11-07">
       <description>
         <ul>
