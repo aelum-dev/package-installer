@@ -41,9 +41,9 @@
   "aur.empty": "Nenhum pacote do AUR corresponde a essa pesquisa",
   "aur.failed": "A pesquisa no AUR falhou",
   "aur.outOfDate": "desatualizado",
-  "aur.noBuildTools": "Compilar pacotes do AUR precisa do base-devel, que não está instalado.",
+  "aur.noBuildTools": "Compilar pacotes do AUR requer o base-devel, que não está instalado.",
   "aur.unresolved": "Nada aqui pode fornecer: {names}",
-  "aur.buildDir": "Os arquivos de compilação ficam em {path}",
+  "aur.buildDir": "Os arquivos de compilação são mantidos em {path}",
   "aur.buildNote": "O AUR não publica binários: isto compila uma receita da comunidade, não revisada, nesta máquina.",
   "aur.cleanupDeps": "Removendo dependências de compilação não mais necessárias",
   "aur.cleanupFailed": "As dependências de compilação não puderam ser removidas",
@@ -54,8 +54,8 @@
   "aur.checkNone": "Nada está instalado fora dos repositórios",
   "aur.checkNoneBody": "Todos os pacotes deste sistema vieram de um repositório, então não há nada para perguntar ao AUR.",
   "aur.checkUpToDate": "Tudo do AUR está atualizado",
-  "aur.checkUpToDateOne": "O AUR foi perguntado sobre {count} pacote instalado fora dos repositórios.",
-  "aur.checkUpToDateMany": "O AUR foi perguntado sobre {count} pacotes instalados fora dos repositórios.",
+  "aur.checkUpToDateOne": "O AUR foi consultado sobre {count} pacote instalado fora dos repositórios.",
+  "aur.checkUpToDateMany": "O AUR foi consultado sobre {count} pacotes instalados fora dos repositórios.",
   "updates.countOne": "{count} atualização está disponível.",
   "updates.countMany": "{count} atualizações estão disponíveis.",
   "updates.empty": "Tudo está atualizado",
@@ -113,5 +113,5 @@
   "phase.installBuilt": "Instalando os pacotes compilados…",
   "phase.cleanup": "Removendo dependências de compilação…",
   "chooser.title": "Escolher um provedor",
-  "chooser.body": "Estes pacotes precisam de uma escolha de provedor. Escolha qual pacote atende a cada requisito — o primeiro é o que seria instalado por padrão."
+  "chooser.body": "Estes pacotes exigem a escolha de um provedor. Escolha qual pacote atende a cada requisito — o primeiro é o que seria instalado por padrão."
 }
