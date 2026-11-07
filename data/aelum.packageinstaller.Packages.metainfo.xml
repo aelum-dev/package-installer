@@ -32,6 +32,13 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.5.2" date="2026-11-07">
+      <description>
+        <ul>
+          <li>A transaction that was interrupted — closing the app during a download, or a killed pacman — no longer leaves the package database locked: the next refresh, install or removal works instead of failing with "unable to lock database".</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.1" date="2026-11-06">
       <description>
         <ul>
