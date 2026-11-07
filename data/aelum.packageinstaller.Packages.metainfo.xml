@@ -32,6 +32,15 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.5.4" date="2026-11-07">
+      <description>
+        <ul>
+          <li>The window opens on the databases it already has: at start they are only re-fetched when they are more than ten minutes old. The Refresh button always checks.</li>
+          <li>The header's database date now survives closing the app, and an upgrade run through the app counts as a check.</li>
+          <li>The AUR update check's 'nothing newer' message now says no new versions were found for the packages it asked about - reworded in all 28 languages.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.3" date="2026-11-07">
       <description>
         <ul>
