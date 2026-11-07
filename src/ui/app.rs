@@ -47,14 +47,15 @@ pub struct Ui {
     /// acknowledgement rule as the Updates badge.
     pub aelum_tab: Rc<RefCell<Option<adw::ViewStackPage>>>,
     pub on_aelum_page: Rc<Cell<bool>>,
-    /// The last AUR answer the user asked for. Nothing is fetched from the
-    /// AUR unasked: the app's only automatic network call is `pacman -Sy`,
-    /// against the user's own mirrors, and an AUR badge would mean asking a
-    /// third-party server about something the user never asked about.
+    /// The last AUR answer the user asked for — a search or an update check.
+    /// Nothing is fetched from the AUR unasked: the app's only automatic
+    /// network call is `pacman -Sy`, against the user's own mirrors, and an
+    /// AUR badge would mean asking a third-party server about something the
+    /// user never asked about.
     pub aur: Rc<RefCell<Option<AurResults>>>,
-    /// Whether an AUR search is in flight, and which one is still current.
-    /// Two searches can overlap; the slower one must not answer the newer
-    /// question (the same rule as `load_seq`).
+    /// Whether an AUR request is in flight, and which one is still current.
+    /// Two can overlap; the slower one must not answer the newer question
+    /// (the same rule as `load_seq`).
     pub aur_searching: Rc<Cell<bool>>,
     pub aur_seq: Rc<Cell<u64>>,
     /// The header's Refresh button; it doubles as the update-check
@@ -176,7 +177,7 @@ impl Ui {
         if let Some(page) = self.aur_page.borrow().as_ref() {
             page.refresh(self);
         }
-        // The header's mirror date: the fresher of this session's
+        // The header's database-refresh date: the fresher of this session's
         // successful check and the DB files' mtimes. A successful -Sy can
         // leave the files untouched (the mirror answers "not modified"),
         // so the mtime alone goes stale even though the check just ran.
@@ -447,10 +448,88 @@ impl Ui {
                 // arrives before the databases have been read is not
                 // misclassified as "nothing matches".
                 *ui.aur.borrow_mut() = match result {
-                    Ok(hits) => Some(AurResults { hits, error: None }),
+                    Ok(hits) => Some(AurResults {
+                        hits,
+                        error: None,
+                        updates_only: false,
+                        checked: None,
+                    }),
                     Err(e) => Some(AurResults {
                         hits: Vec::new(),
                         error: Some(e),
+                        updates_only: false,
+                        checked: None,
+                    }),
+                };
+                ui.refresh_pages();
+            }
+        });
+    }
+
+    /// Ask the AUR whether the packages this system installed outside its
+    /// repositories have a newer version. Like a search, this is the user's
+    /// action and never the app's: the AUR is a third-party server, and a
+    /// name a repository carries is already checked by Refresh.
+    pub fn check_aur_updates(&self) {
+        if self.model.borrow().is_none() {
+            // The databases are still being read: "nothing is installed
+            // outside the repositories" is a claim this app cannot make yet,
+            // so it says what is happening instead of answering early.
+            self.toast(&i18n::t("status.reading"));
+            return;
+        }
+        let names = self
+            .model
+            .borrow()
+            .as_ref()
+            .map(|m| m.foreign_names())
+            .unwrap_or_default();
+        let seq = self.aur_seq.get() + 1;
+        self.aur_seq.set(seq);
+        if names.is_empty() {
+            // Nothing to ask about, so nothing is fetched. The page says
+            // which case this is; an empty list never stands in for it.
+            self.aur_searching.set(false);
+            *self.aur.borrow_mut() = Some(AurResults {
+                hits: Vec::new(),
+                error: None,
+                updates_only: true,
+                checked: Some(0),
+            });
+            self.refresh_pages();
+            return;
+        }
+        let asked = names.len();
+        self.aur_searching.set(true);
+        self.refresh_pages();
+
+        let (tx, mut rx) = futures::channel::mpsc::unbounded();
+        std::thread::spawn(move || {
+            let _ = tx.unbounded_send((seq, remote::aur_updates(&names)));
+        });
+        let ui = self.clone();
+        glib::MainContext::default().spawn_local(async move {
+            if let Some((seq, result)) = rx.next().await {
+                // A newer question is already on screen; this answer is stale.
+                if seq != ui.aur_seq.get() {
+                    return;
+                }
+                ui.aur_searching.set(false);
+                // The answer is kept as the AUR gave it: which of these names
+                // are updates is decided against the model when the page is
+                // drawn, so an install that happened meanwhile is reflected.
+                *ui.aur.borrow_mut() = match result {
+                    Ok(hits) => Some(AurResults {
+                        hits,
+                        error: None,
+                        updates_only: true,
+                        checked: Some(asked),
+                    }),
+                    Err(e) => Some(AurResults {
+                        hits: Vec::new(),
+                        error: Some(e),
+                        updates_only: true,
+                        checked: Some(asked),
                     }),
                 };
                 ui.refresh_pages();
@@ -545,12 +624,19 @@ fn aur_hits(query: &str) -> Result<Vec<aur::Hit>, String> {
     }
 }
 
-/// What the AUR page shows: the answer to the last search, or the reason
-/// there is none. An empty list and a refused request are different facts —
-/// the page says which one it has.
+/// What the AUR page shows: the answer to the last search or the last update
+/// check, or the reason there is none. An empty list and a refused request
+/// are different facts — the page says which one it has.
 pub struct AurResults {
     pub hits: Vec<aur::Hit>,
     pub error: Option<String>,
+    /// True when these hits came from the update check rather than a search.
+    /// The page then keeps only the rows that are updates, and its empty
+    /// state says what was checked instead of what did not match.
+    pub updates_only: bool,
+    /// How many names an update check asked about (`Some` for a check only).
+    /// "Nothing newer" is only an honest claim with that number next to it.
+    pub checked: Option<usize>,
 }
 
 /// A database time as date and clock time: the header's second line is

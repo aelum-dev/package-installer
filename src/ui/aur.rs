@@ -2,19 +2,24 @@
 //!
 //! The AUR is not a repository — it is a archive of PKGBUILDs — so this page
 //! is not Browse over a different list. A search brings recipes; installing
-//! one builds it on this machine. Two rules keep that honest:
+//! one builds it on this machine. Three rules keep that honest:
 //!
 //! - **Nothing is fetched unasked.** There is no badge on this tab and no
 //!   startup query. This desktop is offline-first, and "3 AUR updates waiting"
 //!   would be a claim about a third-party server the user never contacted.
+//! - **The update check is asked for too.** Its button asks the AUR about the
+//!   names no repository carries (`Model::foreign_names` — pacman's `-Qqm`)
+//!   and keeps only the rows with a newer version. A press, not a badge, and
+//!   its "nothing newer" answer states how many names it checked: that count
+//!   is the only thing that makes the silence a fact.
 //! - **An empty list is never a silent failure.** The AUR answers a query
 //!   that matches too much (`arg=python`) with HTTP 200, an empty array and
 //!   the sentence `Too many package results.` — the page shows that sentence.
 //!
 //! The rows are classified against the model the moment the answer arrives
-//! (`Model::aur_rows`), so a row says what that name is *on this system*:
-//! not installed, installed, or installed and older than what the AUR would
-//! build.
+//! (`Model::aur_rows`, and `Model::aur_updates` for a check), so a row says
+//! what that name is *on this system*: not installed, installed, or installed
+//! and older than what the AUR would build.
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -38,6 +43,9 @@ const DEBOUNCE: Duration = Duration::from_millis(400);
 #[derive(Clone)]
 pub struct Page {
     search: gtk::SearchEntry,
+    /// The update check: a question about the packages this system installed
+    /// outside its repositories, asked only when the user presses it.
+    check: gtk::Button,
     list: gtk::ListBox,
     stack: gtk::Stack,
     status: adw::StatusPage,
@@ -51,12 +59,21 @@ pub struct Page {
 pub fn build(ui: &Ui) -> (Page, gtk::Box) {
     let root = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
+    // The entry and the check share one row: both are questions this page
+    // can ask, and the page has one answer area for either.
+    let header = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    header.set_margin_start(12);
+    header.set_margin_end(12);
+    header.set_margin_top(12);
     let search = gtk::SearchEntry::new();
     search.set_placeholder_text(Some(&i18n::t("aur.search")));
-    search.set_margin_start(12);
-    search.set_margin_end(12);
-    search.set_margin_top(12);
-    root.append(&search);
+    search.set_hexpand(true);
+    let check = gtk::Button::builder().label(i18n::t("aur.check")).build();
+    check.set_valign(gtk::Align::Center);
+    check.set_tooltip_text(Some(&i18n::t("aur.checkTip")));
+    header.append(&search);
+    header.append(&check);
+    root.append(&header);
 
     let list = gtk::ListBox::new();
     list.set_selection_mode(gtk::SelectionMode::None);
@@ -112,6 +129,7 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
 
     let page = Page {
         search: search.clone(),
+        check: check.clone(),
         list,
         stack,
         status,
@@ -138,6 +156,18 @@ pub fn build(ui: &Ui) -> (Page, gtk::Box) {
                 id.remove();
             }
             ui.search_aur(&entry.text());
+        });
+    }
+    {
+        // A check is a different question than the text in the entry, so the
+        // entry goes empty first: the page returns to the state a check owns
+        // and its answer is never read as the search's. Clearing the entry
+        // also drops a search that was still waiting for the debounce.
+        let ui = ui.clone();
+        let entry = search.clone();
+        check.connect_clicked(move |_| {
+            entry.set_text("");
+            ui.check_aur_updates();
         });
     }
     (page, root)
@@ -176,17 +206,28 @@ impl Page {
             self.list.remove(&child);
         }
         let searching = ui.aur_searching.get();
+        // One request at a time: a second press while one is in flight could
+        // only have its answer thrown away by the sequence guard.
+        self.check.set_sensitive(!searching);
         let stored = ui.aur.borrow();
         let hits = stored.as_ref().map(|r| r.hits.as_slice()).unwrap_or(&[]);
+        let checking = stored.as_ref().is_some_and(|r| r.updates_only);
+        let checked = stored.as_ref().and_then(|r| r.checked);
         // Rows are built here, against the model as it is now: the same
         // answer is a different row after an install, and no rows at all is
         // the honest state while the databases are still being read.
         let model = ui.model.borrow();
         let rows: Vec<AurRow> = match model.as_ref() {
+            // A check keeps only the names the AUR would build newer than
+            // what is installed. Listing the ones it asked about that are up
+            // to date would read as a list of problems.
+            Some(model) if checking => model.aur_updates(hits),
             Some(model) => model.aur_rows(hits),
             None => Vec::new(),
         };
-        let reading = !hits.is_empty() && rows.is_empty();
+        // An unread model is the only reason an answer yields no rows — a
+        // check that found nothing newer answers with no rows on purpose.
+        let reading = model.is_none() && !hits.is_empty();
         for row in rows.iter().take(MAX_ROWS) {
             self.list.append(&make_row(ui, row));
         }
@@ -209,7 +250,7 @@ impl Page {
             return;
         }
 
-        // Nothing to show. Which of the five that is, the page says.
+        // Nothing to show. Which of the seven that is, the page says.
         let error = stored.as_ref().and_then(|r| r.error.as_deref());
         if reading {
             self.spinner.set_spinning(true);
@@ -221,7 +262,11 @@ impl Page {
         }
         if searching {
             self.status.set_icon_name(None);
-            self.status.set_title(&i18n::t("aur.searching"));
+            self.status.set_title(&i18n::t(if checking {
+                "aur.checking"
+            } else {
+                "aur.searching"
+            }));
             self.status.set_description(None::<&str>);
             self.status.set_child(Some(&self.spinner));
             self.spinner.set_spinning(true);
@@ -229,8 +274,34 @@ impl Page {
             self.spinner.set_spinning(false);
             self.status.set_child(None::<&gtk::Widget>);
             self.status.set_icon_name(Some("network-error-symbolic"));
-            self.status.set_title(&i18n::t("aur.failed"));
+            self.status.set_title(&i18n::t(if checking {
+                "aur.checkFailed"
+            } else {
+                "aur.failed"
+            }));
             self.status.set_description(Some(error));
+        } else if checking {
+            // A check with no rows: either there was nothing to ask about, or
+            // every name asked about is already current. The count is what
+            // makes the second one a fact rather than a silence.
+            self.spinner.set_spinning(false);
+            self.status.set_child(None::<&gtk::Widget>);
+            let asked = checked.unwrap_or(0);
+            if asked == 0 {
+                self.status.set_icon_name(Some("package-x-generic-symbolic"));
+                self.status.set_title(&i18n::t("aur.checkNone"));
+                self.status.set_description(Some(&i18n::t("aur.checkNoneBody")));
+            } else {
+                let count = asked.to_string();
+                let key = if asked == 1 {
+                    "aur.checkUpToDateOne"
+                } else {
+                    "aur.checkUpToDateMany"
+                };
+                self.status.set_icon_name(Some("object-select-symbolic"));
+                self.status.set_title(&i18n::t("aur.checkUpToDate"));
+                self.status.set_description(Some(&i18n::t_fmt(key, &[("count", &count)])));
+            }
         } else if self.search.text().is_empty() {
             self.spinner.set_spinning(false);
             self.status.set_icon_name(Some("system-search-symbolic"));

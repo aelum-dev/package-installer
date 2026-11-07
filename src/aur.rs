@@ -45,6 +45,17 @@ pub fn info_url(names: &[String]) -> String {
     url
 }
 
+/// Names per `info` request. The server takes them all in one URL — measured
+/// against the live RPC: 200 `arg[]` values (a 4.6 KB request) answer with
+/// all 200 packages — so this is a bound for a pathological system, not a
+/// limit the AUR imposes at that size.
+pub const INFO_BATCH: usize = 100;
+
+/// The names in request-sized groups, order kept.
+pub fn info_batches(names: &[String]) -> Vec<Vec<String>> {
+    names.chunks(INFO_BATCH).map(|c| c.to_vec()).collect()
+}
+
 /// The PKGBUILD snapshot the AUR advertises for a package, from the
 /// `URLPath` every reply carries. It is a `.tar.gz` holding
 /// `<pkgbase>/PKGBUILD` and the files it references — so fetching one needs
@@ -84,10 +95,13 @@ pub struct Hit {
     pub out_of_date: bool,
 }
 
-/// One package in an information answer: what it needs, and where its
-/// PKGBUILD is. The reply carries more (description, URL, licenses, vote
-/// counts, maintainer, timestamps); none of it is part of a plan, so none of
-/// it is parsed — the search answer is what the user reads.
+/// One package in an information answer: what it needs, where its PKGBUILD
+/// is, and what it is. The plan reads only the dependency lists; the display
+/// fields are there because an `info` answer is read by a person too — the
+/// AUR update check asks `type=info` for the names this system has and shows
+/// the answer as rows, and an `info` reply carries every field a search
+/// answer does (measured against the live RPC: `Version`, `Description`,
+/// `URL`, `URLPath`, `NumVotes`, `OutOfDate` are all present).
 #[derive(Clone, Debug)]
 pub struct Info {
     pub name: String,
@@ -95,6 +109,28 @@ pub struct Info {
     pub depends: Vec<String>,
     pub make_depends: Vec<String>,
     pub provides: Vec<String>,
+    pub version: String,
+    pub description: String,
+    pub url: String,
+    pub votes: i64,
+    pub out_of_date: bool,
+}
+
+impl Info {
+    /// The same answer as a search row, so the model classifies an update
+    /// check exactly as it classifies a search — one rule for what "older
+    /// than the AUR" means, not two that can drift.
+    pub fn as_hit(&self) -> Hit {
+        Hit {
+            name: self.name.clone(),
+            version: self.version.clone(),
+            description: self.description.clone(),
+            url: self.url.clone(),
+            url_path: self.url_path.clone(),
+            votes: self.votes,
+            out_of_date: self.out_of_date,
+        }
+    }
 }
 
 /// A parsed RPC reply.
@@ -165,6 +201,11 @@ fn info(v: &serde_json::Value) -> Info {
         // The RPC's field is `MakeDepends`, not the `.SRCINFO` spelling.
         make_depends: strings(v, "MakeDepends"),
         provides: strings(v, "Provides"),
+        version: string(v, "Version"),
+        description: string(v, "Description"),
+        url: string(v, "URL"),
+        votes: v.get("NumVotes").and_then(|n| n.as_i64()).unwrap_or(0),
+        out_of_date: is_out_of_date(v),
     }
 }
 
@@ -439,6 +480,35 @@ mod tests {
     }
 
     #[test]
+    fn an_info_reply_answers_the_same_questions_a_search_answer_does() {
+        // The update check asks `type=info` for names this system already
+        // has, and its rows are the rows a search draws — so the answer has
+        // to carry the same fields, or the two lists would disagree about
+        // what a version means.
+        let Response::Info(infos) = parse_reply(INFO).unwrap() else {
+            panic!("expected an info answer");
+        };
+        let hit = infos[0].as_hit();
+        assert_eq!(hit.name, "qtengine");
+        assert_eq!(hit.version, "0.2.4-1");
+        assert_eq!(hit.description, "QT Platform Theme made easy");
+        assert_eq!(hit.url, "https://github.com/kossLAN/qtengine");
+        assert_eq!(hit.votes, 3);
+        assert!(!hit.out_of_date);
+        assert_eq!(hit.url_path, "/cgit/aur.git/snapshot/qtengine.tar.gz");
+    }
+
+    #[test]
+    fn an_info_request_stays_inside_its_batch() {
+        let names: Vec<String> = (0..250).map(|i| format!("pkg{i}")).collect();
+        let batches = info_batches(&names);
+        assert_eq!(batches.iter().map(Vec::len).collect::<Vec<_>>(), [100, 100, 50]);
+        // Order is the caller's; nothing is dropped or asked twice.
+        assert_eq!(batches.concat(), names);
+        assert!(info_batches(&[]).is_empty());
+    }
+
+    #[test]
     fn a_refused_request_is_an_error_not_an_empty_list() {
         // Measured: `arg=python` and `arg=git` both answer this, with HTTP
         // 200 and an empty results array. Rendering it as "nothing found"
@@ -466,6 +536,12 @@ mod tests {
                     depends: depends.iter().map(|s| s.to_string()).collect(),
                     make_depends: make.iter().map(|s| s.to_string()).collect(),
                     provides: provides.iter().map(|s| s.to_string()).collect(),
+                    // A plan reads none of these; the reply test covers them.
+                    version: String::new(),
+                    description: String::new(),
+                    url: String::new(),
+                    votes: 0,
+                    out_of_date: false,
                 },
             );
         }

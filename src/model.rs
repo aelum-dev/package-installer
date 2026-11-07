@@ -291,6 +291,22 @@ impl Model {
             .collect()
     }
 
+    /// The installed names no configured repository carries — `pacman -Qqm`'s
+    /// set, with the same rule the model uses everywhere else: a database the
+    /// config does not name makes a package foreign. These are the only names
+    /// an AUR check can mean anything for: a name a repository carries is
+    /// checked by Refresh, which is already automatic.
+    pub fn foreign_names(&self) -> Vec<String> {
+        let mut hits: Vec<String> = self
+            .entries
+            .iter()
+            .filter(|e| e.installed.is_some() && e.repository.is_none())
+            .map(|e| e.name.clone())
+            .collect();
+        hits.sort();
+        hits
+    }
+
     /// The distro's apps this system does not have yet: uninstalled packages
     /// from the `[aelum]` repository. Publishing an app to the repo puts it
     /// here; an installed one belongs to the Installed page, and an installed
@@ -487,6 +503,22 @@ impl Model {
             }
         }
         questions
+    }
+
+    /// The AUR answers that are updates for this system: installed, and
+    /// older than what the AUR would build. A row the AUR flags out of date
+    /// *without* a newer version is not here — rebuilding it would produce
+    /// the version already on the system — though its row still carries that
+    /// tag. Sorted by name: this list is read as a whole, and the AUR's
+    /// ranking means nothing for names this system already has.
+    pub fn aur_updates(&self, hits: &[aur::Hit]) -> Vec<AurRow> {
+        let mut rows: Vec<AurRow> = self
+            .aur_rows(hits)
+            .into_iter()
+            .filter(|row| row.state == AurState::Update)
+            .collect();
+        rows.sort_by(|a, b| a.hit.name.cmp(&b.hit.name));
+        rows
     }
 
     /// What an AUR answer means for this system: the same installed / not
@@ -873,6 +905,34 @@ mod tests {
             votes: 12,
             out_of_date: false,
         }
+    }
+
+    #[test]
+    fn an_aur_update_list_holds_only_rows_with_a_newer_version() {
+        let m = model(vec![
+            entry("newapp", None, None),
+            entry("htop", Some(local("htop", "3.1-1", Reason::Explicit, &[])), None),
+            entry("gimp", Some(local("gimp", "2.99-1", Reason::Explicit, &[])), None),
+            entry("editor", Some(local("editor", "1.0-2", Reason::Explicit, &[])), None),
+        ]);
+        let rows = m.aur_updates(&[
+            hit("gimp", "3.0-1"),   // installed and older: the one real update
+            hit("htop", "3.1-1"),   // the same version: nothing to build
+            hit("newapp", "1.0-1"), // not installed: an install, not an update
+            hit("editor", "1.0-1"), // older than what is already installed
+        ]);
+        assert_eq!(
+            rows.iter().map(|r| r.hit.name.as_str()).collect::<Vec<_>>(),
+            ["gimp"]
+        );
+    }
+
+    #[test]
+    fn foreign_names_are_the_installed_ones_no_repository_carries() {
+        // The fixture: firefox is not installed, htop and glibc come from a
+        // repository, myapp and its dependency came from nowhere else.
+        let m = fixture();
+        assert_eq!(m.foreign_names(), ["myapp", "orphan-dep"]);
     }
 
     #[test]
@@ -1371,6 +1431,19 @@ mod tests {
         let mut ours = ours;
         ours.sort();
         assert_eq!(ours, theirs);
+    }
+
+    /// The set an AUR update check asks about is pacman's own `-Qqm`: every
+    /// installed name no configured repository carries. Ignored by default:
+    /// it needs an Arch host. Run with `cargo test -- --ignored`.
+    #[test]
+    #[ignore]
+    fn foreign_names_match_pacman_qqm() {
+        let m = Model::load(Path::new(PACMAN_ROOT), Path::new(PACMAN_CONFIG))
+            .expect("real pacman root");
+        let mut theirs = pacman(&["-Qqm"]);
+        theirs.sort();
+        assert_eq!(m.foreign_names(), theirs);
     }
 
     /// The AUR build's one precondition is read the way pacman reads it.

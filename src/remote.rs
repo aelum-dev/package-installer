@@ -57,6 +57,25 @@ pub fn http_bytes(url: &str) -> Result<Vec<u8>, String> {
     })
 }
 
+/// Ask the AUR what it would build for these names, in request-sized groups.
+/// This is the update check's half: the answer is the same shape a search
+/// produces, and the model decides which of those names are actually updates
+/// here. A name the AUR does not have is simply absent from its reply
+/// (measured against the live RPC), so a package built from a local PKGBUILD
+/// stays unmentioned — which is the honest answer, not an error.
+pub fn aur_updates(names: &[String]) -> Result<Vec<aur::Hit>, String> {
+    let mut hits = Vec::new();
+    for batch in aur::info_batches(names) {
+        match aur::parse_reply(&http_get(&aur::info_url(&batch))?)? {
+            aur::Response::Info(infos) => hits.extend(infos.iter().map(aur::Info::as_hit)),
+            aur::Response::Search(_) => {
+                return Err("the AUR answered a different question".to_string())
+            }
+        }
+    }
+    Ok(hits)
+}
+
 /// Where AUR build directories live. `$XDG_CACHE_HOME` first, like every
 /// other cache on the desktop; the build is not a download the user should
 /// have to find again, so it lives and dies under the app's own name.
@@ -646,6 +665,10 @@ mod tests {
         };
         assert_eq!(infos.len(), 1);
         assert!(!infos[0].depends.is_empty(), "a PKGBUILD always needs something");
+        // …and it carries the version it would build, which is what the AUR
+        // update check compares against the installed one.
+        assert!(!infos[0].version.is_empty(), "no version in an info answer");
+        assert_eq!(infos[0].as_hit().name, "qtengine");
 
         let dir = scratch("live_snapshot");
         let bytes = http_bytes(&aur::snapshot_url(&infos[0].url_path)).expect("snapshot");

@@ -28,8 +28,9 @@ installs ship it preinstalled. Updates still come from the repo.
   the PKGBUILD snapshot) and makepkg. Holds the sequence one AUR install is.
 - `src/model.rs` — the merged model (sync × local), `Status`/`Reason`
   classification, search, `updatable`, reverse-deps and orphans, what an AUR
-  answer means for this system (`aur_rows`), and whether a dependency is
-  already answered (`dep_satisfied`/`in_repo`). **No GTK.**
+  answer means for this system (`aur_rows`, `aur_updates`, `foreign_names`),
+  and whether a dependency is already answered (`dep_satisfied`/`in_repo`).
+  **No GTK.**
 - `src/i18n.rs` — locale selection + the embedded catalogs (the player's
   contract: `LC_ALL`→`LC_MESSAGES`→`LANG` → BCP-47 → supported list →
   en-US; per-key fallback; `{placeholder}` interpolation). **No GTK.**
@@ -79,9 +80,10 @@ release you target before changing the code that encodes them.
 - **`pacman -Sy` sends a conditional request**: when the mirror answers
   *not-modified* the `.db` files are not rewritten, so their mtimes cannot prove
   when a check last ran. The app records successful check times itself
-  (`Ui::last_check`) and the header's mirror-date label shows the newer of
-  that and the mtimes (two centered lines — words, then date and time;
-  hidden while no databases exist).
+  (`Ui::last_check`) and the header's database-date label (`header.fresh`,
+  worded about *databases* — a mirror is where the files came from, a database
+  is the thing that was refreshed) shows the newer of that and the mtimes (two
+  centered lines — words, then date and time; hidden while no databases exist).
 - **`db.lck` is an empty file, and alpm never clears one.** `_alpm_handle_lock`
   is `open(<dbpath>/db.lck, O_WRONLY|O_CREAT|O_EXCL, 0000)` — measured on
   pacman 7.1 during a download: mode `0000`, **zero bytes, no PID written** —
@@ -163,6 +165,18 @@ measurement).
 - **`type=info` answers only for the names it has** (measured: one existing
   and one missing name → `resultcount: 1`). A name with no answer has *no
   information*, which is not the same as *no dependencies*.
+- **`type=info` takes many names in one request and answers with everything a
+  search answer carries.** Measured against the live RPC: 200 `arg[]` values
+  (a 4.6 KB URL) answer all 200 packages, each with `Version`, `Description`,
+  `URL`, `URLPath`, `NumVotes` and `OutOfDate` — the same fields a search
+  row has, which is why `aur::Info::as_hit` lets the update check reuse the
+  model's one classification. A batch bound (`aur::INFO_BATCH`, 100) is a
+  guard for a pathological system, not a server limit.
+- **A name the AUR does not have is simply absent from the reply.** Measured
+  on a real host: 30 foreign names (`pacman -Qqm`) yielded 8 answers — the
+  rest were locally built or from another source. So the honest number an
+  update check reports is how many names it **asked about**, never how many
+  it found, and a name with no answer is never shown as an update.
 - **A search answer has no dependency lists**; only `info` carries them, and
   the field is spelled `MakeDepends`, not the `.SRCINFO` spelling. So an
   install asks in rounds: a dependency's own dependencies are visible only
@@ -273,6 +287,17 @@ the annotation — an invariant, not a unit test of a string.
   this system *now* and a search that beat the model load is not misread as
   "nothing matches". An AUR "update" is a rebuild — the row says
   `installed → to build`, because there is no binary to download.
+- **The AUR update check is a press, never a badge.** Its button on the AUR
+  page takes `Model::foreign_names` (pacman's `-Qqm`: installed names no
+  configured repository carries), asks `type=info` for them through
+  `remote::aur_updates`, and shows only `Model::aur_updates` — the rows whose
+  AUR version is newer. A name a repository carries is already covered by
+  Refresh, and an out-of-date flag *without* a newer version is not an update
+  (rebuilding would produce the installed version); that row still carries the
+  tag. Pressing it clears the search entry — the entry's text belongs to the
+  other question — and its empty states name which case they are: nothing
+  installed outside the repositories, or asked-about-N-and-nothing-newer with
+  the count stated. The button is insensitive while a request is in flight.
 - **Two dots, one rule.** The Updates badge marks pending updates, the Aelum
   badge marks apps the channel carries that the system lacks; both are
   `needs-attention` on the `ViewStackPage`, both are computed in
