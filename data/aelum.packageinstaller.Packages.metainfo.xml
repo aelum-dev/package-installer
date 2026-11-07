@@ -35,7 +35,9 @@
     <release version="0.5.3" date="2026-11-07">
       <description>
         <ul>
-          <li>The AUR list now marks vote counts with a star instead of a triangle.</li>
+          <li>The AUR page can now check the AUR packages already on this system for newer versions: press Check and only names whose AUR version is newer are listed. Nothing is fetched from the AUR until you ask.</li>
+          <li>Corrected wording in all 28 translations — wrong terms, broken agreement, typos, and one concept carried by two different words inside the same locale.</li>
+          <li>The AUR list marks vote counts with a star instead of a triangle.</li>
         </ul>
       </description>
     </release>
