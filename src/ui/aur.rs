@@ -342,8 +342,11 @@ fn make_row(ui: &Ui, row: &AurRow) -> adw::ActionRow {
 
     // The vote count is the AUR's own signal about a package nobody has
     // tested for you, and the number the AUR's site shows next to the name.
-    // The count alone reads as a bare glyph, so the tooltip says what it is.
-    let votes = gtk::Label::new(Some(&format!("▲ {}", hit.votes)));
+    // The count alone reads as a bare glyph, so the tooltip says what it is;
+    // the star is one Pango size step up so it reads as an icon, the count
+    // staying at the row's font. Markup, but only a glyph and an integer.
+    let votes = gtk::Label::new(None);
+    votes.set_markup(&format!("<span size=\"large\">★</span> {}", hit.votes));
     votes.add_css_class("dim-label");
     votes.set_tooltip_text(Some(&i18n::t_fmt(
         "aur.votesTip",
