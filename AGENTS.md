@@ -402,6 +402,13 @@ cargo run                                  # GUI. Reads work from a source tree;
 - `build-pkg.sh` tars **`git ls-files`**: uncommitted code literally cannot ship,
   and it fails fast when `PKGBUILD` pkgver drifts from `Cargo.toml` (Cargo.toml
   is the source of truth).
+- **Before cutting a release, read what it actually contains**: `git log
+  --no-merges v<previous>..HEAD`, and give every user-visible change its own
+  `--changes` bullet. Describing a release from the last commit's message
+  describes one commit — 0.5.3 shipped an AUR update check, 28 corrected
+  catalogs and a glyph change, and its changelog named only the glyph. The
+  `--changes` text becomes the metainfo entry *and* the Release notes, so one
+  thin bullet understates the release in both places at once.
 - `bump-version.sh` needs a clean tracked tree and **does not tag**. Tag by hand
   after it runs, matching video-player:
   `git tag -a vX.Y.Z -m "aelum-package-installer X.Y.Z" && git push origin vX.Y.Z`.
@@ -414,6 +421,13 @@ cargo run                                  # GUI. Reads work from a source tree;
   through the `[aelum]` repo, never GitHub.
 - AppStream edits are worth validating: `appstreamcli validate data/*.metainfo.xml`
   (a `<ul>` must sit inside `<description>`; `<summary>` is not valid in `<release>`).
+- A wrong changelog in an already **published** package is fixed by editing that
+  release's metainfo entry and republishing with `pkgrel` + 1 — the served DB has
+  to name a different artifact or nobody receives it: `build-pkg.sh`,
+  `publish-repo.sh`, then delete the superseded `-1` from R2. `bump-version.sh`
+  reads `pkgrel` and never resets it, so set it back to `1` with the next version
+  bump. The tag should name the tree the shipped artifact was built from, so move
+  it too: `git tag -f -a vX.Y.Z … && git push -f origin vX.Y.Z`.
 - Run from source and the packaged helper is absent, so `auto_check` skips itself
   and every transaction refuses with a toast — that is the designed behaviour, not
   a bug to fix. Dogfooding needs `sudo pacman -U dist/…`.
