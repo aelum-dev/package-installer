@@ -17,9 +17,12 @@ Five pages over one in-memory model of pacman's on-disk state:
   installs the result with `pacman -U` — one log dialog for the whole
   request. Nothing is fetched from the AUR unasked, so the tab has no badge.
 - **Updates** — every package with a newer version in its repo, per-package
-  Update and Update All. The databases are refreshed at every start (quiet
-  on success, a log dialog on failure; the Refresh button spins while the
-  check runs), and the tab carries a badge when updates are waiting.
+  Update and Update All. The databases are checked at start only when they are
+  more than ten minutes old — the window opens straight onto what it has, and
+  the header says how old those rows are — while a check that does run is quiet
+  on success, a log dialog on failure, with the Refresh button spinning while it
+  runs. Pressing Refresh always checks. The tab carries a badge when updates are
+  waiting.
 
 Opening a `.pkg.tar.zst` installs it through the same flow. Every package
 transaction runs as root through `aelum-package-installer-helper` under one

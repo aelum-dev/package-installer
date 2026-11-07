@@ -76,20 +76,11 @@ pub fn aur_updates(names: &[String]) -> Result<Vec<aur::Hit>, String> {
     Ok(hits)
 }
 
-/// Where AUR build directories live. `$XDG_CACHE_HOME` first, like every
-/// other cache on the desktop; the build is not a download the user should
-/// have to find again, so it lives and dies under the app's own name.
+/// Where AUR build directories live: the app's own cache directory (see
+/// [`cache::app_dir`]) under `aur`. The build is not a download the user
+/// should have to find again, so it lives and dies under the app's own name.
 pub fn build_root() -> Result<PathBuf, String> {
-    let base = std::env::var_os("XDG_CACHE_HOME")
-        .filter(|v| !v.is_empty())
-        .map(PathBuf::from)
-        .or_else(|| {
-            std::env::var_os("HOME")
-                .filter(|v| !v.is_empty())
-                .map(|h| PathBuf::from(h).join(".cache"))
-        })
-        .ok_or_else(|| "no cache directory to build in".to_string())?;
-    Ok(base.join("aelum").join("package-installer").join("aur"))
+    Ok(crate::cache::app_dir()?.join("aur"))
 }
 
 /// A private, empty directory for one package base. Always fresh: a leftover

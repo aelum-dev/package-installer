@@ -115,6 +115,14 @@ impl Txn {
             Txn::InstallFiles(_) | Txn::InstallFilesAsDeps(_) => crate::progress::Verb::File,
         }
     }
+
+    /// Whether this verb fetches the sync databases — the helper runs `-Sy`
+    /// for `refresh` and `-Syu` for `upgrade`. Only those two leave the
+    /// databases current, so only their success may mark a check as done;
+    /// every other verb reads the databases and proves nothing about their age.
+    pub fn syncs_databases(&self) -> bool {
+        matches!(self, Txn::Refresh | Txn::Upgrade)
+    }
 }
 
 /// Progress of a running transaction, streamed to the UI.
@@ -272,6 +280,35 @@ mod tests {
             Txn::InstallFilesAsDeps(vec!["/t/helper.pkg.tar.zst".into()]).argv(),
             ["file-asdeps", "/t/helper.pkg.tar.zst"]
         );
+    }
+
+    #[test]
+    fn only_the_verbs_that_fetch_databases_mark_them_current() {
+        // The freshness record the next launch reads is only honest when a
+        // call that really re-fetched the databases wrote it: the helper's
+        // `-Sy` and `-Syu`. Every other verb reads those databases, so its
+        // success says nothing about how old they are.
+        let helper = include_str!("../data/helper/aelum-package-installer-helper");
+        assert!(
+            helper.contains("pacman -Sy --noconfirm"),
+            "refresh must fetch the databases"
+        );
+        assert!(
+            helper.contains("pacman -Syu --noconfirm"),
+            "upgrade must fetch the databases"
+        );
+        for txn in [Txn::Refresh, Txn::Upgrade] {
+            assert!(txn.syncs_databases(), "{txn:?} fetches the databases");
+        }
+        for txn in [
+            Txn::Install(vec!["htop".into()]),
+            Txn::InstallAsDeps(vec!["cmake".into()]),
+            Txn::Remove(vec!["htop".into()]),
+            Txn::InstallFiles(vec!["/t/x.pkg.tar.zst".into()]),
+            Txn::InstallFilesAsDeps(vec!["/t/x.pkg.tar.zst".into()]),
+        ] {
+            assert!(!txn.syncs_databases(), "{txn:?} only reads the databases");
+        }
     }
 
     #[test]

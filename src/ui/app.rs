@@ -11,6 +11,7 @@ use gtk::prelude::*;
 use libadwaita as adw;
 
 use crate::aur;
+use crate::cache;
 use crate::db;
 use crate::i18n;
 use crate::model::{Model, PACMAN_CONFIG, PACMAN_ROOT};
@@ -71,10 +72,15 @@ pub struct Ui {
     /// post-refresh load can overlap; only the newest one may set the
     /// model, or a slow older read could resurrect stale databases.
     pub load_seq: Rc<Cell<u64>>,
-    /// When a Refresh last *succeeded* this session. pacman -Sy sends a
-    /// conditional request and leaves the .db files untouched when the
-    /// mirror says "not modified", so their mtimes cannot prove when the
-    /// last check happened — this does.
+    /// Whether the startup check is still waiting on the first model load,
+    /// which is the read that says whether a check is owed at all. Taken once:
+    /// a later load (after any transaction) never re-arms it.
+    pub startup_check: Rc<Cell<bool>>,
+    /// When a database check last succeeded. pacman -Sy sends a conditional
+    /// request and leaves the .db files untouched when the mirror says "not
+    /// modified", so their mtimes cannot prove when the last check happened —
+    /// this does. It starts from the record an earlier run left ([`cache`]),
+    /// so a window that opens without checking still knows how old its rows are.
     pub last_check: Rc<std::cell::RefCell<Option<std::time::SystemTime>>>,
 }
 
@@ -101,6 +107,7 @@ impl Ui {
             fresh: Rc::new(RefCell::new(None)),
             content: Rc::new(RefCell::new(None)),
             load_seq: Rc::new(Cell::new(0)),
+            startup_check: Rc::new(Cell::new(false)),
             last_check: Rc::new(RefCell::new(None)),
         }
     }
@@ -146,6 +153,10 @@ impl Ui {
                                 ],
                             ));
                         }
+                        // The startup check is decided here, against the
+                        // databases that were just read: their age is the only
+                        // honest reason to ask the mirrors or not to.
+                        ui.maybe_auto_check(&model);
                         *ui.model.borrow_mut() = Some(Rc::new(model));
                     }
                     Err(e) => {
@@ -177,13 +188,17 @@ impl Ui {
         if let Some(page) = self.aur_page.borrow().as_ref() {
             page.refresh(self);
         }
-        // The header's database-refresh date: the fresher of this session's
-        // successful check and the DB files' mtimes. A successful -Sy can
-        // leave the files untouched (the mirror answers "not modified"),
-        // so the mtime alone goes stale even though the check just ran.
+        // The header's database-refresh date: the fresher of the last
+        // successful check (this run's, or the record an earlier one left) and
+        // the DB files' mtimes. A successful -Sy can leave the files untouched
+        // (the mirror answers "not modified"), so the mtime alone goes stale
+        // even though the check just ran.
         // No date means no databases: the label hides rather than claims
-        // "never".
-        let fresh = (*self.last_check.borrow()).max(model.db_fresh);
+        // "never", and a record from an earlier run cannot date a window with
+        // nothing readable in it.
+        let fresh = model
+            .db_fresh
+            .map(|db| db.max((*self.last_check.borrow()).unwrap_or(db)));
         if let Some(label) = self.fresh.borrow().clone() {
             match fresh {
                 Some(t) => {
@@ -276,17 +291,44 @@ impl Ui {
         self.run_txn(txn, quiet, false);
     }
 
-    /// The startup update check: the same Refresh transaction, quiet like
-    /// the manual one, and without even the completion toast — a routine
-    /// check that succeeds has no business announcing itself. A failure
-    /// still shows the log: nothing in this app fails silently.
+    /// Asks for the startup update check. It runs when the first model load
+    /// answers — see [`Ui::maybe_auto_check`] — because that read is the only
+    /// thing that can say how old the databases are.
     pub fn auto_check(&self) {
-        // run_txn refuses quietly too; this guard just keeps the check from
-        // being attempted at all on a host without the packaged helper.
+        // A host without the packaged helper can run no check at all, so there
+        // is nothing to arm.
         if !std::path::Path::new(txn::HELPER).exists() {
             return;
         }
-        self.run_txn(Txn::Refresh, true, true);
+        self.startup_check.set(true);
+    }
+
+    /// The startup check, decided once the databases have been read: quiet like
+    /// the manual one, and without even the completion toast — a routine check
+    /// that succeeds has no business announcing itself. A failure still shows
+    /// the log: nothing in this app fails silently.
+    ///
+    /// A check the databases have already had is not repeated. The mirrors keep
+    /// answering the same bytes for minutes at a time, and paying for a full
+    /// -Sy on every launch only makes the window slow to open, so the record of
+    /// the last successful check — this run's or an earlier run's — is read
+    /// against their mtimes and a window younger than [`cache::MAX_AGE`] asks
+    /// nothing. The manual press is never gated: asking for a check is asking
+    /// for one.
+    fn maybe_auto_check(&self, model: &Model) {
+        if !self.startup_check.take() {
+            return;
+        }
+        // The record also carries the header's database date across launches, so
+        // a window that opens without checking still says how old its rows are.
+        let recorded = cache::read_stamp();
+        if let Some(then) = recorded {
+            let known = *self.last_check.borrow();
+            *self.last_check.borrow_mut() = Some(known.map(|t| t.max(then)).unwrap_or(then));
+        }
+        if cache::check_is_owed(recorded, model.db_fresh, std::time::SystemTime::now()) {
+            self.run_txn(Txn::Refresh, true, true);
+        }
     }
 
     fn run_txn(&self, txn: Txn, quiet: bool, auto: bool) {
@@ -327,6 +369,10 @@ impl Ui {
         }
         let summary = last.summary();
         let verb = last.verb(); // Copy: the quiet failure path rebuilds the dialog
+        // Whether this job leaves the databases current. Its success is what
+        // the next launch's startup check reads, so only a job that fetched
+        // them may write that record.
+        let synced = steps.iter().any(Txn::syncs_databases);
         let log = if quiet {
             None
         } else {
@@ -371,9 +417,13 @@ impl Ui {
                             log.finish(result);
                         }
                         if result.is_ok() {
-                            if spinning {
-                                *ui.last_check.borrow_mut() =
-                                    Some(std::time::SystemTime::now());
+                            if synced {
+                                let now = std::time::SystemTime::now();
+                                *ui.last_check.borrow_mut() = Some(now);
+                                // Kept for the next launch: a window opened
+                                // minutes later owes the mirrors nothing. A
+                                // write that fails costs one extra check.
+                                cache::write_stamp(now);
                             }
                             if log.is_some() {
                                 ui.toast(&i18n::t("txnlog.done"));

@@ -21,6 +21,10 @@ installs ship it preinstalled. Updates still come from the repo.
 ## Layout, and the one hard rule
 
 - `src/db.rs` — the formats: sync DBs, the local DB, `.PKGINFO`. **No GTK.**
+- `src/cache.rs` — the app's own cache directory (the AUR tree is its `aur`
+  sibling), and when a database check is owed: the record of the last successful
+  one, and the age past which it stops meaning anything (`MAX_AGE`, 10 min).
+  **No GTK, no network, no process.**
 - `src/aur.rs` — the AUR's protocol: the RPC URLs, its reply format, and
   `plan()` (what an install needs, in build order). **No GTK, no network, no
   process** — the caller brings the answers and the model's answers.
@@ -84,6 +88,15 @@ release you target before changing the code that encodes them.
   worded about *databases* — a mirror is where the files came from, a database
   is the thing that was refreshed) shows the newer of that and the mtimes (two
   centered lines — words, then date and time; hidden while no databases exist).
+  That record is kept in the app's own cache directory (`cache::stamp_path`: one
+  number, seconds since the epoch), so it survives the run that wrote it — which
+  is what lets a launch skip the check. The two pieces of evidence are read
+  against each other, newest wins: an unreadable record with fresh files is a
+  check someone else already paid for, and a fresh record with old files is a
+  `-Sy` the mirror answered "not modified". Only a check that *succeeded* is
+  recorded, and only by the two verbs that fetch databases (`-Sy`, `-Syu` —
+  `Txn::syncs_databases`); anything unreadable, dated ahead of the clock, or
+  with no databases to read at all means a check is owed.
 - **`db.lck` is an empty file, and alpm never clears one.** `_alpm_handle_lock`
   is `open(<dbpath>/db.lck, O_WRONLY|O_CREAT|O_EXCL, 0000)` — measured on
   pacman 7.1 during a download: mode `0000`, **zero bytes, no PID written** —
@@ -303,6 +316,15 @@ the annotation — an invariant, not a unit test of a string.
   `needs-attention` on the `ViewStackPage`, both are computed in
   `refresh_pages`, and visiting a page is the acknowledgement that clears
   its dot (window.rs). A third page may add a third dot the same way.
+- **The startup check is a cache read, not a ritual.** `Ui::auto_check` only
+  arms it; `Ui::maybe_auto_check` decides it when the first model load answers,
+  because that read is the only thing holding the databases' mtimes. Databases
+  younger than `cache::MAX_AGE` (10 min) — by the record of the last successful
+  check or by the files themselves, whichever is newer — and the window opens on
+  what it already has: no polkit prompt, no network, no "refresh in progress"
+  page. The **manual press is never gated** (asking for a check is asking for
+  one), a failed check is never recorded (an offline system asks again next
+  launch), and nothing else re-arms it.
 - **A successful refresh is quiet.** Startup and manual Refresh spin the header
   button, cover the tab content with a "refresh in progress" page, refresh the
   pages, and (manual only) toast; only a failure opens the log dialog. A modal

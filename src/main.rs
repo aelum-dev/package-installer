@@ -4,9 +4,10 @@
 //! (with a real uninstall), everything the configured sync repositories and
 //! the distro's own `[aelum]` repository carry (searched, installed), the AUR
 //! (searched when asked, built on this machine), and the pending updates. At
-//! startup the model is read and a database refresh checks for updates —
-//! quiet on success, a log dialog on failure. A `.pkg.tar.zst` opened from a
-//! file manager lands in the same transaction flow. Privileged operations run
+//! startup the model is read and, unless the databases were last checked
+//! minutes ago ([`cache`]), a database refresh checks for updates — quiet on
+//! success, a log dialog on failure. A `.pkg.tar.zst` opened from a file
+//! manager lands in the same transaction flow. Privileged operations run
 //! through the package's own helper under pkexec — see [`txn`].
 //!
 //! The model is read from pacman's on-disk state on a worker thread
@@ -15,6 +16,7 @@
 //! PKGBUILD download, and makepkg — which do not ([`remote`], [`aur`]).
 
 mod aur;
+mod cache;
 mod db;
 mod i18n;
 mod model;
@@ -49,6 +51,8 @@ fn main() -> gtk::glib::ExitCode {
                 return;
             }
             ui::window::build(app, &ui);
+            // Arming the startup check while the first model load is on its way
+            // is what lets that read decide whether a check is owed at all.
             ui.load_model();
             ui.auto_check();
         }
@@ -63,6 +67,7 @@ fn main() -> gtk::glib::ExitCode {
                 window.present();
             } else {
                 ui::window::build(app, &ui);
+                // As above: the arm comes before the load can answer.
                 ui.load_model();
                 ui.auto_check();
             }
