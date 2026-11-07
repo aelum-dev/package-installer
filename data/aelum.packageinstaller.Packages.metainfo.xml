@@ -32,6 +32,13 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.5.5" date="2026-11-08">
+      <description>
+        <ul>
+          <li>New app icon: a glass package box with an install badge, in the desktop's dark color scheme.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.4" date="2026-11-07">
       <description>
         <ul>
