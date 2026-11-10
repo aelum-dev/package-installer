@@ -70,8 +70,12 @@ package() {
     # the icon theme, and the software center matches appdata by it too.
     install -Dm644 data/aelum.packageinstaller.Packages.desktop \
         "$pkgdir/usr/share/applications/aelum.packageinstaller.Packages.desktop"
-    install -Dm644 data/aelum.packageinstaller.Packages.svg \
-        "$pkgdir/usr/share/icons/hicolor/scalable/apps/aelum.packageinstaller.Packages.svg"
+    # The icon is a raster set: one PNG per hicolor size (the source tree
+    # mirrors this layout), the icon theme picks the closest size.
+    for size in 64 128 256 512; do
+        install -Dm644 "data/icons/hicolor/${size}x${size}/apps/aelum.packageinstaller.Packages.png" \
+            "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/aelum.packageinstaller.Packages.png"
+    done
     install -Dm644 data/aelum.packageinstaller.Packages.metainfo.xml \
         "$pkgdir/usr/share/metainfo/aelum.packageinstaller.Packages.metainfo.xml"
 }

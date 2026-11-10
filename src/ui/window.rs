@@ -101,7 +101,7 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     // itself from these fields, follows the theme, and closes on Escape. The
     // version is the crate's — `bump-version.sh` moves it and this dialog
     // cannot drift — and the icon name is the app ID, under which the package
-    // installs the SVG (hicolor). Same dialog and fields as the video-player.
+    // installs the icon set (hicolor). Same dialog and fields as the video-player.
     let about = gtk::Button::from_icon_name("help-about-symbolic");
     about.add_css_class("flat");
     about.set_tooltip_text(Some(&i18n::t("about.label")));
