@@ -32,6 +32,13 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.5.6" date="2026-11-10">
+      <description>
+        <ul>
+          <li>New app icon: an open package box with a download arrow and a terminal prompt.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.5" date="2026-11-08">
       <description>
         <ul>
