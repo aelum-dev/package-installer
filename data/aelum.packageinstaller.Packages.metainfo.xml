@@ -32,6 +32,13 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.5.8" date="2026-11-12">
+      <description>
+        <ul>
+          <li>New app icon: the lid now sits over the box, so the shape reads as one solid container.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.7" date="2026-11-12">
       <description>
         <ul>
