@@ -2,12 +2,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="0 0 512 512">
   <!-- Download-box app icon, one of a two-icon set shared with the video
        player (same grid, same palette). 512 pt artboard, object centred on
-       x = 256, top y = 93, baseline y = 416; one shared ground shadow.
+       x = 256, baseline y = 416; one shared ground shadow. The lid overhangs
+       the body, whose top corners are therefore square.
        Lid #c6a3d2 → #9e6ca6, body #7b4c86 → #45294f (the lid's cast shadow
        is extra stops in that ramp, not another object), seam #643e6f →
        #3a2145, glyph #ddcbe4 → #c6b0ce, tray #d9c6e2 at 82 %. Gradients
-       only — no filters, no bitmap. -->
+       only — no filters, no bitmap.
+       Fills are the export's CSS classes; width/height are added so the file
+       carries an intrinsic size like every other hicolor icon. -->
   <defs>
+    <style>
+      .cls-1{fill:url(#radial-gradient-1)}
+      .cls-2{fill:url(#linear-gradient-1)}
+      .cls-3{fill:url(#linear-gradient-2)}
+      .cls-4{fill:url(#linear-gradient-3)}
+      .cls-5{fill:#d9c6e2;opacity:0.82}
+      .cls-6{fill:url(#linear-gradient-4)}
+    </style>
     <radialGradient id="radial-gradient-1" cx="256" cy="416" r="175" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#4a2a6e" stop-opacity="0.55"/>
       <stop offset="0.35" stop-color="#4a2a6e" stop-opacity="0.52"/>
@@ -38,7 +49,7 @@
       <stop offset="0.5" stop-color="#4f305a"/>
       <stop offset="1" stop-color="#3a2145"/>
     </linearGradient>
-    <linearGradient id="linear-gradient-3" x1="256" y1="93" x2="256" y2="167" gradientUnits="userSpaceOnUse">
+    <linearGradient id="linear-gradient-3" x1="256.107" y1="98.325" x2="256.107" y2="172.325" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#c6a3d2"/>
       <stop offset="0.5" stop-color="#b288bc"/>
       <stop offset="1" stop-color="#9e6ca6"/>
@@ -51,11 +62,11 @@
   </defs>
   <title>download-box</title>
   <g id="Layer_1" data-name="Layer 1">
-    <ellipse id="Ground_shadow" data-name="Ground shadow" cx="256" cy="416" rx="175" ry="16" fill="url(#radial-gradient-1)"/>
-    <path id="Box_body" data-name="Box body" d="M109.75 167.5 L402.25 167.5 C413.296 167.5 422.25 176.454 422.25 187.5 L422.25 395 C422.25 406.046 413.296 415 402.25 415 L109.75 415 C98.704 415 89.75 406.046 89.75 395 L89.75 187.5 C89.75 176.454 98.704 167.5 109.75 167.5 Z" fill="url(#linear-gradient-1)"/>
-    <rect id="Front_seam" data-name="Front seam" x="223.75" y="167.5" width="66" height="247.5" fill="url(#linear-gradient-2)"/>
-    <path id="Box_lid" data-name="Box lid" d="M99.75 93 L412.25 93 C423.296 93 432.25 101.954 432.25 113 L432.25 147 C432.25 158.046 423.296 167 412.25 167 L99.75 167 C88.704 167 79.75 158.046 79.75 147 L79.75 113 C79.75 101.954 88.704 93 99.75 93 Z" fill="url(#linear-gradient-3)"/>
-    <path id="Tray" d="M198.75 332 C198.75 331.172 199.422 330.5 200.25 330.5 L215.25 330.5 C216.078 330.5 216.75 331.172 216.75 332 L216.75 352 C216.75 348.962 214.288 346.5 211.25 346.5 L300.75 346.5 C297.712 346.5 295.25 348.962 295.25 352 L295.25 332 C295.25 331.172 295.922 330.5 296.75 330.5 L311.75 330.5 C312.578 330.5 313.25 331.172 313.25 332 L313.25 358.5 C313.25 361.538 310.788 364 307.75 364 L204.25 364 C201.212 364 198.75 361.538 198.75 358.5 Z" fill="#d9c6e2" opacity="0.82"/>
-    <path id="Arrow" d="M237.75 223.25 C237.75 220.765 239.765 218.75 242.25 218.75 L269.75 218.75 C272.235 218.75 274.25 220.765 274.25 223.25 L274.25 284.75 C274.25 284.336 273.914 284 273.5 284 L294.272 284 C298.21 284 300.249 288.701 297.557 291.576 L259.432 332.295 C257.655 334.193 254.644 334.195 252.865 332.299 L214.661 291.579 C211.965 288.705 214.002 284 217.943 284 L238.5 284 C238.086 284 237.75 284.336 237.75 284.75 Z" fill="url(#linear-gradient-4)"/>
+    <ellipse id="Ground_shadow" data-name="Ground shadow" cx="256" cy="416" rx="175" ry="16" class="cls-1"/>
+    <path id="Box_body" data-name="Box body" d="M89.75 167.5 L422.25 167.5 L422.25 395 C422.25 406.046 413.296 415 402.25 415 L109.75 415 C98.704 415 89.75 406.046 89.75 395 Z" class="cls-2"/>
+    <rect id="Front_seam" data-name="Front seam" x="223.75" y="167.5" width="66" height="247.5" class="cls-3"/>
+    <path id="Box_lid" data-name="Box lid" d="M99.857 98.325 L412.357 98.325 C423.403 98.325 432.357 107.279 432.357 118.325 L432.357 162.325 C432.357 167.847 427.88 172.325 422.357 172.325 L89.857 172.325 C84.335 172.325 79.857 167.847 79.857 162.325 L79.857 118.325 C79.857 107.279 88.812 98.325 99.857 98.325 Z" class="cls-4"/>
+    <path id="Tray" d="M198.75 332 C198.75 331.172 199.422 330.5 200.25 330.5 L215.25 330.5 C216.078 330.5 216.75 331.172 216.75 332 L216.75 352 C216.75 348.962 214.288 346.5 211.25 346.5 L300.75 346.5 C297.712 346.5 295.25 348.962 295.25 352 L295.25 332 C295.25 331.172 295.922 330.5 296.75 330.5 L311.75 330.5 C312.578 330.5 313.25 331.172 313.25 332 L313.25 358.5 C313.25 361.538 310.788 364 307.75 364 L204.25 364 C201.212 364 198.75 361.538 198.75 358.5 Z" class="cls-5"/>
+    <path id="Arrow" d="M237.75 223.25 C237.75 220.765 239.765 218.75 242.25 218.75 L269.75 218.75 C272.235 218.75 274.25 220.765 274.25 223.25 L274.25 284.75 C274.25 284.336 273.914 284 273.5 284 L294.272 284 C298.21 284 300.249 288.701 297.557 291.576 L259.432 332.295 C257.655 334.193 254.644 334.195 252.865 332.299 L214.661 291.579 C211.965 288.705 214.002 284 217.943 284 L238.5 284 C238.086 284 237.75 284.336 237.75 284.75 Z" class="cls-6"/>
   </g>
 </svg>
