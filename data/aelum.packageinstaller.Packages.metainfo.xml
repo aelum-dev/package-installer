@@ -32,6 +32,13 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.5.9" date="2026-11-12">
+      <description>
+        <ul>
+          <li>Larger app icon: the box now fills the icon's canvas, so it reads at launcher sizes.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.8" date="2026-11-12">
       <description>
         <ul>
