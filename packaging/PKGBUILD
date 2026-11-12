@@ -70,12 +70,10 @@ package() {
     # the icon theme, and the software center matches appdata by it too.
     install -Dm644 data/aelum.packageinstaller.Packages.desktop \
         "$pkgdir/usr/share/applications/aelum.packageinstaller.Packages.desktop"
-    # The icon is a raster set: one PNG per hicolor size (the source tree
-    # mirrors this layout), the icon theme picks the closest size.
-    for size in 64 128 256 512; do
-        install -Dm644 "data/icons/hicolor/${size}x${size}/apps/aelum.packageinstaller.Packages.png" \
-            "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/aelum.packageinstaller.Packages.png"
-    done
+    # The icon is vector again (gradients only, no filters), so it ships as one
+    # scalable SVG like the video-player's rather than a per-size PNG set.
+    install -Dm644 data/aelum.packageinstaller.Packages.svg \
+        "$pkgdir/usr/share/icons/hicolor/scalable/apps/aelum.packageinstaller.Packages.svg"
     install -Dm644 data/aelum.packageinstaller.Packages.metainfo.xml \
         "$pkgdir/usr/share/metainfo/aelum.packageinstaller.Packages.metainfo.xml"
 }

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Download-box app icon, one of a two-icon set shared with the video
+       player (same grid, same palette). 512 pt artboard, object centred on
+       x = 256, top y = 93, baseline y = 416; one shared ground shadow.
+       Lid #c6a3d2 → #9e6ca6, body #7b4c86 → #45294f (the lid's cast shadow
+       is extra stops in that ramp, not another object), seam #643e6f →
+       #3a2145, glyph #ddcbe4 → #c6b0ce, tray #d9c6e2 at 82 %. Gradients
+       only — no filters, no bitmap. -->
+  <defs>
+    <radialGradient id="radial-gradient-1" cx="256" cy="416" r="175" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4a2a6e" stop-opacity="0.55"/>
+      <stop offset="0.35" stop-color="#4a2a6e" stop-opacity="0.52"/>
+      <stop offset="0.6" stop-color="#4a2a6e" stop-opacity="0.38"/>
+      <stop offset="0.8" stop-color="#4a2a6e" stop-opacity="0.17"/>
+      <stop offset="0.92" stop-color="#4a2a6e" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#4a2a6e" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="linear-gradient-1" x1="256" y1="167.5" x2="256" y2="415" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5a3765"/>
+      <stop offset="0.02" stop-color="#623c6d"/>
+      <stop offset="0.05" stop-color="#6b4276"/>
+      <stop offset="0.09" stop-color="#73477e"/>
+      <stop offset="0.14" stop-color="#73477e"/>
+      <stop offset="0.2" stop-color="#70457b"/>
+      <stop offset="0.28" stop-color="#6c4277"/>
+      <stop offset="0.5" stop-color="#603a6a"/>
+      <stop offset="1" stop-color="#45294f"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" x1="256" y1="167.5" x2="256" y2="415" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4b2e55"/>
+      <stop offset="0.02" stop-color="#51315b"/>
+      <stop offset="0.05" stop-color="#583663"/>
+      <stop offset="0.09" stop-color="#5e3a69"/>
+      <stop offset="0.14" stop-color="#5e3a69"/>
+      <stop offset="0.2" stop-color="#5c3867"/>
+      <stop offset="0.28" stop-color="#583663"/>
+      <stop offset="0.5" stop-color="#4f305a"/>
+      <stop offset="1" stop-color="#3a2145"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-3" x1="256" y1="93" x2="256" y2="167" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#c6a3d2"/>
+      <stop offset="0.5" stop-color="#b288bc"/>
+      <stop offset="1" stop-color="#9e6ca6"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-4" x1="256" y1="218.75" x2="256" y2="335.8" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ddcbe4"/>
+      <stop offset="0.5" stop-color="#d2bed9"/>
+      <stop offset="1" stop-color="#c6b0ce"/>
+    </linearGradient>
+  </defs>
+  <title>download-box</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <ellipse id="Ground_shadow" data-name="Ground shadow" cx="256" cy="416" rx="175" ry="16" fill="url(#radial-gradient-1)"/>
+    <path id="Box_body" data-name="Box body" d="M109.75 167.5 L402.25 167.5 C413.296 167.5 422.25 176.454 422.25 187.5 L422.25 395 C422.25 406.046 413.296 415 402.25 415 L109.75 415 C98.704 415 89.75 406.046 89.75 395 L89.75 187.5 C89.75 176.454 98.704 167.5 109.75 167.5 Z" fill="url(#linear-gradient-1)"/>
+    <rect id="Front_seam" data-name="Front seam" x="223.75" y="167.5" width="66" height="247.5" fill="url(#linear-gradient-2)"/>
+    <path id="Box_lid" data-name="Box lid" d="M99.75 93 L412.25 93 C423.296 93 432.25 101.954 432.25 113 L432.25 147 C432.25 158.046 423.296 167 412.25 167 L99.75 167 C88.704 167 79.75 158.046 79.75 147 L79.75 113 C79.75 101.954 88.704 93 99.75 93 Z" fill="url(#linear-gradient-3)"/>
+    <path id="Tray" d="M198.75 332 C198.75 331.172 199.422 330.5 200.25 330.5 L215.25 330.5 C216.078 330.5 216.75 331.172 216.75 332 L216.75 352 C216.75 348.962 214.288 346.5 211.25 346.5 L300.75 346.5 C297.712 346.5 295.25 348.962 295.25 352 L295.25 332 C295.25 331.172 295.922 330.5 296.75 330.5 L311.75 330.5 C312.578 330.5 313.25 331.172 313.25 332 L313.25 358.5 C313.25 361.538 310.788 364 307.75 364 L204.25 364 C201.212 364 198.75 361.538 198.75 358.5 Z" fill="#d9c6e2" opacity="0.82"/>
+    <path id="Arrow" d="M237.75 223.25 C237.75 220.765 239.765 218.75 242.25 218.75 L269.75 218.75 C272.235 218.75 274.25 220.765 274.25 223.25 L274.25 284.75 C274.25 284.336 273.914 284 273.5 284 L294.272 284 C298.21 284 300.249 288.701 297.557 291.576 L259.432 332.295 C257.655 334.193 254.644 334.195 252.865 332.299 L214.661 291.579 C211.965 288.705 214.002 284 217.943 284 L238.5 284 C238.086 284 237.75 284.336 237.75 284.75 Z" fill="url(#linear-gradient-4)"/>
+  </g>
+</svg>
