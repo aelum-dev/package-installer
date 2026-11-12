@@ -32,6 +32,14 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.5.7" date="2026-11-12">
+      <description>
+        <ul>
+          <li>New app icon: a closed box with a download arrow, drawn as one set with the video player's new icon.</li>
+          <li>The icon now ships as a single scalable file, so it stays sharp at every size a launcher asks for.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.6" date="2026-11-10">
       <description>
         <ul>
