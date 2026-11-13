@@ -481,6 +481,11 @@ cargo run                                  # GUI. Reads work from a source tree;
 - Run from source and the packaged helper is absent, so `auto_check` skips itself
   and every transaction refuses with a toast — that is the designed behaviour, not
   a bug to fix. Dogfooding needs `sudo pacman -U dist/…`.
+- Smoke-testing an unpublished build on the VM: `make -C ../docker install-pkg
+  PKG=dist/<pkg>.pkg.tar.zst` boots the live ISO, installs that artifact into the system on the
+  test disk, and leaves the disk first in the boot order, so `make -C ../docker run-disk` opens the
+  desktop it belongs to. A `pkgrel` bump is enough to name the test artifact beside the published
+  one — put `pkgrel` back to 1 afterwards so the next version bump does not inherit it.
 - The published DB is edge-cached for ~4 h (see `../repo/REPO.md`), so a fresh
   publish is not instantly visible to `pacman -Sy`.
 
