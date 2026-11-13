@@ -166,6 +166,10 @@ pub struct Model {
     /// not exist.
     provided_installed: HashSet<String>,
     provided_repo: HashSet<String>,
+    /// The `%BASE%` of every installed package. A repository package whose base
+    /// is one of these and whose base is not its own name is another half of a
+    /// build this system already has (`Model::is_half_of_an_installed_build`).
+    installed_bases: HashSet<String>,
     /// The installed kernel package names, sorted. A kernel is protected only
     /// while it is the last one: with two on the system, removing either still
     /// boots. Collected at load, like the other indexes.
@@ -286,6 +290,7 @@ impl Model {
         let dependents = dependents_index(&entries);
         let (provided_installed, provided_repo) = provides_index(&entries);
         let installed_kernels = installed_kernel_names(&entries);
+        let installed_bases = installed_base_set(&entries);
 
         Ok(Model {
             entries,
@@ -293,6 +298,7 @@ impl Model {
             dependents,
             provided_installed,
             provided_repo,
+            installed_bases,
             installed_kernels,
             db_fresh,
             db_errors,
@@ -360,16 +366,38 @@ impl Model {
     /// The distro's apps this system does not have yet: uninstalled packages
     /// from the `[aelum]` repository. Publishing an app to the repo puts it
     /// here; an installed one belongs to the Installed page, and an installed
-    /// one with an update pending to the Updates page. Sorted by name — the
-    /// DB order is arbitrary and the list is short enough to read whole.
+    /// one with an update pending to the Updates page. A package that is only
+    /// another half of a build the system already has is not a missing app
+    /// either (`is_half_of_an_installed_build`). Sorted by name — the DB order
+    /// is arbitrary and the list is short enough to read whole.
     pub fn distro_apps(&self) -> Vec<&Entry> {
         let mut hits: Vec<&Entry> = self
             .entries
             .iter()
             .filter(|e| e.installed.is_none() && e.repository.as_deref() == Some(DISTRO_REPO))
+            .filter(|e| !self.is_half_of_an_installed_build(e))
             .collect();
         hits.sort_by(|a, b| a.name.cmp(&b.name));
         hits
+    }
+
+    /// A split build's other half: its `%BASE%` names an installed package that
+    /// is not itself. `refind-docs` shares its base with `refind`, so a system
+    /// that has the boot manager does not lack its documentation — and the
+    /// tab's dot was counting a man page as a missing app.
+    ///
+    /// The base has to differ from the package's own name: a single-package
+    /// build carries its own name there, and that case is already the
+    /// `installed.is_none()` check above. Requiring the difference also keeps
+    /// the inversion out — a system holding only the docs half is still offered
+    /// the thing itself.
+    ///
+    /// The filter belongs to the one page that makes an *app* claim. `search`
+    /// still returns every package, so someone who does want the documentation
+    /// half finds it by name on Browse.
+    fn is_half_of_an_installed_build(&self, e: &Entry) -> bool {
+        let Some(s) = e.sync.as_ref() else { return false };
+        s.base != s.name && self.installed_bases.contains(s.base.as_str())
     }
 
     /// Whether the `[aelum]` database was read at all, installed or not.
@@ -726,6 +754,15 @@ fn installed_kernel_names(entries: &[Entry]) -> Vec<String> {
     names
 }
 
+/// The `%BASE%` of every installed package — see `Model::installed_bases`.
+fn installed_base_set(entries: &[Entry]) -> HashSet<String> {
+    entries
+        .iter()
+        .filter_map(|e| e.installed.as_ref())
+        .map(|l| l.base.clone())
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -733,6 +770,7 @@ mod tests {
 
     fn sync(name: &str, version: &str, desc: &str) -> SyncPackage {
         SyncPackage {
+            base: name.into(),
             name: name.into(),
             version: version.into(),
             desc: desc.into(),
@@ -747,6 +785,7 @@ mod tests {
 
     fn local(name: &str, version: &str, reason: Reason, depends: &[&str]) -> LocalPackage {
         LocalPackage {
+            base: name.into(),
             name: name.into(),
             version: version.into(),
             desc: String::new(),
@@ -772,12 +811,14 @@ mod tests {
         let dependents = dependents_index(&entries);
         let (provided_installed, provided_repo) = provides_index(&entries);
         let installed_kernels = installed_kernel_names(&entries);
+        let installed_bases = installed_base_set(&entries);
         Model {
             entries,
             index,
             dependents,
             provided_installed,
             provided_repo,
+            installed_bases,
             installed_kernels,
             db_fresh: None,
             db_errors: Vec::new(),
@@ -923,6 +964,41 @@ mod tests {
         let names: Vec<_> = m.distro_apps().iter().map(|e| e.name.as_str()).collect();
         assert_eq!(names, ["aelum-newapp", SELF_PACKAGE]);
         assert!(m.has_distro_repo());
+    }
+
+    #[test]
+    fn a_half_of_an_installed_build_is_not_a_missing_app() {
+        // The real channel: `refind` and `refind-docs` come from one PKGBUILD
+        // and share `%BASE%`. A system with the boot manager does not lack its
+        // documentation, and the tab's dot was counting a man page as an app.
+        let m = model(vec![
+            entry("refind", Some(local("refind", "0.14.2-4", Reason::Explicit, &[])), Some(aelum("refind", "0.14.2-4", "an EFI boot manager"))),
+            entry("refind-docs", None, Some(SyncPackage { base: "refind".into(), ..aelum("refind-docs", "0.14.2-4", "documentation")})),
+            // A half of a build this system does *not* have stays offered, and
+            // so does a real app.
+            entry("player-docs", None, Some(SyncPackage { base: "aelum-video-player".into(), ..aelum("player-docs", "1-1", "docs")})),
+            entry("aelum-newapp", None, Some(aelum("aelum-newapp", "1-1", "a new app"))),
+        ]);
+        let names: Vec<_> = m.distro_apps().iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names, ["aelum-newapp", "player-docs"]);
+        // Only the app page filters. Someone who does want the documentation
+        // half still finds it by name on Browse.
+        assert!(m.search("refind-docs", Scope::All).iter().any(|e| e.name == "refind-docs"));
+    }
+
+    #[test]
+    fn a_base_naming_nothing_installed_offers_the_build_itself() {
+        // Only the docs half is on the system: the thing itself is still
+        // missing, because a single-package build's base is its own name and
+        // the filter asks for a *different* installed package.
+        let m = model(vec![
+            entry("refind-docs", Some(local("refind-docs", "0.14.2-4", Reason::Explicit, &[])), Some(SyncPackage { base: "refind".into(), ..aelum("refind-docs", "0.14.2-4", "documentation")})),
+            entry("refind", None, Some(aelum("refind", "0.14.2-4", "an EFI boot manager"))),
+        ]);
+        assert_eq!(
+            m.distro_apps().iter().map(|e| e.name.as_str()).collect::<Vec<_>>(),
+            ["refind"]
+        );
     }
 
     #[test]
@@ -1507,6 +1583,27 @@ mod tests {
         let m = load_fixture("kernel_protect");
         assert_eq!(m.unremovable("linux-lts"), Some(Unremovable::Boot));
         assert_eq!(m.unremovable("hello"), None);
+    }
+
+    /// On a real Aelum system the docs half of the boot manager is not a
+    /// missing app: `refind-docs` shares its `%BASE%` with the installed
+    /// `refind`, and the real `[aelum]` database is what carries that field.
+    /// Ignored by default: it needs a host with the repository configured.
+    /// Run with `cargo test -- --ignored`.
+    #[test]
+    #[ignore]
+    fn the_docs_half_of_refind_is_not_offered_on_a_real_system() {
+        let m = Model::load(Path::new(PACMAN_ROOT), Path::new(PACMAN_CONFIG))
+            .expect("real pacman root");
+        if m.get("refind").is_none_or(|e| e.installed.is_none()) {
+            eprintln!("refind is not installed on this host: nothing to check");
+            return;
+        }
+        let offered: Vec<&str> = m.distro_apps().iter().map(|e| e.name.as_str()).collect();
+        assert!(
+            !offered.contains(&"refind-docs"),
+            "the documentation half reads as a missing app: {offered:?}"
+        );
     }
 
     /// The classification must agree with pacman's own `-Qe` on a real

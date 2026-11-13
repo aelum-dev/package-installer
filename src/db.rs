@@ -55,6 +55,11 @@ fn field_u64(sections: &Sections, key: &str) -> u64 {
 #[derive(Clone, Debug)]
 pub struct SyncPackage {
     pub name: String,
+    /// The PKGBUILD's `pkgbase`, which every half of a split build shares:
+    /// sync DBs carry it as `%BASE%`, and `refind-docs` says `refind`. A
+    /// single-package build carries its own name, so a database without the
+    /// section means exactly that.
+    pub base: String,
     pub version: String,
     pub desc: String,
     pub url: String,
@@ -117,8 +122,10 @@ pub fn parse_sync_db(bytes: &[u8], repository: &str) -> std::io::Result<Vec<Sync
         let Some(name) = field(&s, "%NAME%").map(str::to_string) else {
             continue;
         };
+        let base = field(&s, "%BASE%").unwrap_or(name.as_str()).to_string();
         out.push(SyncPackage {
             name,
+            base,
             version: field(&s, "%VERSION%").unwrap_or("").to_string(),
             desc: field(&s, "%DESC%").unwrap_or("").to_string(),
             url: field(&s, "%URL%").unwrap_or("").to_string(),
@@ -241,6 +248,10 @@ pub fn parse_reason(value: Option<&str>) -> Reason {
 #[derive(Clone, Debug)]
 pub struct LocalPackage {
     pub name: String,
+    /// The same `%BASE%` section the sync databases carry — the local DB has
+    /// it too (`linux-lts-headers` says `linux-lts`), which is how a half of a
+    /// split build is recognised as a piece of something already installed.
+    pub base: String,
     pub version: String,
     pub desc: String,
     pub reason: Reason,
@@ -263,8 +274,10 @@ pub fn read_local_db(dir: &Path) -> std::io::Result<Vec<LocalPackage>> {
         let Some(name) = field(&s, "%NAME%").map(str::to_string) else {
             continue;
         };
+        let base = field(&s, "%BASE%").unwrap_or(name.as_str()).to_string();
         out.push(LocalPackage {
             name,
+            base,
             version: field(&s, "%VERSION%").unwrap_or("").to_string(),
             desc: field(&s, "%DESC%").unwrap_or("").to_string(),
             reason: parse_reason(field(&s, "%REASON%")),
@@ -393,7 +406,7 @@ mod tests {
             let mut ar = tar::Builder::new(&mut buf);
             for (name, desc_text) in [
                 ("hello", desc(&[("NAME", &["hello"]), ("VERSION", &["2.12.1-1"]), ("DESC", &["example"]), ("CSIZE", &["1234"]), ("ISIZE", &["5678"])])),
-                ("world", desc(&[("NAME", &["world"]), ("VERSION", &["1.0-1"]), ("PROVIDES", &["p7zip", "libp7zip.so=1-64"])])),
+                ("world", desc(&[("NAME", &["world"]), ("BASE", &["split-build"]), ("VERSION", &["1.0-1"]), ("PROVIDES", &["p7zip", "libp7zip.so=1-64"])])),
             ] {
                 let mut header = tar::Header::new_ustar();
                 header.set_entry_type(tar::EntryType::Regular);
@@ -430,6 +443,39 @@ mod tests {
         assert_eq!(pkgs[1].name, "world");
         // Measured against extra.db: 7zip's desc carries `Provides: p7zip`.
         assert_eq!(pkgs[1].provides, ["p7zip", "libp7zip.so=1-64"]);
+        // `%BASE%` is the pkgbase — the name every half of a split build
+        // shares (measured in aelum.db: `refind-docs` says `refind`). A desc
+        // without the section is a single-package build, base = own name.
+        assert_eq!(pkgs[1].base, "split-build");
+        assert_eq!(pkgs[0].base, "hello");
+    }
+
+    #[test]
+    fn the_local_db_names_the_build_a_package_is_a_half_of() {
+        // The same section in the local DB: `/var/lib/pacman/local/
+        // linux-lts-headers-*/desc` says `linux-lts`. That is what lets the
+        // Aelum page tell a new app from another half of something installed.
+        let dir = fixture_dir("local_base");
+        for (pkg, base) in [("refind-docs", "%BASE%\nrefind\n\n"), ("refind", "")] {
+            let d = dir.join(format!("{pkg}-1-1"));
+            fs::create_dir_all(&d).unwrap();
+            fs::write(
+                d.join("desc"),
+                format!("%NAME%\n{pkg}\n\n{base}%VERSION%\n1-1\n\n"),
+            )
+            .unwrap();
+        }
+        let pkgs = read_local_db(&dir).unwrap();
+        let base_of = |name: &str| {
+            pkgs.iter()
+                .find(|p| p.name == name)
+                .unwrap_or_else(|| panic!("{name} was not read"))
+                .base
+                .clone()
+        };
+        assert_eq!(base_of("refind-docs"), "refind");
+        assert_eq!(base_of("refind"), "refind", "no %BASE% means its own name");
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]

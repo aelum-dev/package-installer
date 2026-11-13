@@ -118,6 +118,13 @@ release you target before changing the code that encodes them.
   empty state. An empty list must mean "there is nothing", never "I could not read it".
 - `.PKGINFO` is the first member of the package archive — `read_pkginfo` streams,
   it does not mmap. Package files are routinely hundreds of MB.
+- **`%BASE%` is in both the sync and the local DBs** (measured in `aelum.db`:
+  `refind-docs` → `refind`; and in `/var/lib/pacman/local/linux-lts-headers-*/desc`
+  → `linux-lts`). It is the PKGBUILD's `pkgbase`, so every half of a split build
+  carries the same value, and a single-package build carries its own name — a DB
+  without the section means that same thing, which is how `db.rs` reads it. That
+  is the only field that tells a package apart from *a piece of a package the
+  system already has*.
 - **`%PROVIDES%` is in both the sync and the local desc files** (measured in
   extra.db: 7zip → `p7zip`; `pacman -Qi` shows the same for installed
   packages). A dependency matched by name alone asks for a package that does
@@ -316,6 +323,14 @@ the annotation — an invariant, not a unit test of a string.
   `needs-attention` on the `ViewStackPage`, both are computed in
   `refresh_pages`, and visiting a page is the acknowledgement that clears
   its dot (window.rs). A third page may add a third dot the same way.
+- **The Aelum page lists apps, not halves of installed builds.** `distro_apps`
+  skips a channel package whose `%BASE%` names an installed package other than
+  itself — the case that proved it was `refind-docs` sitting alone on that page
+  of a system that has `refind`, with the tab's dot counting a man page as a
+  missing app. The base has to *differ* from the package's own name, so a
+  single-package build is untouched and a system holding only the docs half is
+  still offered the thing itself. The filter is on that page only: `search`
+  returns every package, so the documentation half is one search away on Browse.
 - **The startup check is a cache read, not a ritual.** `Ui::auto_check` only
   arms it; `Ui::maybe_auto_check` decides it when the first model load answers,
   because that read is the only thing holding the databases' mtimes. Databases
