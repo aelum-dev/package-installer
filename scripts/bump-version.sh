@@ -172,7 +172,9 @@ if $NO_PUSH || $NO_PUBLISH; then
 fi
 
 # ── Publish (this repo's package, not the publisher's video-player default) ──
-PKGFILE="$(find "$ROOT_DIR/dist" -maxdepth 1 -name "$OLD_PKG_NAME-[0-9]*.pkg.tar.zst" | sort | tail -n1)"
+# Match the version just built; sort -V breaks a pkgrel tie only. A plain sort
+# put 0.5.9-2 above 0.5.10-1 and the 0.5.10 release published the old package.
+PKGFILE="$(find "$ROOT_DIR/dist" -maxdepth 1 -name "$OLD_PKG_NAME-${NEW_VER}-[0-9]*.pkg.tar.zst" | sort -V | tail -n1)"
 if [[ -z "$PKGFILE" ]]; then
     echo "Error: no built package found in dist/." >&2
     exit 1
