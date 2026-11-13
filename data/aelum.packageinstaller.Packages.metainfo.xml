@@ -32,6 +32,14 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.5.10" date="2026-11-14">
+      <description>
+        <ul>
+          <li>Essential packages are protected from removal — pacman, the last installed kernel, the boot manager, mkinitcpio and the package manager itself — and a greyed Remove button now explains why it is disabled.</li>
+          <li>The Aelum page no longer lists the documentation half of a package the system already has (refind-docs beside an installed refind).</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.9" date="2026-11-12">
       <description>
         <ul>
