@@ -11,7 +11,7 @@ use super::app::{MAX_ROWS, Ui};
 use super::dialog;
 use super::markup_escape;
 use crate::i18n;
-use crate::model::{Model, Scope, Status};
+use crate::model::{Model, Scope, Status, Unremovable};
 use crate::txn::Txn;
 
 #[derive(Clone)]
@@ -96,7 +96,7 @@ impl Page {
             self.list.remove(&child);
         }
         for entry in hits.iter().take(MAX_ROWS) {
-            self.list.append(&make_row(ui, entry));
+            self.list.append(&make_row(ui, model, entry));
         }
         if hits.len() > MAX_ROWS {
             let more = gtk::Label::new(Some(&i18n::t_fmt(
@@ -129,7 +129,7 @@ impl Page {
     }
 }
 
-fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
+fn make_row(ui: &Ui, model: &Model, entry: &crate::model::Entry) -> adw::ActionRow {
     // On this page the version shown is what is installed; an update is
     // shown as "→ new" in the tag, not by silently replacing it.
     let version = entry
@@ -156,15 +156,14 @@ fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
         Status::InstalledExplicit => {
             let label = i18n::t("action.uninstall");
             let button = add_button(&row, &label, "flat", ui, entry.name.clone(), false);
-            if !entry.can_remove() {
-                // The app's own row: listed so it can be updated, but removing
-                // it would leave the user with no package manager to put it
-                // back, so the button shows that instead of pretending.
-                let why = i18n::t("installed.selfCannotRemove");
+            if let Some(reason) = model.unremovable(&entry.name) {
+                // The row is listed and updated like any other; only the
+                // removal is refused, and the grey has to say why. An
+                // insensitive button takes no pointer events, so the sentence
+                // goes on the row too — otherwise it reads as a bug rather
+                // than as a choice.
+                let why = unremovable_text(reason, &entry.name);
                 button.set_sensitive(false);
-                // An insensitive button takes no pointer events, so the
-                // explanation goes on the row too — otherwise the grey reads
-                // as a bug rather than as a choice.
                 button.set_tooltip_text(Some(&why));
                 row.set_tooltip_text(Some(&why));
             }
@@ -177,6 +176,22 @@ fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
         Status::Available => {}
     }
     row
+}
+
+/// The sentence behind a greyed Remove: the model decides *that* a row cannot
+/// be removed and which kind of reason that is, and only the words are the
+/// page's, so the model carries no message strings. The name is interpolated
+/// where the reason is about a role — "this system would not boot" is only
+/// useful if it says what would stop it.
+fn unremovable_text(reason: Unremovable, name: &str) -> String {
+    match reason {
+        Unremovable::SelfPackage => i18n::t("installed.selfCannotRemove"),
+        Unremovable::PackageManager => i18n::t("installed.pacmanCannotRemove"),
+        Unremovable::Boot => i18n::t_fmt("installed.bootCannotRemove", &[("name", name)]),
+        Unremovable::Initramfs => {
+            i18n::t_fmt("installed.initramfsCannotRemove", &[("name", name)])
+        }
+    }
 }
 
 /// The Uninstall / Update button. Uninstall confirms with the two facts that

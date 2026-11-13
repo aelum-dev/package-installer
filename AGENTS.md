@@ -333,11 +333,24 @@ the annotation — an invariant, not a unit test of a string.
   hides them rather than letting stale rows read as a result.
 - **The app lists its own package** (`model::SELF_PACKAGE`) like any other row —
   it needs its updates too, and a self-update while running is ordinary (Linux
-  replaces the binary under the process). Only its **Uninstall is insensitive**,
-  decided by `Entry::can_remove` and explained by a tooltip: removing it would
-  leave a system with no package manager and nothing inside it to bring it back.
-  The entry is never filtered out of `search`/`updatable`/`distro_apps`, so
-  removing a dependency of the package manager still reports the breakage.
+  replaces the binary under the process). The entry is never filtered out of
+  `search`/`updatable`/`distro_apps`, so removing a dependency of the package
+  manager still reports the breakage.
+- **A greyed Remove says why.** `Model::unremovable(name)` is the one decision
+  and answers with an `Unremovable` reason, never a bare bool: a page that
+  disables a button has to put the matching sentence in the tooltip, and on the
+  row too, because an insensitive button takes no pointer events and the grey
+  would read as a bug. The protected set is **names nothing depends on, whose
+  absence leaves the system unable to boot or unable to manage itself**: the
+  app's own package, `pacman`, the kernel packages (only while it is the last
+  kernel installed — with two, removing either still boots, so a grey there
+  would lie), `refind`, `mkinitcpio` (the current kernel boots, the next kernel
+  update would not). `glibc`, `systemd` and `filesystem` are deliberately **not**
+  in it: their dependents are named in the confirmation and pacman refuses the
+  removal itself, so refusing them too would hide a question the dialog already
+  answers. Adding a name means a row in the `model` table *and* its reason's own
+  `installed.*CannotRemove` key in all 28 catalogs — the completeness tests say
+  so if a locale is missed.
 - `MAX_ROWS` (300) caps rendered rows — a full sync DB is ~15k entries and the
   pages rebuild on every keystroke.
 - Every `ListBox` sits in a `ScrolledWindow`: an unscrolled list grows the

@@ -21,13 +21,43 @@ pub const PACMAN_CONFIG: &str = "/etc/pacman.conf";
 pub enum Status {
     /// Not installed; can be installed.
     Available,
-    /// Installed explicitly (`-Qe`); offered for removal unless it is the
-    /// app's own package (`Entry::can_remove`).
+    /// Installed explicitly (`-Qe`); offered for removal unless
+    /// `Model::unremovable` refuses it.
     InstalledExplicit,
     /// Installed as a dependency; not offered for removal.
     InstalledDep,
     /// Installed, and a sync repo carries a newer version.
     UpdateAvailable,
+}
+
+/// A reason a row may not be removed. A page that greys a Remove out must
+/// explain the grey with the sentence for the reason — the enum carries no
+/// text, because the model holds no message strings.
+///
+/// The rule is not "important": the packages other packages need are already
+/// answered on the spot — `Model::reverse_deps` names them in the confirmation
+/// and pacman refuses the removal — and a dependency never gets a Remove button
+/// at all. What is left, and refused here, is the set pacman says nothing
+/// about: names nothing depends on, whose absence leaves the machine unable to
+/// boot or unable to manage itself.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Unremovable {
+    /// The package that ships this app. `pacman -Rns` would remove it happily
+    /// enough — the running process keeps its deleted binary — but the system
+    /// would be left with no package manager GUI and nothing inside it to
+    /// install one again.
+    SelfPackage,
+    /// The package manager itself: every transaction this app runs *is* pacman
+    /// (`txn.rs`), and nothing depends on pacman, so no confirmation would
+    /// warn about a system that can no longer install anything.
+    PackageManager,
+    /// A package the machine boots through. Nothing depends on a kernel or on
+    /// the boot manager, so `reverse_deps` is empty for both and `-Rns`
+    /// removes them without a word.
+    Boot,
+    /// The initramfs generator: the kernel already on disk still boots, the
+    /// next kernel update would not.
+    Initramfs,
 }
 
 #[derive(Clone, Debug)]
@@ -73,26 +103,40 @@ impl Entry {
             .or_else(|| self.installed.as_ref().map(|l| l.version.as_str()))
             .unwrap_or("")
     }
-
-    /// Whether this is the package that ships this app.
-    pub fn is_self(&self) -> bool {
-        self.name == SELF_PACKAGE
-    }
-
-    /// Whether a page may offer a working Remove for it. `pacman -Rns` would
-    /// remove the app's own package happily enough — the running process keeps
-    /// its deleted binary — but the system would be left with no package
-    /// manager GUI, and nothing inside it to install one again. So the row is
-    /// listed and updated like any other and only the removal is refused.
-    pub fn can_remove(&self) -> bool {
-        !self.is_self()
-    }
 }
 
 /// This app's own pacman package. It is listed like any other — it needs its
-/// updates too — and only its removal is refused (`Entry::can_remove`).
+/// updates too — and only its removal is refused (`Model::unremovable`).
 /// Must match `pkgname` in packaging/PKGBUILD.
 pub const SELF_PACKAGE: &str = "aelum-package-installer";
+
+/// The package manager every transaction runs, as opposed to the GUI in front
+/// of it (`SELF_PACKAGE`). Nothing depends on it, so removing it is a question
+/// no dependency check would ask.
+pub const PACKAGE_MANAGER_PACKAGE: &str = "pacman";
+
+/// The kernel packages Arch builds — the same names the installer's snapshot
+/// hook marks a transaction important for, `configure.pacmanImportantTargetList`
+/// (which adds the drivers and firmware on top). A kernel is named by no
+/// dependency, and the boot entry names its vmlinuz and initramfs.
+pub const KERNEL_PACKAGES: &[&str] = &[
+    "linux",
+    "linux-lts",
+    "linux-zen",
+    "linux-hardened",
+    "linux-rt",
+    "linux-rt-lts",
+];
+
+/// The boot manager every Aelum install boots through (the installer's own
+/// `installbase.BasePackages`). Its files live on the ESP, so removing the
+/// package does not stop the current boot — it ends the updates and the
+/// `refind --install` that keep the boot manager and its menu current.
+pub const BOOT_PACKAGES: &[&str] = &["refind"];
+
+/// The initramfs generator. Its absence is felt by the next kernel update,
+/// which would have no initramfs to boot.
+pub const INITRAMFS_PACKAGES: &[&str] = &["mkinitcpio"];
 
 /// The distro's own repository, named by its sync DB (`aelum.db`). It is the
 /// channel new apps reach installed systems through; the Aelum page lists it.
@@ -122,6 +166,10 @@ pub struct Model {
     /// not exist.
     provided_installed: HashSet<String>,
     provided_repo: HashSet<String>,
+    /// The installed kernel package names, sorted. A kernel is protected only
+    /// while it is the last one: with two on the system, removing either still
+    /// boots. Collected at load, like the other indexes.
+    installed_kernels: Vec<String>,
     /// The newest mtime among the databases the model actually reads: how
     /// fresh the browse page is. A database for a repository the system does
     /// not use is left out — its date says nothing about this system.
@@ -237,6 +285,7 @@ impl Model {
         let db_fresh = order.iter().filter_map(|r| fresh.get(r.as_str()).copied()).max();
         let dependents = dependents_index(&entries);
         let (provided_installed, provided_repo) = provides_index(&entries);
+        let installed_kernels = installed_kernel_names(&entries);
 
         Ok(Model {
             entries,
@@ -244,6 +293,7 @@ impl Model {
             dependents,
             provided_installed,
             provided_repo,
+            installed_kernels,
             db_fresh,
             db_errors,
         })
@@ -330,6 +380,38 @@ impl Model {
         self.entries
             .iter()
             .any(|e| e.repository.as_deref() == Some(DISTRO_REPO))
+    }
+
+    /// Whether a page may offer a working Remove for an installed `name`, and
+    /// the reason that explains the grey when it may not. Asked by name rather
+    /// than by entry because the answer is about the system, not the row: a
+    /// kernel is protected only while it is the last one installed.
+    ///
+    /// `glibc`, `systemd` and `filesystem` are deliberately **not** here: every
+    /// package that needs them is listed by `reverse_deps` and pacman refuses
+    /// the removal itself, so refusing them too would only hide a question the
+    /// confirmation already answers honestly.
+    pub fn unremovable(&self, name: &str) -> Option<Unremovable> {
+        if name == SELF_PACKAGE {
+            return Some(Unremovable::SelfPackage);
+        }
+        if name == PACKAGE_MANAGER_PACKAGE {
+            return Some(Unremovable::PackageManager);
+        }
+        if BOOT_PACKAGES.contains(&name) {
+            return Some(Unremovable::Boot);
+        }
+        // The list only ever holds kernel names, so membership in it is the
+        // name check too: exactly one installed kernel, and this row is it.
+        // With two on the system removing either still boots, and one that is
+        // not installed is not a removal question at all.
+        if self.installed_kernels.len() == 1 && self.installed_kernels[0] == name {
+            return Some(Unremovable::Boot);
+        }
+        if INITRAMFS_PACKAGES.contains(&name) {
+            return Some(Unremovable::Initramfs);
+        }
+        None
     }
 
     /// Installed packages that depend on `name` — what removing it would break.
@@ -633,6 +715,17 @@ fn provides_index(entries: &[Entry]) -> (HashSet<String>, HashSet<String>) {
     (installed, repo)
 }
 
+/// The installed kernel package names, sorted — see `Model::installed_kernels`.
+fn installed_kernel_names(entries: &[Entry]) -> Vec<String> {
+    let mut names: Vec<String> = entries
+        .iter()
+        .filter(|e| e.installed.is_some() && KERNEL_PACKAGES.contains(&e.name.as_str()))
+        .map(|e| e.name.clone())
+        .collect();
+    names.sort();
+    names
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -678,12 +771,14 @@ mod tests {
         }
         let dependents = dependents_index(&entries);
         let (provided_installed, provided_repo) = provides_index(&entries);
+        let installed_kernels = installed_kernel_names(&entries);
         Model {
             entries,
             index,
             dependents,
             provided_installed,
             provided_repo,
+            installed_kernels,
             db_fresh: None,
             db_errors: Vec::new(),
         }
@@ -768,11 +863,48 @@ mod tests {
             [SELF_PACKAGE, "htop"]
         );
         // The one thing the row may not do is remove itself.
-        assert!(m.get(SELF_PACKAGE).unwrap().is_self());
-        assert!(!m.get(SELF_PACKAGE).unwrap().can_remove());
-        assert!(m.get("htop").unwrap().can_remove());
+        assert_eq!(m.unremovable(SELF_PACKAGE), Some(Unremovable::SelfPackage));
+        assert_eq!(m.unremovable("htop"), None);
         // Still a real dependent: removing polkit would break it.
         assert_eq!(m.reverse_deps("polkit"), [SELF_PACKAGE]);
+    }
+
+    #[test]
+    fn the_names_nothing_depends_on_are_refused_by_name() {
+        // Every one of these is installed by name and named by no dependency,
+        // so `reverse_deps` is empty and the confirmation would say nothing
+        // while the system lost the thing it boots through or installs with.
+        let m = model(vec![
+            entry("linux-lts", Some(local("linux-lts", "6.12-1", Reason::Explicit, &[])), None),
+            entry("refind", Some(local("refind", "0.14.2-4", Reason::Explicit, &[])), None),
+            entry("mkinitcpio", Some(local("mkinitcpio", "4-1", Reason::Explicit, &[])), None),
+            entry("pacman", Some(local("pacman", "7.1-1", Reason::Explicit, &[])), None),
+            entry("glibc", Some(local("glibc", "2.40-1", Reason::Dependency, &[])), None),
+            entry("htop", Some(local("htop", "3.1-1", Reason::Explicit, &[])), None),
+        ]);
+        assert_eq!(m.unremovable("linux-lts"), Some(Unremovable::Boot));
+        assert_eq!(m.unremovable("refind"), Some(Unremovable::Boot));
+        assert_eq!(m.unremovable("mkinitcpio"), Some(Unremovable::Initramfs));
+        assert_eq!(m.unremovable("pacman"), Some(Unremovable::PackageManager));
+        // The decided-not-protected: pacman refuses these through their
+        // dependents, and the confirmation names them.
+        assert_eq!(m.unremovable("glibc"), None);
+        assert_eq!(m.unremovable("htop"), None);
+        // A kernel the system does not have is not a removal question, and
+        // claims no protection either.
+        assert_eq!(m.unremovable("linux"), None);
+    }
+
+    #[test]
+    fn a_second_kernel_makes_the_first_removable() {
+        // The one case where refusing by name would be wrong: with two kernels
+        // on the system, removing either still boots, so the grey would lie.
+        let m = model(vec![
+            entry("linux-lts", Some(local("linux-lts", "6.12-1", Reason::Explicit, &[])), None),
+            entry("linux", Some(local("linux", "6.17-1", Reason::Explicit, &[])), None),
+        ]);
+        assert_eq!(m.unremovable("linux-lts"), None);
+        assert_eq!(m.unremovable("linux"), None);
     }
 
     #[test]
@@ -1360,6 +1492,21 @@ mod tests {
         let m = load_fixture("no_distro_repo");
         assert!(!m.has_distro_repo());
         assert!(m.distro_apps().is_empty());
+    }
+
+    #[test]
+    fn a_kernel_read_from_disk_is_refused_by_the_loaded_model() {
+        // The kernel list is collected in `load`, not only in the test helper:
+        // a model that forgot to fill it would grey nothing on a real system.
+        write_pacman_root(
+            "kernel_protect",
+            "[options]\n[core]\n[extra]\n",
+            &[("core", &[("linux-lts", "6.18-1", "")])],
+            &[("linux-lts", "6.18-1")],
+        );
+        let m = load_fixture("kernel_protect");
+        assert_eq!(m.unremovable("linux-lts"), Some(Unremovable::Boot));
+        assert_eq!(m.unremovable("hello"), None);
     }
 
     /// The classification must agree with pacman's own `-Qe` on a real
