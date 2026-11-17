@@ -299,13 +299,47 @@ pub struct PkgInfo {
     pub depends: Vec<String>,
 }
 
-/// Stream a `.pkg.tar.zst` just far enough to read its `.PKGINFO`. Streaming
+/// Open a package archive stream, believing the bytes and not the name.
+///
+/// A package file is a tar under whichever compression its author chose —
+/// makepkg writes zstd today, xz before 2019, and gzip or nothing at all if
+/// `PKGEXT` asked for it — and the name lies as often as not: the
+/// intermediate an archive manager leaves behind when it peels a
+/// `.pkg.tar.zst` is an **uncompressed** tar still called `.pkg.tar`. A
+/// zstd-only reader answered that with "Unknown frame descriptor". libalpm
+/// sniffs, `unpack_db` learned the same lesson on gzip databases, and so
+/// must we.
+fn package_stream(path: &Path) -> std::io::Result<Box<dyn Read>> {
+    let mut file = fs::File::open(path)?;
+    let mut head = [0u8; 6];
+    let n = file.read(&mut head)?; // a file this short is no archive; the tar reader says so
+    let head = head[..n].to_vec();
+    let rest = std::io::Cursor::new(head.clone()).chain(file);
+    if head.starts_with(b"\x28\xb5\x2f") {
+        Ok(Box::new(zstd::stream::read::Decoder::new(rest)?))
+    } else if head.starts_with(b"\x1f\x8b") {
+        Ok(Box::new(flate2::read::GzDecoder::new(rest)))
+    } else if head.starts_with(b"\xfd7zXZ\x00") {
+        Ok(Box::new(xz2::read::XzDecoder::new(rest)))
+    } else if head.starts_with(b"BZh") {
+        Err(unsupported_package("bzip2"))
+    } else {
+        Ok(Box::new(rest)) // tar has no magic; whatever is left is an uncompressed one
+    }
+}
+
+fn unsupported_package(format: &str) -> std::io::Error {
+    std::io::Error::new(
+        std::io::ErrorKind::InvalidData,
+        format!("package is compressed with {format}, which this app cannot read"),
+    )
+}
+
+/// Stream a package file just far enough to read its `.PKGINFO`. Streaming
 /// matters: these files are routinely hundreds of MB, and `.PKGINFO` is the
 /// first member.
 pub fn read_pkginfo(path: &Path) -> std::io::Result<PkgInfo> {
-    let file = fs::File::open(path)?;
-    let decoder = zstd::stream::read::Decoder::new(file)?;
-    let mut archive = tar::Archive::new(decoder);
+    let mut archive = tar::Archive::new(package_stream(path)?);
     for entry in archive.entries()? {
         let mut entry = entry?;
         if entry.path()? != Path::new(".PKGINFO") {
@@ -321,6 +355,36 @@ pub fn read_pkginfo(path: &Path) -> std::io::Result<PkgInfo> {
         std::io::ErrorKind::NotFound,
         "no .PKGINFO in the archive",
     ))
+}
+
+/// Unpack a package file whole into `dest` (the file-open flow's "Extract").
+/// tar's own safety rules apply: a member with an absolute path or a `..`
+/// component cannot write outside `dest`.
+pub fn extract_package(path: &Path, dest: &Path) -> std::io::Result<()> {
+    fs::create_dir_all(dest)?;
+    tar::Archive::new(package_stream(path)?).unpack(dest)
+}
+
+/// The folder an extract lands in: beside the file, named after it without
+/// the `.pkg.tar.*`, and never on top of an existing folder — the same
+/// numbered dodge an archive manager uses on a collision.
+pub fn extract_destination(path: &Path) -> std::path::PathBuf {
+    let dir = path.parent().unwrap_or(Path::new(".")).to_path_buf();
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let stem = [".pkg.tar.zst", ".pkg.tar.xz", ".pkg.tar.gz", ".pkg.tar"]
+        .iter()
+        .find_map(|ext| name.strip_suffix(ext))
+        .unwrap_or(name.as_str());
+    let mut candidate = dir.join(stem);
+    let mut n = 1;
+    while candidate.exists() {
+        candidate = dir.join(format!("{stem} ({n})"));
+        n += 1;
+    }
+    candidate
 }
 
 /// Parse the `key = value` form of `.PKGINFO` (repeated keys collect).
@@ -584,6 +648,119 @@ depend = gtk4>=4.24
         assert_eq!(info.version, "0.2.0-1");
         assert_eq!(info.isize, 4096);
         assert_eq!(info.depends, ["glibc", "gtk4>=4.24"]);
+    }
+
+    /// A real package archive: `.PKGINFO` first and a file after it.
+    fn pkg_tar() -> Vec<u8> {
+        let mut buf = Vec::new();
+        {
+            let mut ar = tar::Builder::new(&mut buf);
+            let pkginfo = "pkgname = aelum-demo\npkgver = 0.2.0-1\npkgdesc = A demo package\n";
+            for (name, data) in [
+                (".PKGINFO", pkginfo),
+                ("usr/share/aelum-demo/hello.txt", "hello\n"),
+            ] {
+                let mut header = tar::Header::new_ustar();
+                header.set_entry_type(tar::EntryType::Regular);
+                header.set_size(data.len() as u64);
+                header.set_mode(0o644);
+                header.set_mtime(0);
+                ar.append_data(&mut header, name, data.as_bytes()).unwrap();
+            }
+            ar.finish().unwrap();
+        }
+        buf
+    }
+
+    fn xz(bytes: &[u8]) -> Vec<u8> {
+        let mut out = Vec::new();
+        let mut enc = xz2::write::XzEncoder::new(&mut out, 1);
+        std::io::Write::write_all(&mut enc, bytes).unwrap();
+        enc.try_finish().unwrap();
+        drop(enc);
+        out
+    }
+
+    #[test]
+    fn a_package_file_is_read_whatever_framing_it_carries() {
+        // libalpm sniffs the compression, and so do we: PKGEXT has produced
+        // zstd, xz, gzip and plain `.pkg.tar` over the years, and plain is
+        // what an archive manager leaves behind when it peels the zstd layer
+        // off a `.pkg.tar.zst` (file-roller's magic-only fallback sees a bare
+        // zstd stream). A zstd-only reader answered the tar with
+        // "Unknown frame descriptor".
+        let dir = fixture_dir("pkg_framings");
+        let tar = pkg_tar();
+        for (ext, bytes) in [
+            (".pkg.tar.zst", zst(&tar)),
+            (".pkg.tar.gz", gz(&tar)),
+            (".pkg.tar.xz", xz(&tar)),
+            (".pkg.tar", tar.clone()),
+        ] {
+            let file = dir.join(format!("aelum-demo-0.2.0-1-x86_64{ext}"));
+            fs::write(&file, &bytes).unwrap();
+            let info = read_pkginfo(&file).unwrap_or_else(|e| panic!("{ext}: {e}"));
+            assert_eq!(info.name, "aelum-demo", "{ext}");
+            assert_eq!(info.version, "0.2.0-1", "{ext}");
+        }
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_file_that_is_not_a_package_fails_honestly() {
+        let dir = fixture_dir("not_a_package");
+        // No magic anywhere in it: the plain path is what answers, and the
+        // tar reader says plainly that this is not an archive.
+        let file = dir.join("notes.pkg.tar.zst");
+        fs::write(&file, b"just a text file pretending hard").unwrap();
+        let e = read_pkginfo(&file).unwrap_err();
+        assert!(
+            !e.to_string().contains("frame descriptor"),
+            "the zstd decoder must not answer files it was never offered: {e}"
+        );
+        // A codec we do not carry is named, never guessed at.
+        let file = dir.join("old.pkg.tar.bz2");
+        fs::write(&file, b"BZh91AY&SYsome bzip2 stream").unwrap();
+        let e = read_pkginfo(&file).unwrap_err();
+        assert!(e.to_string().contains("bzip2"), "{e}");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn extract_package_writes_the_tar_contents() {
+        let dir = fixture_dir("extract_pkg");
+        let pkg = dir.join("aelum-demo-0.2.0-1-x86_64.pkg.tar.zst");
+        fs::write(&pkg, zst(&pkg_tar())).unwrap();
+        let out = dir.join("out");
+        extract_package(&pkg, &out).unwrap();
+        let pkginfo = fs::read(out.join(".PKGINFO")).unwrap();
+        assert_eq!(pkginfo, "pkgname = aelum-demo\npkgver = 0.2.0-1\npkgdesc = A demo package\n".as_bytes());
+        assert_eq!(fs::read(out.join("usr/share/aelum-demo/hello.txt")).unwrap(), b"hello\n");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn extraction_lands_beside_the_file_never_on_top_of_one() {
+        // The folder named after the package, next to it — and an existing
+        // one is stepped around the way archive managers step around it.
+        let dir = fixture_dir("extract_dest");
+        let pkg = dir.join("photocraft-0.23.1-linux-x86_64.pkg.tar.zst");
+        let dest = extract_destination(&pkg);
+        assert_eq!(dest, dir.join("photocraft-0.23.1-linux-x86_64"));
+        fs::create_dir_all(&dest).unwrap();
+        assert_eq!(
+            extract_destination(&pkg),
+            dir.join("photocraft-0.23.1-linux-x86_64 (1)")
+        );
+        // The half-peeled leftover is named after what it holds, too — and
+        // it steps onto the same first free slot: the rule is about what
+        // exists on disk, not about which name arrived.
+        let tar = dir.join("photocraft-0.23.1-linux-x86_64.pkg.tar");
+        assert_eq!(
+            extract_destination(&tar),
+            dir.join("photocraft-0.23.1-linux-x86_64 (1)")
+        );
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]

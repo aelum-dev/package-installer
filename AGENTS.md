@@ -121,6 +121,20 @@ release you target before changing the code that encodes them.
   empty state. An empty list must mean "there is nothing", never "I could not read it".
 - `.PKGINFO` is the first member of the package archive — `read_pkginfo` streams,
   it does not mmap. Package files are routinely hundreds of MB.
+- **A package file's framing is sniffed, never believed from the name** — zstd,
+  gzip, xz and plain tar (the four `PKGEXT` has produced; bzip2 is named as
+  unreadable, not guessed). The failure that proved it: the half-peeled
+  `.pkg.tar` an archive manager leaves behind reached a zstd-only reader and the
+  app answered "Unknown frame descriptor". And an archive manager cannot see past
+  that layer: its MIME table rejects our own type — the glob beats magic exactly
+  because our type claims the filename — so its fallback sniffs magic alone and
+  finds a bare zstd stream (file-roller 44.8, `fr-archive.c`). Two things this
+  pins in `data/mime/aelum-package-installer.xml`: the globs cover the compressed
+  forms only — a bare `*.pkg.tar` stays the plain tar it is, so the leftover
+  opens and extracts normally instead of being handed back as a package — and the
+  type never gets a `<parent>` archive supertype, because file-roller declares
+  `application/x-archive` and a second handler would dissolve the sole-handler
+  fallback the double-click story runs on.
 - **`%BASE%` is in both the sync and the local DBs** (measured in `aelum.db`:
   `refind-docs` → `refind`; and in `/var/lib/pacman/local/linux-lts-headers-*/desc`
   → `linux-lts`). It is the PKGBUILD's `pkgbase`, so every half of a split build
@@ -379,6 +393,16 @@ the annotation — an invariant, not a unit test of a string.
   answers with a one-line `dialog::notice` there, and several files dropped or
   opened together take their turns one popup at a time (the queue chained on
   `closed`) — the app never mentions a file where nobody could read it.
+- **The popup can also take the package apart.** The file-open dialog's question
+  carries two acts: Install · Extract · Cancel (`dialog::Actions` names the
+  buttons, `confirm_with_secondary` adds the second act between Cancel and the
+  primary). Extract unpacks into a folder named after the package, beside the
+  file (`db::extract_destination` — an existing folder is stepped around, the way
+  archive managers step around one), because no archive manager on the desktop
+  can list a `.pkg.tar.zst` as an archive (the measured fact in the pacman
+  section above). The work runs on a worker so the popup never freezes, and —
+  like a popup-flow transaction — holds the process by its own token: the dialog
+  it started from is already closed by the time the answer arrives.
 - **GTK4 windows are one-shot, and so is everything `Ui` keeps of them.**
   The manager's Close is a real `window-close-symbolic` button on the
   `window.close` action, not `gtk::WindowControls` — with the window drawing

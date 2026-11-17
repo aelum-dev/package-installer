@@ -8,6 +8,19 @@ use super::app::Ui;
 use crate::i18n;
 use crate::model;
 
+/// The buttons a confirmation offers. Two shapes ask through it: the plain
+/// `confirm` (primary only) and `confirm_with_secondary`, whose second
+/// button is a different *doing*, not a different *no* — the file-open
+/// dialog's Extract beside its Install.
+pub struct Actions<'a> {
+    /// The primary action's label.
+    pub primary: &'a str,
+    /// The second action's label, when the prompt has that second doing.
+    pub secondary: Option<&'a str>,
+    /// Primary drawn destructive: the confirmation before a loss.
+    pub destructive: bool,
+}
+
 /// A modal confirm with an explanation, optional detail lines, and one
 /// action button. Every removal and every local-file install goes through
 /// here — the confirmation the helper runs `--noconfirm` on. Shown against
@@ -21,6 +34,50 @@ pub fn confirm(
     details: &[String],
     button: &str,
     destructive: bool,
+    on_confirm: impl FnOnce() + 'static,
+) -> adw::Dialog {
+    build(
+        ui,
+        title,
+        body,
+        details,
+        Actions { primary: button, secondary: None, destructive },
+        None,
+        on_confirm,
+    )
+}
+
+/// The same confirmation with one more way out that also *does* something.
+/// The file-open dialog's question has two real answers — put the package
+/// on the system, or take the archive apart — and a second button is the
+/// honest shape for that. It sits between Cancel and the primary action.
+pub fn confirm_with_secondary(
+    ui: &Ui,
+    title: &str,
+    body: &str,
+    details: &[String],
+    actions: Actions<'_>,
+    on_secondary: impl FnOnce() + 'static,
+    on_confirm: impl FnOnce() + 'static,
+) -> adw::Dialog {
+    build(
+        ui,
+        title,
+        body,
+        details,
+        actions,
+        Some(Box::new(on_secondary)),
+        on_confirm,
+    )
+}
+
+fn build(
+    ui: &Ui,
+    title: &str,
+    body: &str,
+    details: &[String],
+    actions_spec: Actions<'_>,
+    on_secondary: Option<Box<dyn FnOnce()>>,
     on_confirm: impl FnOnce() + 'static,
 ) -> adw::Dialog {
     let dialog = adw::Dialog::builder().title(title).content_width(480).build();
@@ -55,8 +112,24 @@ pub fn confirm(
             dialog.close();
         });
     }
-    let go = gtk::Button::builder().label(button).build();
-    go.add_css_class(if destructive { "destructive-action" } else { "suggested-action" });
+    actions.append(&cancel);
+    if let (Some(label), Some(run)) = (actions_spec.secondary, on_secondary) {
+        let act = gtk::Button::builder().label(label).build();
+        {
+            let dialog = dialog.clone();
+            // One press, then the closure is gone — like the primary's.
+            let run = std::cell::RefCell::new(Some(run));
+            act.connect_clicked(move |_| {
+                if let Some(run) = run.borrow_mut().take() {
+                    run();
+                }
+                dialog.close();
+            });
+        }
+        actions.append(&act);
+    }
+    let go = gtk::Button::builder().label(actions_spec.primary).build();
+    go.add_css_class(if actions_spec.destructive { "destructive-action" } else { "suggested-action" });
     {
         let dialog = dialog.clone();
         // connect_clicked wants an `Fn`; the confirmation runs once, so the
@@ -69,7 +142,6 @@ pub fn confirm(
             dialog.close();
         });
     }
-    actions.append(&cancel);
     actions.append(&go);
     content.append(&actions);
 

@@ -24,7 +24,9 @@ Five pages over one in-memory model of pacman's on-disk state:
   runs. Pressing Refresh always checks. The tab carries a badge when updates are
   waiting.
 
-Opening a `.pkg.tar.zst` installs it through the same flow. Every package
+Opening a `.pkg.tar.zst` shows what it is and offers Install or Extract through
+the same flow — the Extract lands the contents in a folder named after the
+package, beside the file. Every package
 transaction runs as root through `aelum-package-installer-helper` under one
 polkit action (`dev.aelum.package.manage`, granted to the local active wheel
 session — the `aelum-snapshot-restore` pattern), and its output is always

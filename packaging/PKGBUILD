@@ -17,8 +17,10 @@ license=('GPL-3.0-only')
 # gtk4/libadwaita are linked by the binary; pkexec (polkit) is how it
 # reaches root, and the helper is a bash script. curl is the AUR page's
 # HTTP client — pacman already depends on curl, so this asks for nothing a
-# working system lacks, but the app uses it directly and says so.
-depends=('gtk4' 'libadwaita' 'polkit' 'bash' 'curl')
+# working system lacks, but the app uses it directly and says so. xz is
+# liblzma: the xz2 crate reads xz-framed package files against the system
+# library (and xz is in `base`, so even this asks for nothing new).
+depends=('gtk4' 'libadwaita' 'polkit' 'bash' 'curl' 'xz')
 makedepends=('rust' 'pkgconf')
 # Regenerated from the tracked tree on every build-pkg.sh run, so the hash
 # changes by design.

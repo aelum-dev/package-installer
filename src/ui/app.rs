@@ -585,6 +585,50 @@ impl Ui {
         }
     }
 
+    /// The file-open flow's "Extract": unpack the package into `dest` on a
+    /// worker — these files are routinely hundreds of MB, and a frozen
+    /// popup reads as a crash — and answer through `say`, which knows
+    /// whether there is a toast lane to speak into. Like a popup-flow
+    /// transaction, the work holds the process itself: the dialog it
+    /// started from is already closed, and a windowless process with work
+    /// still running must not let the application ID go mid-extract.
+    pub fn extract_package_file(&self, path: std::path::PathBuf, dest: std::path::PathBuf) {
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let folder = dest.display().to_string();
+        let (tx, mut rx) = futures::channel::mpsc::unbounded();
+        std::thread::spawn(move || {
+            let _ = tx.unbounded_send(db::extract_package(&path, &dest));
+        });
+        let hold = match self.app.borrow().as_ref() {
+            Some(app) if self.window.borrow().is_none() => Some(app.hold()),
+            _ => None,
+        };
+        let ui = self.clone();
+        glib::MainContext::default().spawn_local(async move {
+            let _hold = hold; // released when the work is answered (or lost)
+            let outcome = match rx.next().await {
+                Some(Ok(())) => Ok(()),
+                Some(Err(e)) => Err(e.to_string()),
+                // The worker died mid-extract. The answer keeps the same
+                // shape: the app never leaves a promised unpack unspoken.
+                None => Err(i18n::t("fileopen.extractDied")),
+            };
+            match outcome {
+                Ok(()) => ui.say(&i18n::t_fmt(
+                    "fileopen.extracted",
+                    &[("name", &name), ("folder", &folder)],
+                )),
+                Err(error) => ui.say(&i18n::t_fmt(
+                    "fileopen.extractFailed",
+                    &[("name", &name), ("error", &error)],
+                )),
+            }
+        });
+    }
+
     /// Files handed over while no window is open — Files' double-click of
     /// a package file: the same confirmation the manager shows, as a
     /// popup of its own, and the manager is never built (no pages to fill,
