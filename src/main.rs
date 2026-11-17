@@ -6,10 +6,11 @@
 //! (searched when asked, built on this machine), and the pending updates. At
 //! startup the model is read and, unless the databases were last checked
 //! minutes ago ([`cache`]), a database refresh checks for updates — quiet on
-//! success, a log dialog on failure. A `.pkg.tar.zst` opened from a file
-//! manager or dropped on the window lands in the same transaction flow.
-//! Privileged operations run through the package's own helper under pkexec —
-//! see [`txn`].
+//! success, a log dialog on failure. A `.pkg.tar.zst` double-clicked in a
+//! file manager arrives as the install confirmation popup alone, no manager;
+//! dropped on the manager's window it lands over it — both end in the same
+//! transaction flow. Privileged operations run through the package's own
+//! helper under pkexec — see [`txn`].
 //!
 //! The model is read from pacman's on-disk state on a worker thread
 //! ([`db`], [`model`]). The only subprocesses are the transactions, which
@@ -43,6 +44,10 @@ fn main() -> gtk::glib::ExitCode {
         gtk::gio::ApplicationFlags::HANDLES_OPEN,
     );
     let ui = Rc::new(ui::Ui::new());
+    // The popup flow keeps the application handle: its dialogs are windows
+    // the application does not know about, and it holds the process up
+    // while they are shown (`Ui::present_dialog`).
+    *ui.app.borrow_mut() = Some(app.clone());
 
     app.connect_activate({
         let ui = Rc::clone(&ui);
@@ -59,20 +64,22 @@ fn main() -> gtk::glib::ExitCode {
         }
     });
 
-    // A file manager hands us the opened files here; Ui::open_files says
-    // what becomes of them (the first one gets the dialog).
+    // A file manager hands us the opened files here. With the manager
+    // open, its window comes forward and the first file gets the dialog
+    // over it. With none — the double-click the custom MIME routes here —
+    // the confirmation runs as a popup of its own and the manager is
+    // never built: no pages to fill, no databases to read, no check to
+    // ask authorization for.
     app.connect_open({
         let ui = Rc::clone(&ui);
-        move |app, files, _hint| {
-            if let Some(window) = ui.window.borrow().as_ref() {
-                window.present();
-            } else {
-                ui::window::build(app, &ui);
-                // As above: the arm comes before the load can answer.
-                ui.load_model();
-                ui.auto_check();
+        move |_app, files, _hint| {
+            match ui.window.borrow().clone() {
+                Some(window) => {
+                    window.present();
+                    ui.open_files(files);
+                }
+                None => ui.open_files_popup(files.to_vec()),
             }
-            ui.open_files(files);
         }
     });
 

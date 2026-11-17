@@ -101,6 +101,7 @@
   "toast.openExtra": "一次只能開啟一個軟體包；已忽略 {name}。",
   "toast.openFallbackName": "一個軟體包",
   "toast.openNotLocal": "開啟的檔案不是本地檔案。",
+  "toast.openNotReadable": "無法讀取該 Arch 軟體包：{error}",
   "toast.startFailed": "無法啟動操作：{error}",
   "txnlog.showOutput": "顯示輸出",
   "txnlog.hideOutput": "隱藏輸出",

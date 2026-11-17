@@ -1,5 +1,7 @@
 //! The file-open flow: double-clicking or dropping a `.pkg.tar.zst` shows
-//! what the file is and installs it with `pacman -U`.
+//! what the file is and installs it with `pacman -U`. With the manager
+//! closed — Files' double-click — the very same dialog stands on its own:
+//! that confirmation is the whole interface, the manager is not built.
 //!
 //! One honest caveat, said out loud: pacman does not signature-check
 //! local files, so this dialog never claims the package is verified.
@@ -13,12 +15,7 @@ use crate::db::PkgInfo;
 use crate::i18n;
 use crate::txn::Txn;
 
-pub fn show(ui: &Ui, info: PkgInfo, path: PathBuf) {
-    let ui = ui.clone();
-    let Some(window) = ui.window.borrow().clone() else {
-        return;
-    };
-
+pub fn show(ui: &Ui, info: PkgInfo, path: PathBuf) -> libadwaita::Dialog {
     let desc = if info.desc.is_empty() {
         i18n::t("fileopen.noDesc")
     } else {
@@ -47,13 +44,14 @@ pub fn show(ui: &Ui, info: PkgInfo, path: PathBuf) {
     }
     details.push(i18n::t("fileopen.unsigned"));
 
+    let ui_txn = ui.clone();
     dialog::confirm(
-        &window,
+        ui,
         &i18n::t("fileopen.title"),
         &body,
         &details,
         &i18n::t("action.install"),
         false,
-        move || ui.start_txn(Txn::InstallFiles(vec![path])),
-    );
+        move || ui_txn.start_txn(Txn::InstallFiles(vec![path])),
+    )
 }

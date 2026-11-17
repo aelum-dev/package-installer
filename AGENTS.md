@@ -44,9 +44,10 @@ installs ship it preinstalled. Updates still come from the repo.
 - `src/txn.rs` — the only place root is asked for.
 - `src/ui/` — thin: `app.rs` is the shared state (`Ui`), the transaction gate
   and the AUR search/job entry points, `window.rs` the five-page `ViewStack`,
-  one module per page, `dialog`/`txnlog`/`fileopen` the dialogs, `dnd` the
-  window's drop target (dropping a package file opens the file-open flow,
-  the video-player's shape).
+  one module per page, `dialog`/`txnlog`/`fileopen` the dialogs (all shown
+  through `Ui::present_dialog`: over the window, or alone as a popup — the
+  double-click shape), `dnd` the window's drop target (dropping a package file
+  opens the file-open flow, the video-player's shape).
 
 The pure modules hold every decision and carry the tests; a page builds
 rows from what `Model` returns and never classifies anything itself. That is
@@ -351,6 +352,19 @@ the annotation — an invariant, not a unit test of a string.
   target is paused for the same moment (`Ui::refreshing`): a file drag is
   refused at `accept`, so the drop hint never promises an install the busy gate
   would only refuse.
+- **A double-click is a popup, not the manager.** The custom MIME arrives at
+  `connect_open`, and that is where the window question is answered: with one
+  open it comes forward and gets the dialog over it; with none **the manager is
+  never built** — no pages, no databases read, no check to authorize — and the
+  file-open flow's very same `dialog::confirm` stands on its own.
+  `Ui::present_dialog` is the single presentation rule: parented while a
+  window exists, else an `AdwDialog` of its own, carrying an application
+  `hold()` guard as data so the process lives exactly as long as the popup is
+  visible. And what the popup flow says, it says through a dialog: outside a
+  window a toast has no lane, so `Ui::say` answers with a one-line
+  `dialog::notice` there, and several files dropped or opened together take
+  their turns one popup at a time (the queue chained on `closed`) — the app
+  never mentions a file where nobody could read it.
 - **The app lists its own package** (`model::SELF_PACKAGE`) like any other row —
   it needs its updates too, and a self-update while running is ordinary (Linux
   replaces the binary under the process). The entry is never filtered out of

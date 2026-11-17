@@ -167,7 +167,6 @@ pub(crate) fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
                 .map(|s| (s.csize, s.isize, s.depends.clone(), s.url.clone()))
                 .unwrap_or_default();
             button.connect_clicked(move |_| {
-                let Some(window) = ui.window.borrow().clone() else { return };
                 // The question is asked in words, like the removal dialog:
                 // a bare fact with a button next to it does not read as a
                 // confirmation. The version rides in the question because
@@ -231,7 +230,7 @@ pub(crate) fn make_row(ui: &Ui, entry: &crate::model::Entry) -> adw::ActionRow {
                 let ui2 = ui.clone();
                 let name2 = name.clone();
                 dialog::confirm(
-                    &window,
+                    &ui,
                     &i18n::t_fmt(title_key, &[("name", &name)]),
                     &body,
                     &details,

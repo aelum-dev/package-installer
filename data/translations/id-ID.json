@@ -101,6 +101,7 @@
   "toast.openExtra": "Hanya satu paket yang dibuka dalam satu waktu; mengabaikan {name}.",
   "toast.openFallbackName": "sebuah paket",
   "toast.openNotLocal": "Berkas yang dibuka bukan berkas lokal.",
+  "toast.openNotReadable": "Paket Arch tidak dapat dibaca: {error}",
   "toast.startFailed": "Operasi tidak dapat dimulai: {error}",
   "txnlog.showOutput": "Tampilkan keluaran",
   "txnlog.hideOutput": "Sembunyikan keluaran",

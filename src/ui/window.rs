@@ -235,7 +235,7 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     overlay.set_child(Some(&toolbar));
     window.set_content(Some(&overlay));
 
-    *ui.window.borrow_mut() = Some(window.clone());
+    *ui.window.borrow_mut() = Some(window.clone().upcast());
     *ui.installed.borrow_mut() = Some(installed_page);
     *ui.updates.borrow_mut() = Some(updates_page);
     *ui.browse.borrow_mut() = Some(browse_page);

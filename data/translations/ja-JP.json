@@ -101,6 +101,7 @@
   "toast.openExtra": "一度に開けるパッケージは 1 つだけです。{name} は無視しました。",
   "toast.openFallbackName": "パッケージ",
   "toast.openNotLocal": "開かれたファイルはローカルファイルではありません。",
+  "toast.openNotReadable": "読み取り可能な Arch パッケージではありません: {error}",
   "toast.startFailed": "操作を開始できませんでした: {error}",
   "txnlog.showOutput": "出力を表示",
   "txnlog.hideOutput": "出力を隠す",

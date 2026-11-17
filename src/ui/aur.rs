@@ -378,7 +378,6 @@ fn make_row(ui: &Ui, row: &AurRow) -> adw::ActionRow {
             let ui = ui.clone();
             let hit = hit.clone();
             widget.connect_clicked(move |_| {
-                let Some(window) = ui.window.borrow().clone() else { return };
                 // The sentence the sync rows never need: nothing here is
                 // downloaded ready-made.
                 let body = i18n::t_fmt(
@@ -392,7 +391,7 @@ fn make_row(ui: &Ui, row: &AurRow) -> adw::ActionRow {
                 let ui2 = ui.clone();
                 let hit2 = hit.clone();
                 dialog::confirm(
-                    &window,
+                    &ui,
                     &i18n::t_fmt(title_key, &[("name", &hit.name)]),
                     &body,
                     &details,

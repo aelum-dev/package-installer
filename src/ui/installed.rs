@@ -214,7 +214,6 @@ fn add_button(
                 ui.start_txn(Txn::Install(vec![name.clone()]));
                 return;
             }
-            let Some(window) = ui.window.borrow().clone() else { return };
             let (breaks, orphans) = {
                 let model = match ui.model.borrow().as_ref() {
                     Some(m) => m.clone(),
@@ -242,7 +241,7 @@ fn add_button(
             let ui2 = ui.clone();
             let name_for_txn = name.clone();
             dialog::confirm(
-                &window,
+                &ui,
                 &i18n::t_fmt("dialog.remove.title", &[("name", &name)]),
                 // The question is asked in words: a bare fact with a button
                 // next to it does not read as a confirmation.

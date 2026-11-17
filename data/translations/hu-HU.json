@@ -101,6 +101,7 @@
   "toast.openExtra": "Egyszerre csak egy csomag nyitható meg; {name} kihagyva.",
   "toast.openFallbackName": "egy csomag",
   "toast.openNotLocal": "A megnyitott fájl nem helyi fájl.",
+  "toast.openNotReadable": "Nem olvasható Arch-csomag: {error}",
   "toast.startFailed": "A művelet nem indítható el: {error}",
   "txnlog.showOutput": "Kimenet megjelenítése",
   "txnlog.hideOutput": "Kimenet elrejtése",

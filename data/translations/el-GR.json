@@ -101,6 +101,7 @@
   "toast.openExtra": "Ανοίγει μόνο ένα πακέτο τη φορά· αγνοείται το {name}.",
   "toast.openFallbackName": "ένα πακέτο",
   "toast.openNotLocal": "Το αρχείο που ανοίχτηκε δεν είναι τοπικό αρχείο.",
+  "toast.openNotReadable": "Μη αναγνώσιμο πακέτο Arch: {error}",
   "toast.startFailed": "Δεν ήταν δυνατή η έναρξη της ενέργειας: {error}",
   "txnlog.showOutput": "Εμφάνιση εξόδου",
   "txnlog.hideOutput": "Απόκρυψη εξόδου",

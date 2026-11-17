@@ -101,6 +101,7 @@
   "toast.openExtra": "لا تُفتح إلا حزمة واحدة في كل مرة؛ سيتم تجاهل {name}.",
   "toast.openFallbackName": "حزمة",
   "toast.openNotLocal": "الملف المفتوح ليس ملفًا محليًا.",
+  "toast.openNotReadable": "ليست حزمة Arch قابلة للقراءة: {error}",
   "toast.startFailed": "تعذّر بدء العملية: {error}",
   "txnlog.showOutput": "إظهار المخرجات",
   "txnlog.hideOutput": "إخفاء المخرجات",

@@ -101,6 +101,7 @@
   "toast.openExtra": "Er kan slechts één pakket tegelijk worden geopend; {name} wordt genegeerd.",
   "toast.openFallbackName": "een pakket",
   "toast.openNotLocal": "Het geopende bestand is geen lokaal bestand.",
+  "toast.openNotReadable": "Geen leesbaar Arch-pakket: {error}",
   "toast.startFailed": "De bewerking kon niet worden gestart: {error}",
   "txnlog.showOutput": "Uitvoer tonen",
   "txnlog.hideOutput": "Uitvoer verbergen",

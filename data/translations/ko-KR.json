@@ -101,6 +101,7 @@
   "toast.openExtra": "한 번에 하나의 패키지만 열 수 있습니다. {name}은(는) 무시합니다.",
   "toast.openFallbackName": "패키지",
   "toast.openNotLocal": "연 파일은 로컬 파일이 아닙니다.",
+  "toast.openNotReadable": "읽을 수 없는 Arch 패키지: {error}",
   "toast.startFailed": "작업을 시작할 수 없습니다: {error}",
   "txnlog.showOutput": "출력 보기",
   "txnlog.hideOutput": "출력 숨기기",

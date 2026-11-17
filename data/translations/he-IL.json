@@ -101,6 +101,7 @@
   "toast.openExtra": "ניתן לפתוח חבילה אחת בלבד בכל פעם; {name} יוּתעלם.",
   "toast.openFallbackName": "חבילה",
   "toast.openNotLocal": "הקובץ שנפתח אינו קובץ מקומי.",
+  "toast.openNotReadable": "חבילת Arch שאינה ניתנת לקריאה: {error}",
   "toast.startFailed": "לא ניתן להפעיל את הפעולה: {error}",
   "txnlog.showOutput": "הצג פלט",
   "txnlog.hideOutput": "הסתר פלט",

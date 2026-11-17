@@ -101,6 +101,7 @@
   "toast.openExtra": "Bir seferde yalnızca bir paket açılır; {name} yoksayılıyor.",
   "toast.openFallbackName": "bir paket",
   "toast.openNotLocal": "Açılan dosya yerel bir dosya değil.",
+  "toast.openNotReadable": "Okunabilir bir Arch paketi değil: {error}",
   "toast.startFailed": "İşlem başlatılamadı: {error}",
   "txnlog.showOutput": "Çıktıyı göster",
   "txnlog.hideOutput": "Çıktıyı gizle",

@@ -101,6 +101,7 @@
   "toast.openExtra": "Vain yksi paketti kerrallaan; {name} jätetään huomiotta.",
   "toast.openFallbackName": "paketti",
   "toast.openNotLocal": "Avattu tiedosto ei ole paikallinen tiedosto.",
+  "toast.openNotReadable": "Arch-pakettia ei voi lukea: {error}",
   "toast.startFailed": "Toimintoa ei voitu aloittaa: {error}",
   "txnlog.showOutput": "Näytä tuloste",
   "txnlog.hideOutput": "Piilota tuloste",

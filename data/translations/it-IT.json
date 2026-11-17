@@ -101,6 +101,7 @@
   "toast.openExtra": "Viene aperto un solo pacchetto alla volta; {name} ignorato.",
   "toast.openFallbackName": "un pacchetto",
   "toast.openNotLocal": "Il file aperto non è un file locale.",
+  "toast.openNotReadable": "Pacchetto Arch non leggibile: {error}",
   "toast.startFailed": "Impossibile avviare l'operazione: {error}",
   "txnlog.showOutput": "Mostra l'output",
   "txnlog.hideOutput": "Nascondi l'output",

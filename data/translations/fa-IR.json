@@ -101,6 +101,7 @@
   "toast.openExtra": "هم‌زمان فقط یک بسته باز می‌شود؛ {name} نادیده گرفته شد.",
   "toast.openFallbackName": "یک بسته",
   "toast.openNotLocal": "فایل باز شده محلی نیست.",
+  "toast.openNotReadable": "بستهٔ Arch قابل خواندن نیست: {error}",
   "toast.startFailed": "عملیات آغاز نشد: {error}",
   "txnlog.showOutput": "نمایش خروجی",
   "txnlog.hideOutput": "پنهان‌سازی خروجی",

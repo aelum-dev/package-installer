@@ -101,6 +101,7 @@
   "toast.openExtra": "Endast ett paket kan öppnas åt gången; ignorerar {name}.",
   "toast.openFallbackName": "ett paket",
   "toast.openNotLocal": "Den öppnade filen är inte en lokal fil.",
+  "toast.openNotReadable": "Inte ett läsbart Arch-paket: {error}",
   "toast.startFailed": "Åtgärden kunde inte starta: {error}",
   "txnlog.showOutput": "Visa utdata",
   "txnlog.hideOutput": "Dölj utdata",

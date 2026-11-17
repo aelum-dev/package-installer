@@ -101,6 +101,7 @@
   "toast.openExtra": "Només s'obre un paquet alhora; s'ignora {name}.",
   "toast.openFallbackName": "un paquet",
   "toast.openNotLocal": "El fitxer obert no és un fitxer local.",
+  "toast.openNotReadable": "No és un paquet d'Arch llegible: {error}",
   "toast.startFailed": "No s'ha pogut iniciar l'operació: {error}",
   "txnlog.showOutput": "Mostra la sortida",
   "txnlog.hideOutput": "Amaga la sortida",

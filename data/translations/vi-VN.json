@@ -101,6 +101,7 @@
   "toast.openExtra": "Chỉ mở được một gói mỗi lần; bỏ qua {name}.",
   "toast.openFallbackName": "một gói",
   "toast.openNotLocal": "Tệp được mở không phải là tệp cục bộ.",
+  "toast.openNotReadable": "Không phải gói Arch đọc được: {error}",
   "toast.startFailed": "Không thể bắt đầu thao tác: {error}",
   "txnlog.showOutput": "Hiển thị đầu ra",
   "txnlog.hideOutput": "Ẩn đầu ra",

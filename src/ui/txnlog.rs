@@ -21,6 +21,7 @@ use libadwaita::prelude::*;
 
 use crate::i18n;
 use crate::progress::{self, Phase, StepKind, Track};
+use super::app::Ui;
 
 /// Lines kept in the view. makepkg output runs to thousands of lines; the
 /// interesting part is always the tail, so the buffer drops from the
@@ -52,7 +53,10 @@ pub struct TxnLog {
     done: Rc<Cell<bool>>,
 }
 
-pub fn show(window: &adw::ApplicationWindow, summary: &str, verb: progress::Verb) -> TxnLog {
+/// The transaction dialog, shown through [`Ui::present_dialog`]: against
+/// the manager window, or as a window of its own while the popup flow runs
+/// a transaction.
+pub fn show(ui: &Ui, summary: &str, verb: progress::Verb) -> TxnLog {
     let dialog = adw::Dialog::builder()
         .title(i18n::t("txnlog.title"))
         .content_width(CONTENT_WIDTH)
@@ -128,7 +132,7 @@ pub fn show(window: &adw::ApplicationWindow, summary: &str, verb: progress::Verb
     content.append(&actions);
 
     dialog.set_child(Some(&content));
-    dialog.present(Some(window));
+    ui.present_dialog(&dialog);
 
     let log = TxnLog {
         buffer: view.buffer(),

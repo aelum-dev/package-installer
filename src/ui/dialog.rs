@@ -4,21 +4,25 @@ use gtk::prelude::*;
 use libadwaita as adw;
 use libadwaita::prelude::*;
 
+use super::app::Ui;
 use crate::i18n;
 use crate::model;
 
 /// A modal confirm with an explanation, optional detail lines, and one
 /// action button. Every removal and every local-file install goes through
-/// here — the confirmation the helper runs `--noconfirm` on.
+/// here — the confirmation the helper runs `--noconfirm` on. Shown against
+/// the manager window, or as a popup of its own in the file-open flow
+/// ([`Ui::present_dialog`]). The dialog is returned so the popup flow can
+/// wait for it to close; callers that do not care drop it.
 pub fn confirm(
-    parent: &adw::ApplicationWindow,
+    ui: &Ui,
     title: &str,
     body: &str,
     details: &[String],
     button: &str,
     destructive: bool,
     on_confirm: impl FnOnce() + 'static,
-) {
+) -> adw::Dialog {
     let dialog = adw::Dialog::builder().title(title).content_width(480).build();
 
     let content = gtk::Box::new(gtk::Orientation::Vertical, 12);
@@ -68,7 +72,46 @@ pub fn confirm(
     content.append(&actions);
 
     dialog.set_child(Some(&content));
-    dialog.present(Some(parent));
+    ui.present_dialog(&dialog);
+    dialog
+}
+
+/// A message with one way out, for the popup flow: outside the window a
+/// toast has no lane, and the app never mentions a file where nobody can
+/// read it. The title is the app's own name — this is the app speaking,
+/// about a file it could not open or a second request it will not run.
+pub fn notice(ui: &Ui, message: &str) -> adw::Dialog {
+    let dialog = adw::Dialog::builder()
+        .title(i18n::t("app.name"))
+        .content_width(480)
+        .build();
+
+    let content = gtk::Box::new(gtk::Orientation::Vertical, 12);
+    content.set_margin_start(24);
+    content.set_margin_end(24);
+    content.set_margin_top(18);
+    content.set_margin_bottom(18);
+
+    let label = gtk::Label::new(Some(message));
+    label.set_wrap(true);
+    label.set_xalign(0.0);
+    content.append(&label);
+
+    let actions = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    actions.set_halign(gtk::Align::End);
+    actions.set_margin_top(6);
+    let ok = gtk::Button::builder().label(i18n::t("action.close")).build();
+    ok.add_css_class("suggested-action");
+    {
+        let dialog = dialog.clone();
+        ok.connect_clicked(move |_| dialog.force_close());
+    }
+    actions.append(&ok);
+    content.append(&actions);
+
+    dialog.set_child(Some(&content));
+    ui.present_dialog(&dialog);
+    dialog
 }
 
 /// One question per unanswered virtual, all in one dialog: a request whose
@@ -79,10 +122,10 @@ pub fn confirm(
 /// here are what goes into the transaction, so pacman is never asked a
 /// second time (`--noconfirm` would only answer with the same default).
 pub fn choose_providers(
-    parent: &adw::ApplicationWindow,
+    ui: &Ui,
     questions: &[model::ProviderQuestion],
     on_confirm: impl FnOnce(Vec<String>) + 'static,
-) {
+) -> adw::Dialog {
     let dialog = adw::Dialog::builder()
         .title(i18n::t("chooser.title"))
         .content_width(520)
@@ -194,5 +237,6 @@ pub fn choose_providers(
     outer.append(&actions);
 
     dialog.set_child(Some(&outer));
-    dialog.present(Some(parent));
+    ui.present_dialog(&dialog);
+    dialog
 }

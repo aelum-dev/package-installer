@@ -101,6 +101,7 @@
   "toast.openExtra": "Samtempe malfermiĝas nur unu pakaĵo; {name} estas ignorata.",
   "toast.openFallbackName": "pakaĵo",
   "toast.openNotLocal": "La malfermita dosiero ne estas loka dosiero.",
+  "toast.openNotReadable": "Ne legebla Arch-pako: {error}",
   "toast.startFailed": "Ne eblis komenci la operacion: {error}",
   "txnlog.showOutput": "Montri eligon",
   "txnlog.hideOutput": "Kaŝi eligon",

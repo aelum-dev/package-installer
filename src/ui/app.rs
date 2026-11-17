@@ -6,9 +6,11 @@ use std::path::Path;
 use std::rc::Rc;
 
 use futures::StreamExt;
+use gtk::gio::prelude::ApplicationExtManual as _;
 use gtk::glib;
 use gtk::prelude::*;
 use libadwaita as adw;
+use libadwaita::prelude::*;
 
 use crate::aur;
 use crate::cache;
@@ -31,7 +33,13 @@ pub const MAX_ROWS: usize = 300;
 #[derive(Clone)]
 pub struct Ui {
     pub overlay: Rc<RefCell<Option<adw::ToastOverlay>>>,
-    pub window: Rc<RefCell<Option<adw::ApplicationWindow>>>,
+    /// The manager window while it is open — also the parent every dialog
+    /// is shown against. None means the popup flow: the dialogs stand on
+    /// their own (see [`Ui::present_dialog`]).
+    pub window: Rc<RefCell<Option<gtk::Window>>>,
+    /// The application handle, kept so the popup flow can hold the process
+    /// alive while its parentless dialogs are up ([`Ui::present_dialog`]).
+    pub app: Rc<RefCell<Option<adw::Application>>>,
     pub model: Rc<RefCell<Option<Rc<Model>>>>,
     pub running: Rc<Cell<bool>>,
     pub installed: Rc<RefCell<Option<super::installed::Page>>>,
@@ -94,6 +102,7 @@ impl Ui {
         Ui {
             overlay: Rc::new(RefCell::new(None)),
             window: Rc::new(RefCell::new(None)),
+            app: Rc::new(RefCell::new(None)),
             model: Rc::new(RefCell::new(None)),
             running: Rc::new(Cell::new(false)),
             installed: Rc::new(RefCell::new(None)),
@@ -122,6 +131,40 @@ impl Ui {
         if let Some(overlay) = self.overlay.borrow().as_ref() {
             overlay.add_toast(adw::Toast::new(msg));
         }
+    }
+
+    /// A message the user must actually see: the window's toast lane when
+    /// there is one; in the popup flow, where no window means no overlay,
+    /// a one-line popup instead — the app never says something where
+    /// nobody can read it.
+    fn say(&self, msg: &str) {
+        if self.overlay.borrow().is_some() {
+            self.toast(msg);
+        } else {
+            self.notice(msg, std::iter::empty());
+        }
+    }
+
+    /// Present a dialog against the manager window while one is open;
+    /// with none, as a window of its own — the file-open popup, what a
+    /// double-click in Files runs without the manager. Such a window is
+    /// not one the application knows about, so the flow keeps the process
+    /// alive itself: the hold guard rides along on the dialog and is
+    /// dropped when the dialog is disposed, which is exactly the moment
+    /// the popup can no longer be seen.
+    pub fn present_dialog(&self, dialog: &adw::Dialog) {
+        if let Some(window) = self.window.borrow().clone() {
+            dialog.present(Some(&window));
+            return;
+        }
+        if let Some(app) = self.app.borrow().as_ref() {
+            // SAFETY: glib marks set_data unsafe because it stores no type
+            // information — only reading the key back could get it wrong.
+            // This key is private to this method and is never read, and the
+            // dialog lives and dies on the GTK main thread alone.
+            unsafe { dialog.set_data("aelum-app-hold", app.hold()) };
+        }
+        dialog.present(None::<&gtk::Widget>);
     }
 
     /// Parse the databases on a worker thread; the UI stays responsive
@@ -272,12 +315,9 @@ impl Ui {
                 .map(|m| m.unanswered_providers(names))
                 .unwrap_or_default();
             if !questions.is_empty() {
-                let Some(window) = self.window.borrow().clone() else {
-                    return;
-                };
                 let ui = self.clone();
                 let names = names.clone();
-                super::dialog::choose_providers(&window, &questions, move |chosen| {
+                super::dialog::choose_providers(self, &questions, move |chosen| {
                     // The chosen providers go in **as dependencies** — the
                     // marking pacman's own interactive provider prompt uses.
                     // Installed by name they would be Explicit: they would
@@ -348,7 +388,7 @@ impl Ui {
     fn run_steps(&self, steps: Vec<Txn>, quiet: bool, auto: bool) {
         if self.running.get() {
             if !quiet {
-                self.toast(&i18n::t("toast.busy"));
+                self.say(&i18n::t("toast.busy"));
             }
             return;
         }
@@ -358,16 +398,13 @@ impl Ui {
         // a pkexec error in a log dialog.
         if !std::path::Path::new(txn::HELPER).exists() {
             if !quiet {
-                self.toast(&i18n::t_fmt(
+                self.say(&i18n::t_fmt(
                     "toast.noHelper",
                     &[("helper", txn::HELPER)],
                 ));
             }
             return;
         }
-        let Some(window) = self.window.borrow().clone() else {
-            return;
-        };
         self.running.set(true);
         let last = steps.last().expect("run_steps takes at least one step");
         let spinning = steps.len() == 1 && matches!(last, Txn::Refresh);
@@ -383,7 +420,7 @@ impl Ui {
         let log = if quiet {
             None
         } else {
-            Some(super::txnlog::show(&window, &summary, verb))
+            Some(super::txnlog::show(self, &summary, verb))
         };
 
         let (tx, mut rx) = futures::channel::mpsc::unbounded();
@@ -414,7 +451,7 @@ impl Ui {
                         // A quiet failure still gets its log: the buffered
                         // output is the explanation.
                         if log.is_none() && result.is_err() {
-                            let shown = super::txnlog::show(&window, &summary, verb);
+                            let shown = super::txnlog::show(&ui, &summary, verb);
                             for line in buffered.drain(..) {
                                 shown.append(&line);
                             }
@@ -439,7 +476,12 @@ impl Ui {
                                 // startup one lets the pages speak.
                                 ui.toast(&i18n::t("toast.refreshed"));
                             }
-                            ui.load_model();
+                            // With the manager closed there are no pages to
+                            // refresh, and the model's own error toasts
+                            // would have no lane — nothing to read it for.
+                            if ui.window.borrow().is_some() {
+                                ui.load_model();
+                            }
                         }
                         // A failure's text is the log itself; closing the
                         // dialog is the acknowledgement.
@@ -484,9 +526,52 @@ impl Ui {
     /// The file-open flow: read `.PKGINFO`, confirm, install.
     pub fn open_file(&self, path: std::path::PathBuf) {
         match db::read_pkginfo(&path) {
-            Ok(info) => super::fileopen::show(self, info, path),
-            Err(e) => self.toast(&format!("Not a readable Arch package: {e}")),
+            Ok(info) => {
+                super::fileopen::show(self, info, path);
+            }
+            Err(e) => self.say(&i18n::t_fmt(
+                "toast.openNotReadable",
+                &[("error", &e.to_string())],
+            )),
         }
+    }
+
+    /// Files handed over while no window is open — Files' double-click of
+    /// a package file: the same confirmation the manager shows, as a
+    /// popup of its own, and the manager is never built (no pages to fill,
+    /// no databases to read, no check to authorize). Files that arrive
+    /// together take their turns one popup at a time: outside the window
+    /// a toast has no lane, and the app never mentions a file where nobody
+    /// could read it.
+    pub fn open_files_popup(&self, files: Vec<gtk::gio::File>) {
+        self.next_popup(files.into_iter());
+    }
+
+    fn next_popup(&self, mut files: impl Iterator<Item = gtk::gio::File> + 'static) {
+        let Some(file) = files.next() else {
+            return;
+        };
+        let Some(path) = file.path() else {
+            self.notice(&i18n::t("toast.openNotLocal"), files);
+            return;
+        };
+        match db::read_pkginfo(&path) {
+            Ok(info) => {
+                let dialog = super::fileopen::show(self, info, path);
+                chain_after(dialog, self, files);
+            }
+            Err(e) => self.notice(
+                &i18n::t_fmt("toast.openNotReadable", &[("error", &e.to_string())]),
+                files,
+            ),
+        }
+    }
+
+    /// A message the popup flow has to put on screen; the files behind it
+    /// wait for the message dialog to close, as behind every popup.
+    fn notice(&self, message: &str, files: impl Iterator<Item = gtk::gio::File> + 'static) {
+        let dialog = super::dialog::notice(self, message);
+        chain_after(dialog, self, files);
     }
 
     /// Ask the AUR. The search is the user's action, never the app's: the
@@ -640,12 +725,9 @@ impl Ui {
             self.toast(&i18n::t("aur.noBuildTools"));
             return;
         }
-        let Some(window) = self.window.borrow().clone() else {
-            return;
-        };
         self.running.set(true);
         let log = super::txnlog::show(
-            &window,
+            self,
             &i18n::t_fmt("txn.summaryBuild", &[("name", &hit.name)]),
             progress::Verb::Aur,
         );
@@ -687,6 +769,23 @@ impl Ui {
             }
         });
     }
+}
+
+/// Continue a popup queue once `dialog` closes. The `closed` signal hands
+/// its handler to an `Fn` closure, while the queue must be consumed once —
+/// so it waits in a slot, and the first close takes it out.
+fn chain_after(
+    dialog: adw::Dialog,
+    ui: &Ui,
+    files: impl Iterator<Item = gtk::gio::File> + 'static,
+) {
+    let ui = ui.clone();
+    let files = RefCell::new(Some(files));
+    dialog.connect_closed(move |_| {
+        if let Some(files) = files.borrow_mut().take() {
+            ui.next_popup(files);
+        }
+    });
 }
 
 /// One AUR search, on the worker thread: the request, then its answer read
