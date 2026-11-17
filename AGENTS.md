@@ -354,7 +354,14 @@ the environment allowlist: invariants, not unit tests of a string.
   badge marks apps the channel carries that the system lacks; both are
   `needs-attention` on the `ViewStackPage`, both are computed in
   `refresh_pages`, and visiting a page is the acknowledgement that clears
-  its dot (window.rs). A third page may add a third dot the same way.
+  its dot (window.rs). A third page may add a third dot the same way. Both
+  also share one precondition: a dot is a claim about the **mirrors**, so it
+  lights only while `cache::dots_may_claim` vouches for the databases — the
+  same evidence the startup check weighs. A window that opens on databases
+  older than the window lights nothing until the sync it is running lands
+  (the successful sync records `last_check`, writes the stamp, reloads the
+  model, and the dots recompute on the fresh rows); a failed check leaves
+  them silent, because offline there is nothing to vouch for the number.
 - **The Aelum page lists apps, not halves of installed builds.** `distro_apps`
   skips a channel package whose `%BASE%` names an installed package other than
   itself — the case that proved it was `refind-docs` sitting alone on that page

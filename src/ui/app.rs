@@ -299,16 +299,28 @@ impl Ui {
             }
         }
 
+        // Two dots, one rule — and one precondition: they claim something
+        // about the mirrors, so they only speak while the databases still
+        // speak for them. `cache::dots_may_claim` weighs the same evidence
+        // as the startup check, and while a check is owed the dots stay
+        // silent until the sync that answers it reloads these pages — the
+        // dot that lit here came from files on disk, not from a mirror.
+        let trusted = cache::dots_may_claim(
+            (*self.last_check.borrow()).or_else(cache::read_stamp),
+            model.db_fresh,
+            std::time::SystemTime::now(),
+        );
         // The tab badge marks pending updates the user is not already
         // looking at; visiting the page clears it (window.rs).
-        let want = !model.updatable().is_empty() && !self.on_updates_page.get();
+        let want = trusted && !model.updatable().is_empty() && !self.on_updates_page.get();
         if let Some(tab) = self.updates_tab.borrow().as_ref() {
             tab.set_needs_attention(want);
         }
         // The Aelum dot follows the same rule: raised while the channel
         // carries apps this system does not have, silent while the user
-        // is reading that very page.
-        let want = !model.distro_apps().is_empty() && !self.on_aelum_page.get();
+        // is reading that very page — and its database is a sync database
+        // too, so the precondition above owns it as well.
+        let want = trusted && !model.distro_apps().is_empty() && !self.on_aelum_page.get();
         if let Some(tab) = self.aelum_tab.borrow().as_ref() {
             tab.set_needs_attention(want);
         }

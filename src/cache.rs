@@ -74,6 +74,20 @@ pub fn check_is_owed(
     }
 }
 
+/// May a tab dot claim what the databases show? A dot says *updates are
+/// waiting* — a claim about the **mirrors** — so it may only speak while
+/// the databases still speak for them: the moment [`check_is_owed`] would
+/// arm a check is the moment a dot has gone stale, and a window opening
+/// on such databases lights nothing until the sync it is already running
+/// lands. The two share one rule because they weigh one evidence.
+pub fn dots_may_claim(
+    recorded: Option<SystemTime>,
+    databases: Option<SystemTime>,
+    now: SystemTime,
+) -> bool {
+    !check_is_owed(recorded, databases, now)
+}
+
 /// The stamp is one number: seconds since the epoch. Anything that does not
 /// parse as one is no evidence, not a zero.
 fn read_at(path: &Path) -> Option<SystemTime> {
@@ -132,6 +146,24 @@ mod tests {
         let now = clock();
         assert!(check_is_owed(Some(now - MAX_AGE), Some(now - MAX_AGE), now));
         assert!(check_is_owed(None, Some(now - MAX_AGE * 3), now));
+    }
+
+    #[test]
+    fn a_dot_speaks_only_while_no_check_is_owed() {
+        // The complaint this pins: the window opened and the Updates dot
+        // lit from databases days old, before any mirror had been asked.
+        // Older than the window with nothing newer to answer for them:
+        // silent. A sync inside it — this run's or a recent one's record:
+        // free to speak.
+        let now = clock();
+        assert!(!dots_may_claim(None, Some(now - MAX_AGE * 3), now));
+        assert!(!dots_may_claim(None, None, now));
+        assert!(dots_may_claim(
+            Some(now - Duration::from_secs(1)),
+            Some(now - MAX_AGE * 3),
+            now
+        ));
+        assert!(dots_may_claim(None, Some(now - Duration::from_secs(1)), now));
     }
 
     #[test]
