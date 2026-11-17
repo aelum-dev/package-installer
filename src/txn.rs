@@ -6,6 +6,12 @@
 //! place pacman is invoked with privileges, so one action + one rule cover
 //! install, removal, refresh, upgrade, and local files.
 //!
+//! The helper is the crate's second binary (`src/bin/`), not a script:
+//! pkexec hands a root process the caller's environment, and that is an
+//! interpreter's feast (BASH_ENV, imported functions, a caller-chosen PATH,
+//! LD_*). The tests below pin that shape across the file boundary — an
+//! invariant, like every other test reading the helper's source.
+//!
 //! `--noconfirm` everywhere: this dialog owns the confirmation, and a
 //! conflict must exit non-zero with pacman's real output rather than wait
 //! for a TTY that does not exist.
@@ -288,15 +294,9 @@ mod tests {
         // call that really re-fetched the databases wrote it: the helper's
         // `-Sy` and `-Syu`. Every other verb reads those databases, so its
         // success says nothing about how old they are.
-        let helper = include_str!("../data/helper/aelum-package-installer-helper");
-        assert!(
-            helper.contains("pacman -Sy --noconfirm"),
-            "refresh must fetch the databases"
-        );
-        assert!(
-            helper.contains("pacman -Syu --noconfirm"),
-            "upgrade must fetch the databases"
-        );
+        let helper = include_str!("bin/aelum-package-installer-helper.rs");
+        assert!(helper.contains("\"-Sy\""), "refresh must fetch the databases");
+        assert!(helper.contains("\"-Syu\""), "upgrade must fetch the databases");
         for txn in [Txn::Refresh, Txn::Upgrade] {
             assert!(txn.syncs_databases(), "{txn:?} fetches the databases");
         }
@@ -319,41 +319,46 @@ mod tests {
         // path this file execs.
         let policy = include_str!("../data/polkit/dev.aelum.package.manage.policy");
         assert!(policy.contains(&format!("exec.path\">{HELPER}<")));
-        let helper = include_str!("../data/helper/aelum-package-installer-helper");
+        let helper = include_str!("bin/aelum-package-installer-helper.rs");
         for verb in VERBS {
-            assert!(helper.contains(&format!("{verb})")), "helper lacks {verb}");
-            assert!(helper.contains("--noconfirm"));
+            assert!(helper.contains(&format!("\"{verb}\" =>")), "helper lacks {verb}");
+            assert!(helper.contains("\"--noconfirm\""));
         }
         // Line-buffered: with stdout a pipe glibc holds pacman's output in
         // 4 KiB blocks, and the app would watch a frozen log through a
         // whole download (measured: 53 s of silence for ~200 MiB).
-        assert!(helper.contains("stdbuf -oL"), "helper must line-buffer");
+        assert!(helper.contains("\"-oL\""), "helper must line-buffer");
+        // The shape that replaced the shell script: both programs by
+        // absolute path — a bare name under pkexec resolves through the
+        // caller's PATH — and an environment rebuilt from the allowlist.
+        assert!(helper.contains("\"/usr/bin/stdbuf\""), "stdbuf by path");
+        assert!(helper.contains("\"/usr/bin/pacman\""), "pacman by path");
+        assert!(
+            helper.contains(".env_clear()"),
+            "pkexec passes the caller's environment; pacman must not inherit it"
+        );
     }
 
     #[test]
     fn every_verb_clears_a_stale_db_lock_but_never_a_live_one() {
-        let helper = include_str!("../data/helper/aelum-package-installer-helper");
+        let helper = include_str!("bin/aelum-package-installer-helper.rs");
         // The lock lives in the DB root this app reads its databases from:
         // one path, not a second copy of it.
         assert!(
-            helper.contains(&format!("DB_LOCK={}/db.lck", crate::model::PACMAN_ROOT)),
+            helper.contains(&format!("\"{}/db.lck\"", crate::model::PACMAN_ROOT)),
             "the lock must be the one in the DB root the model reads"
         );
-        // One clear, for every verb, before any pacman runs. alpm never drops
-        // a leftover db.lck itself — measured on pacman 7.1: an empty O_EXCL
-        // file, no PID written, and no dead-lock check anywhere — so the lock
-        // a killed transaction leaves behind is every later transaction's
-        // "unable to lock database", whichever verb it asked for.
-        let gated = VERBS.join("|");
-        assert!(
-            helper.contains(&format!("    {gated}) clear_stale_lock ;;")),
-            "every verb must clear the lock"
-        );
-        assert!(
-            helper.find("clear_stale_lock ;;").unwrap_or(usize::MAX)
-                < helper.find("exec stdbuf -oL pacman").unwrap_or(0),
-            "the lock must be cleared before pacman runs"
-        );
+        // One clear, reached only for a verb the helper knows and before any
+        // pacman runs. alpm never drops a leftover db.lck itself — measured
+        // on pacman 7.1: an empty O_EXCL file, no PID written, and no
+        // dead-lock check anywhere — so the lock a killed transaction leaves
+        // behind is every later transaction's "unable to lock database",
+        // whichever verb it asked for.
+        let refused = helper.find("usage() }").unwrap();
+        let cleared = helper.find("clear_stale_lock();").unwrap();
+        let execed = helper.find(".exec()").unwrap();
+        assert!(refused < cleared, "a refused verb must not touch the lock");
+        assert!(cleared < execed, "the lock must be cleared before pacman runs");
         // A live pacman is a transaction in progress: dropping its lock would
         // let two of them write the same databases.
         assert!(helper.contains("pacman_running"), "must keep a live lock");

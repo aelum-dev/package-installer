@@ -15,12 +15,14 @@ pkgdesc='GTK4/libadwaita package manager for the Aelum desktop'
 arch=('x86_64')
 license=('GPL-3.0-only')
 # gtk4/libadwaita are linked by the binary; pkexec (polkit) is how it
-# reaches root, and the helper is a bash script. curl is the AUR page's
-# HTTP client — pacman already depends on curl, so this asks for nothing a
-# working system lacks, but the app uses it directly and says so. xz is
-# liblzma: the xz2 crate reads xz-framed package files against the system
-# library (and xz is in `base`, so even this asks for nothing new).
-depends=('gtk4' 'libadwaita' 'polkit' 'bash' 'curl' 'xz')
+# reaches root: the helper it authenticates is this crate's second binary
+# (src/bin/) — compiled on purpose, a script under pkexec runs as root
+# inside the caller's environment. curl is the AUR page's HTTP client —
+# pacman already depends on curl, so this asks for nothing a working system
+# lacks, but the app uses it directly and says so. xz is liblzma: the xz2
+# crate reads xz-framed package files against the system library (and xz is
+# in `base`, so even this asks for nothing new).
+depends=('gtk4' 'libadwaita' 'polkit' 'curl' 'xz')
 makedepends=('rust' 'pkgconf')
 # Regenerated from the tracked tree on every build-pkg.sh run, so the hash
 # changes by design.
@@ -49,10 +51,12 @@ package() {
     # pacman checks the declared `license=` against /usr/share/licenses/$pkgname,
     # so the license text ships with the package.
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
-    # The root half: the helper pkexec authenticates, its polkit action, and
-    # the fail-closed grant. The helper must be root-owned and not
-    # group/world-writable — makepkg files are — or pkexec refuses it.
-    install -Dm755 data/helper/aelum-package-installer-helper \
+    # The root half: the helper binary pkexec authenticates — the crate's
+    # second target, compiled rather than scripted (see src/bin) — its
+    # polkit action, and the fail-closed grant. The helper must be
+    # root-owned and not group/world-writable — makepkg files are — or
+    # pkexec refuses it.
+    install -Dm755 target/release/aelum-package-installer-helper \
         "$pkgdir/usr/bin/aelum-package-installer-helper"
     install -Dm644 data/polkit/dev.aelum.package.manage.policy \
         "$pkgdir/usr/share/polkit-1/actions/dev.aelum.package.manage.policy"

@@ -42,6 +42,9 @@ installs ship it preinstalled. Updates still come from the repo.
 - `src/progress.rs` — transaction progress: the phase bands per verb, and reading
   pacman's output into honest counts (`Track`). **No GTK.**
 - `src/txn.rs` — the only place root is asked for.
+- `src/bin/aelum-package-installer-helper.rs` — the packaged helper: the
+  crate's second binary, the only code that runs as root, and std-only.
+  Why it is compiled and not a script belongs to "The one polkit action".
 - `src/ui/` — thin: `app.rs` is the shared state (`Ui`), the transaction gate
   and the AUR search/job entry points, `window.rs` the five-page `ViewStack`,
   one module per page, `dialog`/`txnlog`/`fileopen` the dialogs (all shown
@@ -111,7 +114,7 @@ release you target before changing the code that encodes them.
   `pacman`, because the app's own gate means a lock nothing is holding is
   nobody's, while a live one is a transaction that must not run twice.
   `txn.rs::every_verb_clears_a_stale_db_lock_but_never_a_live_one` pins the
-  path against `model::PACMAN_ROOT` and all seven verbs.
+  path against `model::PACMAN_ROOT` and the refused → cleared → exec'd order.
 - **An alpm hook `Depends` value is stored verbatim** (pacman `hook.c` does no
   word splitting): one dependency per line, or the hook never runs.
 - `filesystem` owns `/etc/polkit-1/rules.d` at **750**; `install -D` records a
@@ -278,7 +281,17 @@ measurement).
 (`{refresh|install|install-asdeps|remove|upgrade|file|file-asdeps}` →
 `stdbuf -oL pacman -Sy|-S|-S --asdeps|-Rns|-Syu|-U|-U --asdeps`, all `--noconfirm` —
 the stdbuf is what makes the output arrive during the download, not after it),
-the `aelum-snapshot-restore` shape. Every verb first drops a leftover
+the `aelum-snapshot-restore` shape. The helper is the crate's second binary
+(`src/bin/`), not a script, and that is load-bearing: pkexec hands the
+program it runs as root the **caller's** environment, and a shell script
+inside that environment obeys `BASH_ENV` and imported shell functions,
+resolves every command — its own shebang first of all — through the
+caller's `PATH`, and passes `LD_*` to what it execs: one attacker-chosen
+variable would be root code behind a legitimately authorized action. The
+binary execve's `/usr/bin/stdbuf` and `/usr/bin/pacman` by absolute path
+with an environment that is empty apart from a fixed `PATH` and the five
+locale variables — which also keeps a hostile `TMPDIR` away from every
+package's scriptlets. Every verb first drops a leftover
 `db.lck` when no pacman is running (see the measured fact above): one left by
 a killed transaction — closing the app mid-sync does exactly that — would
 otherwise leave every later transaction failing with "unable to lock
@@ -297,7 +310,9 @@ grants it to a local, active, `wheel` session. There is **no raw-pacman
 fallback**: every privileged operation resolves to that one action, and a host
 without the helper is told so instead of getting a pkexec error in a dialog.
 `txn.rs::the_helper_is_annotated_by_the_policy` reads the policy file and pins
-the annotation — an invariant, not a unit test of a string.
+the annotation plus the helper's shape — absolute paths, `env_clear`, the
+seven verbs — and the helper file's own tests pin the verb-by-verb argv and
+the environment allowlist: invariants, not unit tests of a string.
 
 ## UI rules the app holds to
 
