@@ -123,7 +123,9 @@ pub fn show(ui: &Ui, summary: &str, verb: progress::Verb) -> TxnLog {
     close.set_sensitive(false);
     {
         let dialog = dialog.clone();
-        close.connect_clicked(move |_| dialog.force_close());
+        close.connect_clicked(move |_| {
+            dialog.close();
+        });
     }
     let spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     spacer.set_hexpand(true);

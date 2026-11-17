@@ -155,9 +155,17 @@ impl Ui {
     /// application ID, and the next double-click forwards to that
     /// windowless instance instead of starting one — with any file-less
     /// launch (a launcher click) building the manager over it, a manager
-    /// that cannot be closed. `closed` answers the dialog's own dismissal;
-    /// `destroy` catches the window dying without one. The slot lets
-    /// either signal be the last one.
+    /// nothing can close.
+    ///
+    /// Which signal may carry that release is measured, not guessed, on
+    /// libadwaita 1.10: `close()` emits `closed` then `unmap`, while
+    /// `force_close()` emits `unmap` **only** — and the dialog widget
+    /// survives both (it is reusable, never finalized on close), so a
+    /// `destroy` handler is never a release for a dialog that some
+    /// closure still references. `unmap` is the one signal every close
+    /// path emits, and these popups are each presented exactly once, so
+    /// unmap means gone. `closed` releases early when it does fire; the
+    /// slot makes whichever lands first the only one.
     pub fn present_dialog(&self, dialog: &adw::Dialog) {
         if let Some(window) = self.window.borrow().clone() {
             dialog.present(Some(&window));
@@ -166,9 +174,9 @@ impl Ui {
         if let Some(app) = self.app.borrow().as_ref() {
             let hold = Rc::new(RefCell::new(Some(app.hold())));
             let slot = Rc::clone(&hold);
-            dialog.connect_closed(move |_| drop(slot.borrow_mut().take()));
+            dialog.connect_unmap(move |_| drop(slot.borrow_mut().take()));
             let slot = hold;
-            dialog.connect_destroy(move |_| drop(slot.borrow_mut().take()));
+            dialog.connect_closed(move |_| drop(slot.borrow_mut().take()));
         }
         dialog.present(None::<&gtk::Widget>);
     }

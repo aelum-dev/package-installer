@@ -359,8 +359,14 @@ the annotation — an invariant, not a unit test of a string.
   file-open flow's very same `dialog::confirm` stands on its own.
   `Ui::present_dialog` is the single presentation rule: parented while a
   window exists, else an `AdwDialog` of its own, held up by an application
-  `hold()` the dialog drops when it dies (`closed` or `destroy`, one slot,
-  whichever lands first). The guard's lifetime is what the first version got
+  `hold()` the dialog drops on its first `unmap` or `closed`. Which signals
+  close emits is measured on libadwaita 1.10: `close()` emits `closed` then
+  `unmap`; **`force_close()` emits `unmap` only**; and the dialog widget
+  survives both (reusable, never finalized on close), so `destroy` is never
+  the release — a guard released only on `closed` leaked on every
+  button-clicked dialog, because the buttons once called `force_close()`
+  (every button calls `close()` now; `unmap` guards the rest). The guard's
+  lifetime is what the first version got
   wrong — parked on the dialog with `set_data`, it was never dropped
   (`g_object_set_data` destroys no value), so every popup leaked a use-count
   hold, the process kept the application ID forever, the next double-click
@@ -374,6 +380,11 @@ the annotation — an invariant, not a unit test of a string.
   opened together take their turns one popup at a time (the queue chained on
   `closed`) — the app never mentions a file where nobody could read it.
 - **GTK4 windows are one-shot, and so is everything `Ui` keeps of them.**
+  The manager's Close is a real `window-close-symbolic` button on the
+  `window.close` action, not `gtk::WindowControls` — with the window drawing
+  its own chrome, SSD compositors leave the controls widget empty and it
+  draws no titlebar, so the WindowControls version was a window with no way
+  out (measured on Hyprland).
   Closing the manager destroys it; `connect_destroy` runs `Ui::forget_window`,
   which clears every window-owned slot (the window, the toast lane, the pages,
   the header controls). A reference kept past the close is a dead parent, not

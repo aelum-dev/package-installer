@@ -51,7 +51,9 @@ pub fn confirm(
     cancel.add_css_class("flat");
     {
         let dialog = dialog.clone();
-        cancel.connect_clicked(move |_| dialog.force_close());
+        cancel.connect_clicked(move |_| {
+            dialog.close();
+        });
     }
     let go = gtk::Button::builder().label(button).build();
     go.add_css_class(if destructive { "destructive-action" } else { "suggested-action" });
@@ -64,7 +66,7 @@ pub fn confirm(
             if let Some(run) = on_confirm.borrow_mut().take() {
                 run();
             }
-            dialog.force_close();
+            dialog.close();
         });
     }
     actions.append(&cancel);
@@ -104,7 +106,9 @@ pub fn notice(ui: &Ui, message: &str) -> adw::Dialog {
     ok.add_css_class("suggested-action");
     {
         let dialog = dialog.clone();
-        ok.connect_clicked(move |_| dialog.force_close());
+        ok.connect_clicked(move |_| {
+            dialog.close();
+        });
     }
     actions.append(&ok);
     content.append(&actions);
@@ -203,7 +207,9 @@ pub fn choose_providers(
     cancel.add_css_class("flat");
     {
         let dialog = dialog.clone();
-        cancel.connect_clicked(move |_| dialog.force_close());
+        cancel.connect_clicked(move |_| {
+            dialog.close();
+        });
     }
     let go = gtk::Button::builder()
         .label(i18n::t("action.install"))
@@ -229,7 +235,7 @@ pub fn choose_providers(
             if let Some(run) = on_confirm.borrow_mut().take() {
                 run(chosen);
             }
-            dialog.force_close();
+            dialog.close();
         });
     }
     actions.append(&cancel);

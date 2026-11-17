@@ -134,13 +134,25 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     }
     // The buttons live in the title's end box, not the header's: the title
     // owns the full width now (see show-end-title-buttons above). Append
-    // order is left-to-right — refresh, then (i), then the window controls
-    // outermost-right; the box hugs the right edge.
+    // order is left-to-right — refresh, then (i), then close outermost-
+    // right; the box hugs the right edge.
+    //
+    // Close is a real button, not `gtk::WindowControls`: this window draws
+    // its own chrome and asks the compositor to decorate the frame, and
+    // Hyprland (which implements xdg-decoration as server-side and draws
+    // no buttons) leaves WindowControls empty — measured, and it made the
+    // manager a window with no way out. `window.close` is GtkWindow's own
+    // action: it emits the close request and destroys the window exactly
+    // like the compositor's kill would.
+    let close = gtk::Button::from_icon_name("window-close-symbolic");
+    close.add_css_class("flat");
+    close.set_tooltip_text(Some(&i18n::t("action.close")));
+    close.set_action_name(Some("window.close"));
     let end = gtk::Box::new(gtk::Orientation::Horizontal, 6);
     end.set_halign(gtk::Align::End);
     end.append(&refresh);
     end.append(&about);
-    end.append(&gtk::WindowControls::new(gtk::PackType::End));
+    end.append(&close);
     *ui.refresh.borrow_mut() = Some(refresh);
 
     let title = gtk::CenterBox::new();
