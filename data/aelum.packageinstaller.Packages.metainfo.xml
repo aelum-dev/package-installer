@@ -32,6 +32,14 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.5.11" date="2026-11-17">
+      <description>
+        <ul>
+          <li>Package files can now be installed by dragging them onto the window; a drop is cleanly refused while the databases refresh rather than queued.</li>
+          <li>Double-clicking a .pkg.tar.zst in a file manager now shows just the install confirmation as a small popup instead of opening the full manager; several files opened together take their popups one at a time.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.10" date="2026-11-14">
       <description>
         <ul>
