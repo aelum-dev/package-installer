@@ -241,6 +241,14 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     *ui.browse.borrow_mut() = Some(browse_page);
     *ui.distro.borrow_mut() = Some(distro_page);
     *ui.aur_page.borrow_mut() = Some(aur_page);
+    // The window is one-shot: closing it destroys it. Every slot `Ui`
+    // keeps of this window's widgets belongs to it — clearing them here
+    // is what makes a later double-click take the popup path again
+    // instead of presenting (and parenting to) a destroyed window.
+    {
+        let ui = ui.clone();
+        window.connect_destroy(move |_| ui.forget_window());
+    }
     dnd::attach(&window, &drop_hint, ui);
     // RTL after the whole tree exists: every control must be covered.
     apply_rtl(&window);

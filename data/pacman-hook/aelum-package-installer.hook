@@ -11,7 +11,11 @@ Target = aelum-package-installer
 [Action]
 Description = Updating MIME and desktop databases for the package manager…
 When = PostTransaction
-Exec = /usr/bin/sh -c "update-mime-database /usr/share/mime && update-desktop-database -q /usr/share/applications"
+# The icon cache last: the package's file-type icon lands in hicolor, and
+# GTK reads a theme through its cache when one exists. Guarded — the cache
+# tool is a separate package, and its absence costs a cache refresh, never
+# the mime/desktop refreshes nobody else runs.
+Exec = /usr/bin/sh -c "update-mime-database /usr/share/mime && update-desktop-database -q /usr/share/applications && if [ -x /usr/bin/gtk-update-icon-cache ]; then gtk-update-icon-cache -q -f -t /usr/share/icons/hicolor || :; fi"
 # One dependency per line — the hook parser does not split one value on
 # spaces (measured: a single `Depends = a b` line never satisfies), and
 # every system hook repeats the key.

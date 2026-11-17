@@ -65,6 +65,12 @@ package() {
         "$pkgdir/etc/pacman.d/hooks/aelum-package-installer.hook"
     install -Dm644 data/mime/aelum-package-installer.xml \
         "$pkgdir/usr/share/mime/packages/aelum-package-installer.xml"
+    # The file-type icon. g_content_type_get_icon names the MIME type
+    # (dashed) first and the icon theme has no entry for it, so this file
+    # under hicolor — the fallback every theme inherits — is what gives a
+    # .pkg.tar.* an icon in every file manager, whatever theme is chosen.
+    install -Dm644 data/mime/application-vnd.arch.pacman.svg \
+        "$pkgdir/usr/share/icons/hicolor/scalable/mimetypes/application-vnd.arch.pacman.svg"
     # Desktop integration. The desktop/icon/metainfo names must equal the
     # GApplication app ID: GTK4 resolves the window icon by app ID through
     # the icon theme, and the software center matches appdata by it too.

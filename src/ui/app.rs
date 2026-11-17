@@ -149,22 +149,52 @@ impl Ui {
     /// with none, as a window of its own — the file-open popup, what a
     /// double-click in Files runs without the manager. Such a window is
     /// not one the application knows about, so the flow keeps the process
-    /// alive itself: the hold guard rides along on the dialog and is
-    /// dropped when the dialog is disposed, which is exactly the moment
-    /// the popup can no longer be seen.
+    /// alive itself — and the hold must go exactly when the dialog does.
+    /// A guard parked where nothing drops it is worse than no hold at
+    /// all: a leaked one makes the process immortal, it keeps holding the
+    /// application ID, and the next double-click forwards to that
+    /// windowless instance instead of starting one — with any file-less
+    /// launch (a launcher click) building the manager over it, a manager
+    /// that cannot be closed. `closed` answers the dialog's own dismissal;
+    /// `destroy` catches the window dying without one. The slot lets
+    /// either signal be the last one.
     pub fn present_dialog(&self, dialog: &adw::Dialog) {
         if let Some(window) = self.window.borrow().clone() {
             dialog.present(Some(&window));
             return;
         }
         if let Some(app) = self.app.borrow().as_ref() {
-            // SAFETY: glib marks set_data unsafe because it stores no type
-            // information — only reading the key back could get it wrong.
-            // This key is private to this method and is never read, and the
-            // dialog lives and dies on the GTK main thread alone.
-            unsafe { dialog.set_data("aelum-app-hold", app.hold()) };
+            let hold = Rc::new(RefCell::new(Some(app.hold())));
+            let slot = Rc::clone(&hold);
+            dialog.connect_closed(move |_| drop(slot.borrow_mut().take()));
+            let slot = hold;
+            dialog.connect_destroy(move |_| drop(slot.borrow_mut().take()));
         }
         dialog.present(None::<&gtk::Widget>);
+    }
+
+    /// The manager window closed. Everything [`super::window::build`]
+    /// handed `Ui` belonged to that window — and GTK4's windows are
+    /// one-shot, so a reference kept past the close is a dead parent, not
+    /// a window to raise: a double-click after the close must take the
+    /// popup path again, never `present()` a destroyed window and parent
+    /// its dialog to one. The model and the last-check stamp survive;
+    /// rebuilding them was never the window's to keep.
+    pub fn forget_window(&self) {
+        *self.window.borrow_mut() = None;
+        *self.overlay.borrow_mut() = None;
+        *self.installed.borrow_mut() = None;
+        *self.updates.borrow_mut() = None;
+        *self.browse.borrow_mut() = None;
+        *self.distro.borrow_mut() = None;
+        *self.aur_page.borrow_mut() = None;
+        *self.updates_tab.borrow_mut() = None;
+        *self.aelum_tab.borrow_mut() = None;
+        *self.refresh.borrow_mut() = None;
+        *self.fresh.borrow_mut() = None;
+        *self.content.borrow_mut() = None;
+        self.on_updates_page.set(false);
+        self.on_aelum_page.set(false);
     }
 
     /// Parse the databases on a worker thread; the UI stays responsive
@@ -406,6 +436,16 @@ impl Ui {
             return;
         }
         self.running.set(true);
+        // A popup-flow transaction has no window behind it to hold the
+        // process: this one, dropped with the streaming task, is what
+        // keeps the app alive until the helper's answer arrives — closing
+        // the log dialog mid-run closes a dialog, it never quits an app
+        // with a transaction still running. The windowed flow is held by
+        // its window already.
+        let hold = match self.app.borrow().as_ref() {
+            Some(app) if self.window.borrow().is_none() => Some(app.hold()),
+            _ => None,
+        };
         let last = steps.last().expect("run_steps takes at least one step");
         let spinning = steps.len() == 1 && matches!(last, Txn::Refresh);
         if spinning {
@@ -431,6 +471,7 @@ impl Ui {
         let stream_log = log.clone();
         glib::MainContext::default().spawn_local(async move {
             let mut log = stream_log;
+            let _hold = hold; // released when the stream is answered (or ends)
             let mut buffered: Vec<String> = Vec::new();
             while let Some(event) = rx.next().await {
                 match event {

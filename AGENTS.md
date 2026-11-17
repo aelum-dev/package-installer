@@ -358,13 +358,28 @@ the annotation — an invariant, not a unit test of a string.
   never built** — no pages, no databases read, no check to authorize — and the
   file-open flow's very same `dialog::confirm` stands on its own.
   `Ui::present_dialog` is the single presentation rule: parented while a
-  window exists, else an `AdwDialog` of its own, carrying an application
-  `hold()` guard as data so the process lives exactly as long as the popup is
-  visible. And what the popup flow says, it says through a dialog: outside a
-  window a toast has no lane, so `Ui::say` answers with a one-line
-  `dialog::notice` there, and several files dropped or opened together take
-  their turns one popup at a time (the queue chained on `closed`) — the app
-  never mentions a file where nobody could read it.
+  window exists, else an `AdwDialog` of its own, held up by an application
+  `hold()` the dialog drops when it dies (`closed` or `destroy`, one slot,
+  whichever lands first). The guard's lifetime is what the first version got
+  wrong — parked on the dialog with `set_data`, it was never dropped
+  (`g_object_set_data` destroys no value), so every popup leaked a use-count
+  hold, the process kept the application ID forever, the next double-click
+  forwarded to that windowless instance, and any file-less launch (a launcher
+  click) built the manager over it: a manager nothing could close. A
+  popup-flow transaction holds the process by its own token as well
+  (`run_steps`) — closing the log dialog mid-run closes a dialog, it never
+  quits an app with the helper still working. And what the popup flow says,
+  it says through a dialog: outside a window a toast has no lane, so `Ui::say`
+  answers with a one-line `dialog::notice` there, and several files dropped or
+  opened together take their turns one popup at a time (the queue chained on
+  `closed`) — the app never mentions a file where nobody could read it.
+- **GTK4 windows are one-shot, and so is everything `Ui` keeps of them.**
+  Closing the manager destroys it; `connect_destroy` runs `Ui::forget_window`,
+  which clears every window-owned slot (the window, the toast lane, the pages,
+  the header controls). A reference kept past the close is a dead parent, not
+  a window to raise: a double-click after the close must take the popup path
+  again, never `present()` a destroyed window and parent its dialog to one
+  (measured: `Gtk-WARNING: A window is shown after it has been destroyed`).
 - **The app lists its own package** (`model::SELF_PACKAGE`) like any other row —
   it needs its updates too, and a self-update while running is ordinary (Linux
   replaces the binary under the process). The entry is never filtered out of
