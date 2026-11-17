@@ -32,6 +32,14 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.5.12" date="2026-11-17">
+      <description>
+        <ul>
+          <li>Fixed: closing a package popup could leave the app running invisibly, so later double-clicks opened the full manager and it could not be closed</li>
+          <li>Package files (.pkg.tar.*) now show an icon in file managers</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.11" date="2026-11-17">
       <description>
         <ul>
