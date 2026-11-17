@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "תותקן מהמאגרים גם חבילה אחת.",
   "dialog.alsoInstallsMany": "תותקנה מהמאגרים גם {count} חבילות.",
   "dialog.aur.body": "האם לבנות ולהתקין את {name} {version} מה־AUR?",
+  "drop.hint": "שחררו כאן כדי להתקין",
   "fileopen.title": "להתקין חבילה זו?",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(אין תיאור)",

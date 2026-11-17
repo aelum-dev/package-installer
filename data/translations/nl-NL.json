@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "Installeert ook 1 pakket uit de repositories.",
   "dialog.alsoInstallsMany": "Installeert ook {count} pakketten uit de repositories.",
   "dialog.aur.body": "Wilt u {name} {version} uit het AUR bouwen en installeren?",
+  "drop.hint": "Loslaten om te installeren",
   "fileopen.title": "Dit pakket installeren?",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(geen beschrijving)",

@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "۱ بسته نیز از مخازن نصب می‌شود.",
   "dialog.alsoInstallsMany": "{count} بسته نیز از مخازن نصب می‌شود.",
   "dialog.aur.body": "می‌خواهید {name} {version} را از AUR بسازید و نصب کنید؟",
+  "drop.hint": "رها کنید تا نصب شود",
   "fileopen.title": "این بسته نصب شود؟",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(بدون توضیح)",

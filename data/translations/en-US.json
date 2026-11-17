@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "Also installs 1 package from the repositories.",
   "dialog.alsoInstallsMany": "Also installs {count} packages from the repositories.",
   "dialog.aur.body": "Do you want to build {name} {version} from the AUR and install it?",
+  "drop.hint": "Drop to install",
   "fileopen.title": "Install this package?",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(no description)",

@@ -1,5 +1,5 @@
-//! The file-open flow: double-clicking a `.pkg.tar.zst` shows what the
-//! file is and installs it with `pacman -U`.
+//! The file-open flow: double-clicking or dropping a `.pkg.tar.zst` shows
+//! what the file is and installs it with `pacman -U`.
 //!
 //! One honest caveat, said out loud: pacman does not signature-check
 //! local files, so this dialog never claims the package is verified.

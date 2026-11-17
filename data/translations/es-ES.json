@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "También se instalará 1 paquete de los repositorios.",
   "dialog.alsoInstallsMany": "También se instalarán {count} paquetes de los repositorios.",
   "dialog.aur.body": "¿Quiere compilar e instalar {name} {version} desde el AUR?",
+  "drop.hint": "Soltar para instalar",
   "fileopen.title": "¿Instalar este paquete?",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(sin descripción)",

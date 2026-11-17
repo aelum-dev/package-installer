@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "Es wird 1 Paket aus den Paketquellen installiert.",
   "dialog.alsoInstallsMany": "Es werden {count} Pakete aus den Paketquellen installiert.",
   "dialog.aur.body": "Möchten Sie {name} {version} aus dem AUR bauen und installieren?",
+  "drop.hint": "Datei hier ablegen, um sie zu installieren",
   "fileopen.title": "Dieses Paket installieren?",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(keine Beschreibung)",

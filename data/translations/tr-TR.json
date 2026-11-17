@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "Depolardan 1 paketi de yükler.",
   "dialog.alsoInstallsMany": "Depolardan {count} paketi de yükler.",
   "dialog.aur.body": "{name} {version} paketini AUR'dan derleyip kurmak istiyor musunuz?",
+  "drop.hint": "Yüklemek için bırakın",
   "fileopen.title": "Bu paket yüklensin mi?",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(açıklama yok)",

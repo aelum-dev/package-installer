@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "Cũng cài đặt 1 gói từ các kho lưu trữ.",
   "dialog.alsoInstallsMany": "Cũng cài đặt {count} gói từ các kho lưu trữ.",
   "dialog.aur.body": "Bạn có muốn dựng và cài đặt {name} {version} từ AUR không?",
+  "drop.hint": "Thả vào đây để cài đặt",
   "fileopen.title": "Cài đặt gói này?",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(không có mô tả)",

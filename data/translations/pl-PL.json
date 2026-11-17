@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "Zainstaluje też 1 pakiet z repozytoriów.",
   "dialog.alsoInstallsMany": "Zainstaluje też {count} pakietów z repozytoriów.",
   "dialog.aur.body": "Czy zbudować i zainstalować {name} {version} z AUR?",
+  "drop.hint": "Upuść, aby zainstalować",
   "fileopen.title": "Zainstalować ten pakiet?",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(brak opisu)",

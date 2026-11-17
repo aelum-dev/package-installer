@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "Installerar även 1 paket från paketkällorna.",
   "dialog.alsoInstallsMany": "Installerar även {count} paket från paketkällorna.",
   "dialog.aur.body": "Vill du bygga och installera {name} {version} från AUR?",
+  "drop.hint": "Släpp för att installera",
   "fileopen.title": "Installera det här paketet?",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(ingen beskrivning)",

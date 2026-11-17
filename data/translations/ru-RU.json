@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "Также будет установлен 1 пакет из репозиториев.",
   "dialog.alsoInstallsMany": "Также будет установлено {count} пакетов из репозиториев.",
   "dialog.aur.body": "Собрать и установить {name} {version} из AUR?",
+  "drop.hint": "Отпустите, чтобы установить",
   "fileopen.title": "Установить этот пакет?",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(без описания)",

@@ -7,8 +7,9 @@
 //! startup the model is read and, unless the databases were last checked
 //! minutes ago ([`cache`]), a database refresh checks for updates — quiet on
 //! success, a log dialog on failure. A `.pkg.tar.zst` opened from a file
-//! manager lands in the same transaction flow. Privileged operations run
-//! through the package's own helper under pkexec — see [`txn`].
+//! manager or dropped on the window lands in the same transaction flow.
+//! Privileged operations run through the package's own helper under pkexec —
+//! see [`txn`].
 //!
 //! The model is read from pacman's on-disk state on a worker thread
 //! ([`db`], [`model`]). The only subprocesses are the transactions, which
@@ -58,8 +59,8 @@ fn main() -> gtk::glib::ExitCode {
         }
     });
 
-    // A file manager hands us the opened files here; the first one gets
-    // the dialog, the rest are rare enough to mention rather than stack.
+    // A file manager hands us the opened files here; Ui::open_files says
+    // what becomes of them (the first one gets the dialog).
     app.connect_open({
         let ui = Rc::clone(&ui);
         move |app, files, _hint| {
@@ -71,19 +72,7 @@ fn main() -> gtk::glib::ExitCode {
                 ui.load_model();
                 ui.auto_check();
             }
-            for file in files.iter().skip(1) {
-                let name = file
-                    .basename()
-                    .map(|p| p.display().to_string())
-                    .unwrap_or_else(|| i18n::t("toast.openFallbackName"));
-                ui.toast(&i18n::t_fmt("toast.openExtra", &[("name", &name)]));
-            }
-            if let Some(file) = files.first() {
-                match file.path() {
-                    Some(path) => ui.open_file(path),
-                    None => ui.toast(&i18n::t("toast.openNotLocal")),
-                }
-            }
+            ui.open_files(files);
         }
     });
 

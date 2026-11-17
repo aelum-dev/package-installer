@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "Θα εγκαταστήσει επίσης 1 πακέτο από τα αποθετήρια.",
   "dialog.alsoInstallsMany": "Θα εγκαταστήσει επίσης {count} πακέτα από τα αποθετήρια.",
   "dialog.aur.body": "Θέλετε να δομήσετε και να εγκαταστήσετε το {name} {version} από το AUR;",
+  "drop.hint": "Αφήστε εδώ για εγκατάσταση",
   "fileopen.title": "Εγκατάσταση αυτού του πακέτου;",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(χωρίς περιγραφή)",

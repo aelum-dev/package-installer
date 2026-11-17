@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "还会从软件仓库安装 1 个软件包。",
   "dialog.alsoInstallsMany": "还会从软件仓库安装 {count} 个软件包。",
   "dialog.aur.body": "你要从 AUR 构建并安装 {name} {version} 吗？",
+  "drop.hint": "拖放软件包即可安装",
   "fileopen.title": "安装此软件包？",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "（无描述）",

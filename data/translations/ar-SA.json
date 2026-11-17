@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "سيُثبَّت أيضًا حزمة واحدة من المستودعات.",
   "dialog.alsoInstallsMany": "سيُثبَّت أيضًا {count} حزمة من المستودعات.",
   "dialog.aur.body": "هل تريد بناء وتثبيت {name} {version} من AUR؟",
+  "drop.hint": "أفلت هنا للتثبيت",
   "fileopen.title": "تثبيت هذه الحزمة؟",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(لا وصف)",

@@ -68,6 +68,11 @@ pub struct Ui {
     /// The page area (the ViewStack, and the "refresh in progress" page
     /// that covers it while a refresh runs — see [`Ui::set_refresh_running`]).
     pub content: Rc<RefCell<Option<gtk::Stack>>>,
+    /// Whether a database refresh is running right now (mirrors
+    /// [`Ui::set_refresh_running`]). The window's drop target refuses file
+    /// drags while one is, so the drop hint never promises an install that
+    /// the busy gate would only refuse.
+    pub refreshing: Rc<Cell<bool>>,
     /// Generation counter for model loads. The startup load and the
     /// post-refresh load can overlap; only the newest one may set the
     /// model, or a slow older read could resurrect stale databases.
@@ -106,6 +111,7 @@ impl Ui {
             refresh: Rc::new(RefCell::new(None)),
             fresh: Rc::new(RefCell::new(None)),
             content: Rc::new(RefCell::new(None)),
+            refreshing: Rc::new(Cell::new(false)),
             load_seq: Rc::new(Cell::new(0)),
             startup_check: Rc::new(Cell::new(false)),
             last_check: Rc::new(RefCell::new(None)),
@@ -233,6 +239,7 @@ impl Ui {
     /// state of the databases *before* the check, so while the check runs the
     /// honest content is that a check is running.
     pub fn set_refresh_running(&self, on: bool) {
+        self.refreshing.set(on);
         if let Some(button) = self.refresh.borrow().clone() {
             if on {
                 let spinner = gtk::Spinner::new();
@@ -451,6 +458,25 @@ impl Ui {
                 None => {
                     self.toast(&i18n::t_fmt("toast.startFailed", &[("error", &e.to_string())]));
                 }
+            }
+        }
+    }
+
+    /// Files handed over from outside — a file manager's open or a drop on
+    /// the window: the first one gets the file-open dialog, the rest are
+    /// rare enough to mention rather than stack.
+    pub fn open_files(&self, files: &[gtk::gio::File]) {
+        for file in files.iter().skip(1) {
+            let name = file
+                .basename()
+                .map(|p| p.display().to_string())
+                .unwrap_or_else(|| i18n::t("toast.openFallbackName"));
+            self.toast(&i18n::t_fmt("toast.openExtra", &[("name", &name)]));
+        }
+        if let Some(file) = files.first() {
+            match file.path() {
+                Some(path) => self.open_file(path),
+                None => self.toast(&i18n::t("toast.openNotLocal")),
             }
         }
     }

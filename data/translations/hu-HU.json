@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "További 1 csomag is telepítésre kerül a tárolókból.",
   "dialog.alsoInstallsMany": "További {count} csomag is telepítésre kerül a tárolókból.",
   "dialog.aur.body": "Szeretné lefordítani és telepíteni: {name} {version} az AUR-ból?",
+  "drop.hint": "Engedje el a telepítéshez",
   "fileopen.title": "Telepíti ezt a csomagot?",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(nincs leírás)",

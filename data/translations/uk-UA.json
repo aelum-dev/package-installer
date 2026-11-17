@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "Також встановить 1 пакет із сховищ.",
   "dialog.alsoInstallsMany": "Також встановить {count} пакетів із сховищ.",
   "dialog.aur.body": "Зібрати й встановити {name} {version} з AUR?",
+  "drop.hint": "Відпустіть, щоб встановити",
   "fileopen.title": "Встановити цей пакет?",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(без опису)",

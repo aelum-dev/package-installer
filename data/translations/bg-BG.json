@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "Ще бъде инсталиран и 1 пакет от хранилищата.",
   "dialog.alsoInstallsMany": "Ще бъдат инсталирани и {count} пакета от хранилищата.",
   "dialog.aur.body": "Искате ли да изградите и инсталирате {name} {version} от AUR?",
+  "drop.hint": "Пуснете тук, за да инсталирате",
   "fileopen.title": "Инсталиране на този пакет?",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(няма описание)",

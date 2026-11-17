@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "Installe également 1 paquet depuis les dépôts.",
   "dialog.alsoInstallsMany": "Installe également {count} paquets depuis les dépôts.",
   "dialog.aur.body": "Voulez-vous compiler et installer {name} {version} depuis l'AUR ?",
+  "drop.hint": "Déposer pour installer",
   "fileopen.title": "Installer ce paquet ?",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "(pas de description)",

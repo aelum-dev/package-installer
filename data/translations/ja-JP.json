@@ -77,6 +77,7 @@
   "dialog.alsoInstallsOne": "リポジトリから 1 個のパッケージもインストールされます。",
   "dialog.alsoInstallsMany": "リポジトリから {count} 個のパッケージもインストールされます。",
   "dialog.aur.body": "AUR から {name} {version} をビルドしてインストールしますか？",
+  "drop.hint": "ドロップするとインストールされます",
   "fileopen.title": "このパッケージをインストールしますか？",
   "fileopen.body": "{name} {version}\n{desc}",
   "fileopen.noDesc": "（説明なし）",

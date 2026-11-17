@@ -5,7 +5,7 @@ use libadwaita as adw;
 use libadwaita::prelude::*;
 
 use super::app::Ui;
-use super::{aur, browse, distro, installed, updates};
+use super::{aur, browse, distro, dnd, installed, updates};
 use crate::i18n;
 use crate::txn::Txn;
 
@@ -27,18 +27,31 @@ fn apply_rtl(root: &impl gtk::prelude::IsA<gtk::Widget>) {
     }
 }
 
+/// The window's own CSS: two overrides the theme does not give us.
+///
 /// The frame around a scrolled list is the viewport's, not the content's:
 /// the pages put `.card` on the ScrolledWindow and keep `.boxed-list` on
 /// the list, because libadwaita's row styling is `list.boxed-list > row`
 /// — a child selector, so the class cannot move. That class also paints a
 /// card on the list itself, and that outline would run to the end of the
 /// content instead of ending at the window; this strips just that painting.
-fn add_frame_css(window: &adw::ApplicationWindow) {
+///
+/// The drop hint's dashed frame is the video-player's drop-to-play shape:
+/// `.osd` draws the dim film and its white ink, so the border reads in
+/// both themes without a `prefers-color-scheme` branch.
+fn add_window_css(window: &adw::ApplicationWindow) {
     let css = gtk::CssProvider::new();
     // A stylesheet this file cannot parse is a bug in this file; GTK names
     // the failure on the terminal, and a missing override is only cosmetic.
     css.load_from_string(
-        "scrolledwindow.card list.boxed-list { background: none; box-shadow: none; }",
+        "scrolledwindow.card list.boxed-list { background: none; box-shadow: none; }
+         label.drop-hint {
+             margin: 14px;
+             border: 3px dashed alpha(white, 0.85);
+             border-radius: 10px;
+             font-weight: 600;
+             font-size: 1.4em;
+         }",
     );
     gtk::style_context_add_provider_for_display(
         &gtk::prelude::RootExt::display(window),
@@ -53,7 +66,7 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     *ui.overlay.borrow_mut() = Some(overlay.clone());
 
     let window = adw::ApplicationWindow::new(app);
-    add_frame_css(&window);
+    add_window_css(&window);
     window.set_title(Some(&i18n::t("app.name")));
     window.set_default_size(900, 650);
 
@@ -200,7 +213,25 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     content.set_visible_child_name("pages");
     *ui.content.borrow_mut() = Some(content.clone());
 
-    toolbar.set_content(Some(&content));
+    // Drop feedback: a dashed frame and a hint drawn *over* the pages
+    // (topmost overlay child), hidden until a file drag enters the window —
+    // the video-player's shape, with the drop target on the window so a
+    // file lands on the app wherever the pointer is.
+    let drop_hint = gtk::Label::builder()
+        .label(i18n::t("drop.hint"))
+        .xalign(0.5)
+        .yalign(0.5)
+        .build();
+    drop_hint.add_css_class("osd");
+    drop_hint.add_css_class("drop-hint");
+    drop_hint.set_halign(gtk::Align::Fill);
+    drop_hint.set_valign(gtk::Align::Fill);
+    drop_hint.set_visible(false);
+    let area = gtk::Overlay::new();
+    area.set_child(Some(&content));
+    area.add_overlay(&drop_hint);
+
+    toolbar.set_content(Some(&area));
     overlay.set_child(Some(&toolbar));
     window.set_content(Some(&overlay));
 
@@ -210,6 +241,7 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     *ui.browse.borrow_mut() = Some(browse_page);
     *ui.distro.borrow_mut() = Some(distro_page);
     *ui.aur_page.borrow_mut() = Some(aur_page);
+    dnd::attach(&window, &drop_hint, ui);
     // RTL after the whole tree exists: every control must be covered.
     apply_rtl(&window);
     window.present();

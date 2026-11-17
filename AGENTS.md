@@ -44,7 +44,9 @@ installs ship it preinstalled. Updates still come from the repo.
 - `src/txn.rs` — the only place root is asked for.
 - `src/ui/` — thin: `app.rs` is the shared state (`Ui`), the transaction gate
   and the AUR search/job entry points, `window.rs` the five-page `ViewStack`,
-  one module per page, `dialog`/`txnlog`/`fileopen` the dialogs.
+  one module per page, `dialog`/`txnlog`/`fileopen` the dialogs, `dnd` the
+  window's drop target (dropping a package file opens the file-open flow,
+  the video-player's shape).
 
 The pure modules hold every decision and carry the tests; a page builds
 rows from what `Model` returns and never classifies anything itself. That is
@@ -345,7 +347,10 @@ the annotation — an invariant, not a unit test of a string.
   pages, and (manual only) toast; only a failure opens the log dialog. A modal
   log would cover the very thing that says a check is running — and the rows
   behind it are the databases as they were *before* the check, so `Ui::set_refresh_running`
-  hides them rather than letting stale rows read as a result.
+  hides them rather than letting stale rows read as a result. The window's drop
+  target is paused for the same moment (`Ui::refreshing`): a file drag is
+  refused at `accept`, so the drop hint never promises an install the busy gate
+  would only refuse.
 - **The app lists its own package** (`model::SELF_PACKAGE`) like any other row —
   it needs its updates too, and a self-update while running is ordinary (Linux
   replaces the binary under the process). The entry is never filtered out of
