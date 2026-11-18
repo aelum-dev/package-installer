@@ -127,7 +127,7 @@
   "action.exit": "Thoát",
   "mirrors.menu": "Menu",
   "mirrors.title": "Cập nhật máy chủ gương",
-  "mirrors.question": "Bạn có muốn đồng bộ các máy chủ gương với tốc độ tốt nhất cho quốc gia của bạn?",
+  "mirrors.body": "Cập nhật máy chủ gương với những máy nhanh nhất cho quốc gia của bạn.",
   "mirrors.search": "Tìm quốc gia",
   "mirrors.willInstall": "Trước tiên hệ thống sẽ cài reflector — chương trình sắp xếp các máy chủ gương theo tốc độ.",
   "mirrors.running": "Đang cập nhật máy chủ gương…",

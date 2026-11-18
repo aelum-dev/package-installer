@@ -127,7 +127,7 @@
   "action.exit": "Kilépés",
   "mirrors.menu": "Menü",
   "mirrors.title": "Tükrök frissítése",
-  "mirrors.question": "Szeretné szinkronizálni a tükröket az Ön országában elérhető legjobb sebesség alapján?",
+  "mirrors.body": "Frissítse a tükröket az Ön országában leggyorsabbakkal.",
   "mirrors.search": "Ország keresése",
   "mirrors.willInstall": "Először a reflector kerül telepítésre – ez a program rendezi a tükröket sebesség szerint.",
   "mirrors.running": "Tükrök frissítése…",

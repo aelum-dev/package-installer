@@ -127,7 +127,7 @@
   "action.exit": "Surt",
   "mirrors.menu": "Menú",
   "mirrors.title": "Actualitza els miralls",
-  "mirrors.question": "Voleu sincronitzar els miralls amb la millor velocitat per al vostre país?",
+  "mirrors.body": "Actualitza els miralls amb els més ràpids per al vostre país.",
   "mirrors.search": "Cerca un país",
   "mirrors.willInstall": "Primer s'instal·la reflector, el programa que ordena els miralls per velocitat.",
   "mirrors.running": "Actualitzant els miralls…",

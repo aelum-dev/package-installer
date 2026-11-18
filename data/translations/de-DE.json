@@ -127,7 +127,7 @@
   "action.exit": "Beenden",
   "mirrors.menu": "Menü",
   "mirrors.title": "Spiegel aktualisieren",
-  "mirrors.question": "Möchten Sie die Spiegel mit der besten Geschwindigkeit für Ihr Land abgleichen?",
+  "mirrors.body": "Spiegel aktualisieren und die schnellsten für Ihr Land verwenden.",
   "mirrors.search": "Land suchen",
   "mirrors.willInstall": "Zuerst wird reflector installiert – das Programm, das die Spiegel nach Geschwindigkeit sortiert.",
   "mirrors.running": "Spiegel werden aktualisiert…",

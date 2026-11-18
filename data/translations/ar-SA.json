@@ -127,7 +127,7 @@
   "action.exit": "خروج",
   "mirrors.menu": "قائمة",
   "mirrors.title": "تحديث المرايا",
-  "mirrors.question": "هل تريد مزامنة المرايا مع أفضل سرعة لبلدك؟",
+  "mirrors.body": "حدّث المرايا بأسرعها لبلدك.",
   "mirrors.search": "ابحث عن بلد",
   "mirrors.willInstall": "سيُثبَّت reflector أولًا: البرنامج الذي يرتّب المرايا حسب السرعة.",
   "mirrors.running": "جارٍ تحديث المرايا…",

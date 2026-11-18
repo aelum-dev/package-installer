@@ -127,7 +127,7 @@
   "action.exit": "終了",
   "mirrors.menu": "メニュー",
   "mirrors.title": "ミラーを更新",
-  "mirrors.question": "お住まいの国で最速のミラーに同期しますか？",
+  "mirrors.body": "お住まいの国で最速のミラーに更新します。",
   "mirrors.search": "国を検索",
   "mirrors.willInstall": "まず reflector（ミラーを速度順に並べるプログラム）をインストールします。",
   "mirrors.running": "ミラーを更新しています…",

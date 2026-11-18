@@ -127,7 +127,7 @@
   "action.exit": "Afsluiten",
   "mirrors.menu": "Menu",
   "mirrors.title": "Spiegels bijwerken",
-  "mirrors.question": "Wilt u de spiegels synchroniseren met de beste snelheid voor uw land?",
+  "mirrors.body": "Spiegels bijwerken met de snelste voor uw land.",
   "mirrors.search": "Zoek een land",
   "mirrors.willInstall": "Eerst wordt reflector geïnstalleerd — het programma dat spiegels op snelheid sorteer.",
   "mirrors.running": "Spiegels worden bijgewerkt…",

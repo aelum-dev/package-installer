@@ -127,7 +127,7 @@
   "action.exit": "Çık",
   "mirrors.menu": "Menü",
   "mirrors.title": "Aynaları güncelle",
-  "mirrors.question": "Aynalarınızı ülkeniz için en iyi hızla eşitlemek istiyor musunuz?",
+  "mirrors.body": "Aynaları ülkeniz için en hızlı olanlarla güncelleyin.",
   "mirrors.search": "Ülke ara",
   "mirrors.willInstall": "Önce aynaları hıza göre sıralayan program olan reflector kurulacak.",
   "mirrors.running": "Aynalar güncelleniyor…",

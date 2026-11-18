@@ -127,7 +127,7 @@
   "action.exit": "종료",
   "mirrors.menu": "메뉴",
   "mirrors.title": "미러 갱신",
-  "mirrors.question": "해당 국가에서 가장 빠른 속도의 미러로 동기화하시겠습니까?",
+  "mirrors.body": "해당 국가에서 가장 빠른 미러로 갱신합니다.",
   "mirrors.search": "국가 검색",
   "mirrors.willInstall": "먼저 reflector를 설치합니다. reflector는 미러를 속도로 정렬하는 프로그램입니다.",
   "mirrors.running": "미러를 갱신하는 중…",

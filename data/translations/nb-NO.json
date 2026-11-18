@@ -127,7 +127,7 @@
   "action.exit": "Avslutt",
   "mirrors.menu": "Meny",
   "mirrors.title": "Oppdater speilere",
-  "mirrors.question": "Vil du synkronisere speilerne med beste hastighet for landet ditt?",
+  "mirrors.body": "Oppdater speilere med de raskeste for landet ditt.",
   "mirrors.search": "Søk etter land",
   "mirrors.willInstall": "Først installeres reflector – programmet som rangerer speilere etter hastighet.",
   "mirrors.running": "Oppdaterer speilere…",

@@ -127,7 +127,7 @@
   "action.exit": "יציאה",
   "mirrors.menu": "תפריט",
   "mirrors.title": "עדכון מראות",
-  "mirrors.question": "לסנכרן את המראות עם המהירות הטובה ביותר עבור המדינה שלך?",
+  "mirrors.body": "עדכון המראות עם המהירים ביותר עבור המדינה שלך.",
   "mirrors.search": "חיפוש מדינה",
   "mirrors.willInstall": "התוכנית reflector תותקן תחילה — היא מדרגת את המראות לפי מהירות.",
   "mirrors.running": "מעדכן מראות…",

@@ -127,7 +127,7 @@
   "action.exit": "Eliri",
   "mirrors.menu": "Menuo",
   "mirrors.title": "Ĝisdatigi spegulojn",
-  "mirrors.question": "Ĉu vi volas sinkronigi la spegulojn kun la plej bona rapido por via lando?",
+  "mirrors.body": "Ĝisdatigu la spegulojn per la plej rapidaj por via lando.",
   "mirrors.search": "Serĉi landon",
   "mirrors.willInstall": "Unue instalatiĝos reflector — la programo, kiu rangigas la spegulojn laŭ rapido.",
   "mirrors.running": "Ĝisdatiĝas la speguloj…",

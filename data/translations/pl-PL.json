@@ -127,7 +127,7 @@
   "action.exit": "Zakończ",
   "mirrors.menu": "Menu",
   "mirrors.title": "Aktualizuj lustra",
-  "mirrors.question": "Na pewno zsynchronizować lustra z najlepszą prędkością dla Twojego kraju?",
+  "mirrors.body": "Zaktualizuj lustra, wybierając najszybsze dla Twojego kraju.",
   "mirrors.search": "Szukaj kraju",
   "mirrors.willInstall": "Najpierw zostanie zainstalowany program reflector — porządkuje on lustra według prędkości.",
   "mirrors.running": "Aktualizowanie luster…",

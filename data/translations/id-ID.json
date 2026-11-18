@@ -127,7 +127,7 @@
   "action.exit": "Keluar",
   "mirrors.menu": "Menu",
   "mirrors.title": "Perbarui mirror",
-  "mirrors.question": "Apakah Anda ingin menyinkronkan mirror dengan kecepatan terbaik untuk negara Anda?",
+  "mirrors.body": "Perbarui mirror dengan yang tercepat untuk negara Anda.",
   "mirrors.search": "Cari negara",
   "mirrors.willInstall": "reflector akan dipasang terlebih dahulu: program yang mengurutkan mirror berdasarkan kecepatan.",
   "mirrors.running": "Memperbarui mirror…",

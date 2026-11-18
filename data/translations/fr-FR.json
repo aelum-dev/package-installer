@@ -127,7 +127,7 @@
   "action.exit": "Quitter",
   "mirrors.menu": "Menu",
   "mirrors.title": "Mettre à jour les miroirs",
-  "mirrors.question": "Voulez-vous synchroniser les miroirs avec la meilleure vitesse pour votre pays ?",
+  "mirrors.body": "Mettre à jour les miroirs avec les plus rapides pour votre pays.",
   "mirrors.search": "Rechercher un pays",
   "mirrors.willInstall": "reflector sera installé d’abord : ce programme classe les miroirs par vitesse.",
   "mirrors.running": "Mise à jour des miroirs…",

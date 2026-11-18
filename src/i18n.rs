@@ -448,7 +448,7 @@ mod tests {
             "toast.startFailed",
             "mirrors.menu",
             "mirrors.title",
-            "mirrors.question",
+            "mirrors.body",
             "mirrors.search",
             "mirrors.willInstall",
             "mirrors.running",

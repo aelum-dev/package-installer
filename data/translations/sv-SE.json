@@ -127,7 +127,7 @@
   "action.exit": "Avsluta",
   "mirrors.menu": "Meny",
   "mirrors.title": "Uppdatera speglar",
-  "mirrors.question": "Vill du synkronisera speglarna med bästa hastighet för ditt land?",
+  "mirrors.body": "Uppdatera speglar med de snabbaste för ditt land.",
   "mirrors.search": "Sök ett land",
   "mirrors.willInstall": "Först installeras reflector — programmet som sorterar speglar efter hastighet.",
   "mirrors.running": "Uppdaterar speglar…",

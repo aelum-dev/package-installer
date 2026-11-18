@@ -70,14 +70,14 @@ pub fn show(ui: &Ui) {
         .build();
     let stack = gtk::Stack::new();
 
-    // ── The form: the question, the note, the picker, the acts. ──
+    // ── The form: the body, the note, the picker, the acts. ──
     let form = gtk::Box::new(gtk::Orientation::Vertical, 12);
     form.set_margin_start(24);
     form.set_margin_end(24);
     form.set_margin_top(18);
     form.set_margin_bottom(18);
 
-    let body = gtk::Label::new(Some(&i18n::t("mirrors.question")));
+    let body = gtk::Label::new(Some(&i18n::t("mirrors.body")));
     body.set_wrap(true);
     body.set_xalign(0.0);
     form.append(&body);

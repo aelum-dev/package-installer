@@ -127,7 +127,7 @@
   "action.exit": "Esci",
   "mirrors.menu": "Menu",
   "mirrors.title": "Aggiorna i mirror",
-  "mirrors.question": "Vuoi sincronizzare i mirror con la velocità migliore per il tuo paese?",
+  "mirrors.body": "Aggiorna i mirror con i più veloci per il tuo paese.",
   "mirrors.search": "Cerca un paese",
   "mirrors.willInstall": "Viene prima installato reflector: il programma che ordina i mirror per velocità.",
   "mirrors.running": "Aggiornamento dei mirror…",
