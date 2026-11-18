@@ -27,7 +27,7 @@ fn apply_rtl(root: &impl gtk::prelude::IsA<gtk::Widget>) {
     }
 }
 
-/// The window's own CSS: two overrides the theme does not give us.
+/// The window's own CSS: the overrides the theme does not give us.
 ///
 /// The frame around a scrolled list is the viewport's, not the content's:
 /// the pages put `.card` on the ScrolledWindow and keep `.boxed-list` on
@@ -39,6 +39,13 @@ fn apply_rtl(root: &impl gtk::prelude::IsA<gtk::Widget>) {
 /// The drop hint's dashed frame is the video-player's drop-to-play shape:
 /// `.osd` draws the dim film and its white ink, so the border reads in
 /// both themes without a `prefers-color-scheme` branch.
+///
+/// The close button wears the video-player's close look: the player draws
+/// its ✕ on an always-on ink disc through the theme's own
+/// `windowcontrols > button > image` rules, which cannot reach this
+/// button — it is not under a `windowcontrols` node (see the `close`
+/// button below for why). The values restated here are that rule's own,
+/// read from the compiled stylesheet of /usr/lib/libadwaita-1.so.
 fn add_window_css(window: &adw::ApplicationWindow) {
     let css = gtk::CssProvider::new();
     // A stylesheet this file cannot parse is a bug in this file; GTK names
@@ -51,6 +58,24 @@ fn add_window_css(window: &adw::ApplicationWindow) {
              border-radius: 10px;
              font-weight: 600;
              font-size: 1.4em;
+         }
+         button.window-close {
+             min-width: 24px;
+             padding: 5px;
+             background: none;
+             box-shadow: none;
+         }
+         button.window-close > image {
+             background-color: color-mix(in srgb, currentColor 10%, transparent);
+             border-radius: 100%;
+             padding: 4px;
+             transition: background 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+         }
+         button.window-close:hover > image {
+             background-color: color-mix(in srgb, currentColor 15%, transparent);
+         }
+         button.window-close:active > image {
+             background-color: color-mix(in srgb, currentColor 30%, transparent);
          }",
     );
     gtk::style_context_add_provider_for_display(
@@ -124,6 +149,9 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     // like the compositor's kill would.
     let close = gtk::Button::from_icon_name("window-close-symbolic");
     close.add_css_class("flat");
+    // `.window-close` draws the player's ink disc under the icon and kills
+    // the flat square hover (see `add_window_css`).
+    close.add_css_class("window-close");
     close.set_tooltip_text(Some(&i18n::t("action.close")));
     close.set_action_name(Some("window.close"));
     // The "⋯" menu: the app-level acts — updating the mirrors, About, and
