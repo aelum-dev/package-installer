@@ -123,5 +123,14 @@
   "phase.installBuilt": "Instalando os pacotes compilados…",
   "phase.cleanup": "Removendo dependências de compilação…",
   "chooser.title": "Escolher um provedor",
-  "chooser.body": "Estes pacotes exigem a escolha de um provedor. Escolha qual pacote atende a cada requisito — o primeiro é o que seria instalado por padrão."
+  "chooser.body": "Estes pacotes exigem a escolha de um provedor. Escolha qual pacote atende a cada requisito — o primeiro é o que seria instalado por padrão.",
+  "action.exit": "Sair",
+  "mirrors.menu": "Menu",
+  "mirrors.title": "Atualizar os espelhos",
+  "mirrors.question": "Deseja sincronizar os espelhos com a melhor velocidade para o seu país?",
+  "mirrors.search": "Pesquisar um país",
+  "mirrors.willInstall": "O reflector será instalado primeiro: o programa que ordena os espelhos por velocidade.",
+  "mirrors.running": "Atualizando os espelhos…",
+  "mirrors.done": "Lista de espelhos atualizada.",
+  "mirrors.failed": "Não foi possível atualizar os espelhos."
 }

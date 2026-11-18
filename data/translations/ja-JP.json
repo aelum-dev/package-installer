@@ -123,5 +123,14 @@
   "phase.installBuilt": "ビルドしたパッケージをインストール中…",
   "phase.cleanup": "ビルド時の依存を削除中…",
   "chooser.title": "プロバイダーを選択",
-  "chooser.body": "これらのパッケージはプロバイダーの選択が必要です。それぞれの要求を満たすパッケージを選択してください — 先頭のパッケージが既定でインストールされます。"
+  "chooser.body": "これらのパッケージはプロバイダーの選択が必要です。それぞれの要求を満たすパッケージを選択してください — 先頭のパッケージが既定でインストールされます。",
+  "action.exit": "終了",
+  "mirrors.menu": "メニュー",
+  "mirrors.title": "ミラーを更新",
+  "mirrors.question": "お住まいの国で最速のミラーに同期しますか？",
+  "mirrors.search": "国を検索",
+  "mirrors.willInstall": "まず reflector（ミラーを速度順に並べるプログラム）をインストールします。",
+  "mirrors.running": "ミラーを更新しています…",
+  "mirrors.done": "ミラーリストを更新しました。",
+  "mirrors.failed": "ミラーを更新できませんでした。"
 }

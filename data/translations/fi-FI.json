@@ -123,5 +123,14 @@
   "phase.installBuilt": "Asennetaan käännetyt paketit…",
   "phase.cleanup": "Poistetaan käännösaikaiset riippuvuudet…",
   "chooser.title": "Valitse tarjoaja",
-  "chooser.body": "Nämä paketit vaativat tarjoajan valinnan. Valitse, mikä paketeista täyttää kunkin vaatimuksen — ensimmäinen asennettaisiin oletuksena."
+  "chooser.body": "Nämä paketit vaativat tarjoajan valinnan. Valitse, mikä paketeista täyttää kunkin vaatimuksen — ensimmäinen asennettaisiin oletuksena.",
+  "action.exit": "Lopeta",
+  "mirrors.menu": "Valikko",
+  "mirrors.title": "Päivitä peilit",
+  "mirrors.question": "Haluatko synkronoida peilit maasi parhaan nopeuden mukaan?",
+  "mirrors.search": "Etsi maata",
+  "mirrors.willInstall": "Reflector asennetaan ensin: ohjelma, joka järjestää peilit nopeuden mukaan.",
+  "mirrors.running": "Päivitetään peilejä…",
+  "mirrors.done": "Peililuettelo päivitettiin.",
+  "mirrors.failed": "Peilien päivitys ei onnistunut."
 }

@@ -123,5 +123,14 @@
   "phase.installBuilt": "Die gebauten Pakete werden installiert…",
   "phase.cleanup": "Build-Abhängigkeiten werden entfernt…",
   "chooser.title": "Anbieter wählen",
-  "chooser.body": "Für diese Pakete muss ein Anbieter gewählt werden. Wählen Sie, welches Paket jede Anforderung erfüllt — das Erste ist das, was standardmäßig installiert würde."
+  "chooser.body": "Für diese Pakete muss ein Anbieter gewählt werden. Wählen Sie, welches Paket jede Anforderung erfüllt — das Erste ist das, was standardmäßig installiert würde.",
+  "action.exit": "Beenden",
+  "mirrors.menu": "Menü",
+  "mirrors.title": "Spiegel aktualisieren",
+  "mirrors.question": "Möchten Sie die Spiegel mit der besten Geschwindigkeit für Ihr Land abgleichen?",
+  "mirrors.search": "Land suchen",
+  "mirrors.willInstall": "Zuerst wird reflector installiert – das Programm, das die Spiegel nach Geschwindigkeit sortiert.",
+  "mirrors.running": "Spiegel werden aktualisiert…",
+  "mirrors.done": "Spiegelliste aktualisiert.",
+  "mirrors.failed": "Die Spiegel konnten nicht aktualisiert werden."
 }

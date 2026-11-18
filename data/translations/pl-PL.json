@@ -123,5 +123,14 @@
   "phase.installBuilt": "Instalowanie zbudowanych pakietów…",
   "phase.cleanup": "Usuwanie zależności czasu budowania…",
   "chooser.title": "Wybierz dostawcę",
-  "chooser.body": "Te pakiety wymagają wyboru dostawcy. Wybierz, który pakiet spełnia każde wymaganie — pierwszy zostałby zainstalowany domyślnie."
+  "chooser.body": "Te pakiety wymagają wyboru dostawcy. Wybierz, który pakiet spełnia każde wymaganie — pierwszy zostałby zainstalowany domyślnie.",
+  "action.exit": "Zakończ",
+  "mirrors.menu": "Menu",
+  "mirrors.title": "Aktualizuj lustra",
+  "mirrors.question": "Na pewno zsynchronizować lustra z najlepszą prędkością dla Twojego kraju?",
+  "mirrors.search": "Szukaj kraju",
+  "mirrors.willInstall": "Najpierw zostanie zainstalowany program reflector — porządkuje on lustra według prędkości.",
+  "mirrors.running": "Aktualizowanie luster…",
+  "mirrors.done": "Lista luster została zaktualizowana.",
+  "mirrors.failed": "Nie udało się zaktualizować luster."
 }

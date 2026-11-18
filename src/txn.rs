@@ -50,6 +50,11 @@ pub enum Txn {
     /// `InstallAsDeps`. The requested package stays Explicit; a dependency
     /// that outlives the cleanup should be an orphan, not a ghost.
     InstallFilesAsDeps(Vec<PathBuf>),
+    /// Rewrite the mirror list through the helper's reflector verb. `None` is
+    /// the installer's worldwide location — every mirror, no country filter.
+    /// This runs under the mirrors dialog's own spinner, never in a txn log:
+    /// a mirror rewrite has no pacman progress to parse.
+    UpdateMirrors(Option<String>),
 }
 
 impl Txn {
@@ -83,6 +88,11 @@ impl Txn {
                 a.extend(paths.iter().map(|p| p.display().to_string()));
                 a
             }
+            Txn::UpdateMirrors(country) => {
+                let mut a = vec!["update-mirrors".into()];
+                a.extend(country.iter().cloned());
+                a
+            }
         }
     }
 
@@ -101,11 +111,19 @@ impl Txn {
                     "file",
                     &paths
                         .iter()
-                        .map(|p| p.file_name().unwrap_or_default().to_string_lossy().into_owned())
+                        .map(|p| {
+                            p.file_name()
+                                .unwrap_or_default()
+                                .to_string_lossy()
+                                .into_owned()
+                        })
                         .collect::<Vec<_>>()
                         .join(", "),
                 )],
             ),
+            // The mirrors dialog is open over the job this names; no sentence
+            // about it is ever printed next to it.
+            Txn::UpdateMirrors(_) => i18n::t("mirrors.title"),
         }
     }
 
@@ -119,6 +137,12 @@ impl Txn {
             Txn::Remove(_) => crate::progress::Verb::Remove,
             Txn::Upgrade => crate::progress::Verb::Upgrade,
             Txn::InstallFiles(_) | Txn::InstallFilesAsDeps(_) => crate::progress::Verb::File,
+            // Not a pacman transaction, and the mirrors dialog streams its job
+            // into a spinner, never a progress bar. Asking for a band is a
+            // misuse of this variant — and a misuse that names its own exit.
+            Txn::UpdateMirrors(_) => unreachable!(
+                "update-mirrors runs under the mirrors dialog's spinner, never a progress bar"
+            ),
         }
     }
 
@@ -236,7 +260,10 @@ fn read_pipes(child: &mut std::process::Child, tx: &UnboundedSender<TxnEvent>) {
 fn pipe<R: std::io::Read + Send + 'static>(reader: R, tx: &UnboundedSender<TxnEvent>) {
     let tx = tx.clone();
     thread::spawn(move || {
-        for line in std::io::BufReader::new(reader).lines().map_while(Result::ok) {
+        for line in std::io::BufReader::new(reader)
+            .lines()
+            .map_while(Result::ok)
+        {
             let _ = tx.unbounded_send(TxnEvent::Line(line));
         }
     });
@@ -248,8 +275,10 @@ mod tests {
 
     /// The helper's whole interface, in its own order. The tests that read
     /// the helper script ask about exactly these, so a verb added to the
-    /// helper cannot be missed by one of them.
-    const VERBS: [&str; 7] = [
+    /// helper cannot be missed by one of them. Only the pacman verbs go
+    /// through its `pacman_args` match; the mirror update is dispatched
+    /// beside it.
+    const PACMAN_VERBS: [&str; 7] = [
         "refresh",
         "install",
         "install-asdeps",
@@ -258,11 +287,24 @@ mod tests {
         "file",
         "file-asdeps",
     ];
+    const ALL_VERBS: [&str; 8] = [
+        "refresh",
+        "install",
+        "install-asdeps",
+        "remove",
+        "upgrade",
+        "file",
+        "file-asdeps",
+        "update-mirrors",
+    ];
 
     #[test]
     fn argv_matches_the_helper_subcommands() {
         assert_eq!(Txn::Refresh.argv(), ["refresh"]);
-        assert_eq!(Txn::Install(vec!["htop".into()]).argv(), ["install", "htop"]);
+        assert_eq!(
+            Txn::Install(vec!["htop".into()]).argv(),
+            ["install", "htop"]
+        );
         assert_eq!(
             Txn::InstallAsDeps(vec!["cmake".into()]).argv(),
             ["install-asdeps", "cmake"]
@@ -286,6 +328,13 @@ mod tests {
             Txn::InstallFilesAsDeps(vec!["/t/helper.pkg.tar.zst".into()]).argv(),
             ["file-asdeps", "/t/helper.pkg.tar.zst"]
         );
+        // The mirror update names its country by ISO code; no country is the
+        // installer's worldwide location, and the verb then takes no argument.
+        assert_eq!(
+            Txn::UpdateMirrors(Some("ua".into())).argv(),
+            ["update-mirrors", "ua"]
+        );
+        assert_eq!(Txn::UpdateMirrors(None).argv(), ["update-mirrors"]);
     }
 
     #[test]
@@ -295,8 +344,14 @@ mod tests {
         // `-Sy` and `-Syu`. Every other verb reads those databases, so its
         // success says nothing about how old they are.
         let helper = include_str!("bin/aelum-package-installer-helper.rs");
-        assert!(helper.contains("\"-Sy\""), "refresh must fetch the databases");
-        assert!(helper.contains("\"-Syu\""), "upgrade must fetch the databases");
+        assert!(
+            helper.contains("\"-Sy\""),
+            "refresh must fetch the databases"
+        );
+        assert!(
+            helper.contains("\"-Syu\""),
+            "upgrade must fetch the databases"
+        );
         for txn in [Txn::Refresh, Txn::Upgrade] {
             assert!(txn.syncs_databases(), "{txn:?} fetches the databases");
         }
@@ -306,6 +361,11 @@ mod tests {
             Txn::Remove(vec!["htop".into()]),
             Txn::InstallFiles(vec!["/t/x.pkg.tar.zst".into()]),
             Txn::InstallFilesAsDeps(vec!["/t/x.pkg.tar.zst".into()]),
+            // A mirror update rewrites what the databases are fetched through
+            // — it fetches no database, so it leaves the freshness record as
+            // untouched as a removal does.
+            Txn::UpdateMirrors(Some("ua".into())),
+            Txn::UpdateMirrors(None),
         ] {
             assert!(!txn.syncs_databases(), "{txn:?} only reads the databases");
         }
@@ -320,9 +380,18 @@ mod tests {
         let policy = include_str!("../data/polkit/dev.aelum.package.manage.policy");
         assert!(policy.contains(&format!("exec.path\">{HELPER}<")));
         let helper = include_str!("bin/aelum-package-installer-helper.rs");
-        for verb in VERBS {
-            assert!(helper.contains(&format!("\"{verb}\" =>")), "helper lacks {verb}");
+        for verb in PACMAN_VERBS {
+            assert!(
+                helper.contains(&format!("\"{verb}\" =>")),
+                "helper lacks {verb}"
+            );
             assert!(helper.contains("\"--noconfirm\""));
+        }
+        for verb in ALL_VERBS {
+            assert!(
+                helper.contains(&format!("\"{verb}\"")),
+                "helper lacks {verb}"
+            );
         }
         // Line-buffered: with stdout a pipe glibc holds pacman's output in
         // 4 KiB blocks, and the app would watch a frozen log through a
@@ -358,9 +427,55 @@ mod tests {
         let cleared = helper.find("clear_stale_lock();").unwrap();
         let execed = helper.find(".exec()").unwrap();
         assert!(refused < cleared, "a refused verb must not touch the lock");
-        assert!(cleared < execed, "the lock must be cleared before pacman runs");
+        assert!(
+            cleared < execed,
+            "the lock must be cleared before pacman runs"
+        );
         // A live pacman is a transaction in progress: dropping its lock would
         // let two of them write the same databases.
         assert!(helper.contains("pacman_running"), "must keep a live lock");
+        // And the one verb that runs no pacman is dispatched before any of
+        // this exists: reflector neither takes the database lock nor needs a
+        // leftover one cleared — it fetches a JSON file and writes the mirror
+        // list, it never opens a pacman database.
+        let mirrored = helper.find("verb == \"update-mirrors\"").unwrap();
+        assert!(
+            mirrored < cleared,
+            "the mirror update must not touch the database lock"
+        );
+    }
+
+    #[test]
+    fn the_mirror_update_replaces_the_mirrorlist_atomically() {
+        let helper = include_str!("bin/aelum-package-installer-helper.rs");
+        // The same path the app reads its country default from: one file,
+        // named once per binary, pinned equal here across the crate boundary.
+        assert!(
+            helper.contains(&format!(
+                "const MIRRORLIST: &str = \"{}\"",
+                crate::model::MIRRORLIST
+            )),
+            "the mirrorlist must be the one path this app shares"
+        );
+        // reflector by absolute path and an environment rebuilt from the
+        // allowlist — the verb added to this helper holds the same rule as
+        // the seven pacman verbs it was built for.
+        assert!(
+            helper.contains("\"/usr/bin/reflector\""),
+            "reflector by path"
+        );
+        assert!(helper.contains(".env_clear()"));
+        // The new list lands by rename, never by a truncating write onto the
+        // live file: a run killed mid-write leaves the old list whole.
+        assert!(
+            helper.contains("std::fs::rename(MIRRORLIST_TMP, MIRRORLIST)"),
+            "the mirrorlist must be replaced atomically"
+        );
+        // And the country reaches reflector's argv only after a shape check,
+        // so nothing on argv can read as a reflector option.
+        assert!(
+            helper.contains("is_country_code(one)"),
+            "the country argument must be validated"
+        );
     }
 }

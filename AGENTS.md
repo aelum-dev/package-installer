@@ -25,6 +25,12 @@ installs ship it preinstalled. Updates still come from the repo.
   sibling), and when a database check is owed: the record of the last successful
   one, and the age past which it stops meaning anything (`MAX_AGE`, 10 min).
   **No GTK, no network, no process.**
+- `src/countries.rs` — the mirror countries: the table (the installer's
+  region table reduced to code+name, pinned to it by an ignored parity test),
+  the fuzzy search the mirror picker runs, and which country a system's own
+  mirrorlist and locale files point at. **No GTK, no process, no file reads**
+  — callers hand the text in, so the chain is testable without an installed
+  system.
 - `src/aur.rs` — the AUR's protocol: the RPC URLs, its reply format, and
   `plan()` (what an install needs, in build order). **No GTK, no network, no
   process** — the caller brings the answers and the model's answers.
@@ -47,7 +53,7 @@ installs ship it preinstalled. Updates still come from the repo.
   Why it is compiled and not a script belongs to "The one polkit action".
 - `src/ui/` — thin: `app.rs` is the shared state (`Ui`), the transaction gate
   and the AUR search/job entry points, `window.rs` the five-page `ViewStack`,
-  one module per page, `dialog`/`txnlog`/`fileopen` the dialogs (all shown
+  one module per page, `dialog`/`txnlog`/`fileopen`/`mirrors` the dialogs (all shown
   through `Ui::present_dialog`: over the window, or alone as a popup — the
   double-click shape), `dnd` the window's drop target (dropping a package file
   opens the file-open flow, the video-player's shape).
@@ -280,8 +286,9 @@ measurement).
 `dev.aelum.package.manage` + `/usr/bin/aelum-package-installer-helper`
 (`{refresh|install|install-asdeps|remove|upgrade|file|file-asdeps}` →
 `stdbuf -oL pacman -Sy|-S|-S --asdeps|-Rns|-Syu|-U|-U --asdeps`, all `--noconfirm` —
-the stdbuf is what makes the output arrive during the download, not after it),
-the `aelum-snapshot-restore` shape. The helper is the crate's second binary
+the stdbuf is what makes the output arrive during the download, not after it —
+plus `update-mirrors`, the one verb that runs reflector instead of pacman,
+described below), the `aelum-snapshot-restore` shape. The helper is the crate's second binary
 (`src/bin/`), not a script, and that is load-bearing: pkexec hands the
 program it runs as root the **caller's** environment, and a shell script
 inside that environment obeys `BASH_ENV` and imported shell functions,
@@ -296,6 +303,24 @@ package's scriptlets. Every verb first drops a leftover
 a killed transaction — closing the app mid-sync does exactly that — would
 otherwise leave every later transaction failing with "unable to lock
 database", and the log says which of the two happened.
+`update-mirrors` is the one verb that runs no pacman, and it is dispatched
+before that lock work: reflector fetches the mirror-status JSON and writes
+the mirror list, it never opens a database, so it neither takes `db.lck` nor
+needs a leftover cleared. It runs `/usr/bin/reflector --latest 20 --protocol
+https [--country xx] --sort rate --save <mirrorlist>.aelum-tmp` in the same
+env-cleared environment, and only after reflector exits 0 moves that file
+onto `/etc/pacman.d/mirrorlist` with `rename(2)` — reflector opens `--save`
+truncating, so the rename is what keeps a kill mid-write from leaving the
+system with a mirror list it cannot sync through. (Measured against
+reflector 2023, the `[extra]` version: `--country` matches the live status
+DB by name or ISO code, case-insensitively — the app sends the code; and an
+empty selection exits `error: no mirrors found` *before* it ever opens the
+save file, so a country with no mirrors can never blank the list through
+this.) The country arrives only as a bare 2-letter code — anything else is
+refused like an unknown verb, because it would read as a reflector option.
+reflector is not part of an Aelum install, so the dialog's Update press puts
+`install reflector` through this same action first, and says so above the
+buttons before the press, never after.
 An AUR install is one request of several
 steps — `install-asdeps` (repository dependencies, makepkg's marking), the
 build as the user, `file-asdeps` (the built dependencies' archives), `file`
@@ -310,9 +335,10 @@ grants it to a local, active, `wheel` session. There is **no raw-pacman
 fallback**: every privileged operation resolves to that one action, and a host
 without the helper is told so instead of getting a pkexec error in a dialog.
 `txn.rs::the_helper_is_annotated_by_the_policy` reads the policy file and pins
-the annotation plus the helper's shape — absolute paths, `env_clear`, the
-seven verbs — and the helper file's own tests pin the verb-by-verb argv and
-the environment allowlist: invariants, not unit tests of a string.
+the annotation plus the helper's shape — absolute paths, `env_clear`, every
+verb, and the mirror verb's dispatch before the lock work plus its atomic
+rename — and the helper file's own tests pin the verb-by-verb argv and the
+environment allowlist: invariants, not unit tests of a string.
 
 ## UI rules the app holds to
 
@@ -489,6 +515,25 @@ the environment allowlist: invariants, not unit tests of a string.
   and silently answer the virtual forever after), then the requested names
   Explicit — one job, one log (`txn::run_all`). A single candidate or an
   already-installed provider is never asked about — pacman would not ask either.
+- **The "⋯" menu holds the two app-level acts** — Update mirrors, Exit — and
+  they are `app.` actions because the manager's window is one-shot while both
+  acts outlive it. Update mirrors asks its one question over the installer's
+  region table (`countries.rs`: its 73 countries + Worldwide, first),
+  fuzzy-filtered by a search entry — AdwComboRow's built-in search is
+  substring-only and its custom-match hook is not bound in libadwaita 0.9,
+  so the picker is the pages' own shape: `countries::search` → ListBox rows
+  of grouped CheckButtons, selection an index. The preselection is read from
+  the system's own files at open — reflector's `# With:` header in the
+  mirrorlist first (it records the command that wrote it), then the
+  installer's `## … mirrorlist for <Name>` header, then the locale's
+  territory, then Worldwide — and Worldwide sends **no** `--country`, the
+  same location the installer offers. Pressing Update swaps the dialog's
+  stack to its spinner and runs the job (`install reflector` when absent,
+  then `update-mirrors`) through `txn::run_all`: no txn log — a mirror
+  rewrite has no pacman phases, the spinner is the progress — lines buffered,
+  and only a failure reopens the form, with the job's own last lines. The
+  run holds the application, so closing the manager mid-update stays
+  honest: the root half lands and the toast fires anyway.
 - **The bar never claims a number it does not have.** `ui/txnlog.rs` paints
   what `progress::Track` says and decides nothing: a phase label, the band
   fraction, and an "i of n" only when `Track::counts` returns one; un-counted

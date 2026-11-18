@@ -123,5 +123,14 @@
   "phase.installBuilt": "Installing the built packages…",
   "phase.cleanup": "Removing build-time dependencies…",
   "chooser.title": "Choose a provider",
-  "chooser.body": "These packages need a provider chosen. Pick which package answers each requirement — the first one is what would be installed by default."
+  "chooser.body": "These packages need a provider chosen. Pick which package answers each requirement — the first one is what would be installed by default.",
+  "action.exit": "Exit",
+  "mirrors.menu": "Menu",
+  "mirrors.title": "Update mirrors",
+  "mirrors.question": "Do you want to sync mirrors with the best speed for your country?",
+  "mirrors.search": "Search a country",
+  "mirrors.willInstall": "This installs reflector first — the program that ranks mirrors by speed.",
+  "mirrors.running": "Updating mirrors…",
+  "mirrors.done": "Mirror list updated.",
+  "mirrors.failed": "Could not update the mirrors."
 }

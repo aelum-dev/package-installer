@@ -123,5 +123,14 @@
   "phase.installBuilt": "Instal·lant els paquets compilats…",
   "phase.cleanup": "Suprimint dependències de compilació…",
   "chooser.title": "Trieu un proveïdor",
-  "chooser.body": "Aquests paquets necessiten triar un proveïdor. Trieu quin paquet satisfà cada requisit — el primer és el que s'instal·laria per defecte."
+  "chooser.body": "Aquests paquets necessiten triar un proveïdor. Trieu quin paquet satisfà cada requisit — el primer és el que s'instal·laria per defecte.",
+  "action.exit": "Surt",
+  "mirrors.menu": "Menú",
+  "mirrors.title": "Actualitza els miralls",
+  "mirrors.question": "Voleu sincronitzar els miralls amb la millor velocitat per al vostre país?",
+  "mirrors.search": "Cerca un país",
+  "mirrors.willInstall": "Primer s'instal·la reflector, el programa que ordena els miralls per velocitat.",
+  "mirrors.running": "Actualitzant els miralls…",
+  "mirrors.done": "La llista de miralls s'ha actualitzat.",
+  "mirrors.failed": "No s'han pogut actualitzar els miralls."
 }

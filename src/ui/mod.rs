@@ -7,10 +7,11 @@ mod app;
 mod aur;
 mod browse;
 mod dialog;
-mod dnd;
 mod distro;
+mod dnd;
 mod fileopen;
 mod installed;
+mod mirrors;
 mod txnlog;
 mod updates;
 pub(crate) mod window;
@@ -21,7 +22,9 @@ pub use app::Ui;
 /// carry bare `&` (firefox's does) — glib dropped `escape_text`, so the
 /// three markup characters get escaped here.
 pub(crate) fn markup_escape(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }
 
 /// Sizes the way pacman's own dialogs phrase them.

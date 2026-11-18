@@ -123,5 +123,14 @@
   "phase.installBuilt": "正在安裝建置的軟體包…",
   "phase.cleanup": "正在移除建置時的相依套件…",
   "chooser.title": "選擇提供者",
-  "chooser.body": "這些軟體包需要選擇提供者。請選擇滿足每項要求的軟體包 — 第一個是預設會安裝的。"
+  "chooser.body": "這些軟體包需要選擇提供者。請選擇滿足每項要求的軟體包 — 第一個是預設會安裝的。",
+  "action.exit": "結束",
+  "mirrors.menu": "選單",
+  "mirrors.title": "更新鏡像源",
+  "mirrors.question": "是否要依您所在國家的最佳速度同步鏡像源？",
+  "mirrors.search": "搜尋國家",
+  "mirrors.willInstall": "將先安裝 reflector——依速度為鏡像源排序的程式。",
+  "mirrors.running": "正在更新鏡像源…",
+  "mirrors.done": "鏡像源清單已更新。",
+  "mirrors.failed": "無法更新鏡像源。"
 }

@@ -123,5 +123,14 @@
   "phase.installBuilt": "A lefordított csomagok telepítése…",
   "phase.cleanup": "A fordítási függőségek eltávolítása…",
   "chooser.title": "Válasszon szolgáltatót",
-  "chooser.body": "Ezekhez a csomagokhoz szolgáltatóválasztás szükséges. Válassza ki, melyik csomag teljesíti minden követelményt — az első lenne alapértelmezésben telepítve."
+  "chooser.body": "Ezekhez a csomagokhoz szolgáltatóválasztás szükséges. Válassza ki, melyik csomag teljesíti minden követelményt — az első lenne alapértelmezésben telepítve.",
+  "action.exit": "Kilépés",
+  "mirrors.menu": "Menü",
+  "mirrors.title": "Tükrök frissítése",
+  "mirrors.question": "Szeretné szinkronizálni a tükröket az Ön országában elérhető legjobb sebesség alapján?",
+  "mirrors.search": "Ország keresése",
+  "mirrors.willInstall": "Először a reflector kerül telepítésre – ez a program rendezi a tükröket sebesség szerint.",
+  "mirrors.running": "Tükrök frissítése…",
+  "mirrors.done": "A tükörlista frissült.",
+  "mirrors.failed": "Nem sikerült frissíteni a tükröket."
 }

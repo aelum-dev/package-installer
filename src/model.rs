@@ -16,6 +16,10 @@ pub const PACMAN_ROOT: &str = "/var/lib/pacman";
 /// this system can install from (`Model::load`).
 pub const PACMAN_CONFIG: &str = "/etc/pacman.conf";
 
+/// The mirror list the Update-mirrors flow rewrites — the file every sync
+/// database in [`PACMAN_ROOT`] was fetched through.
+pub const MIRRORLIST: &str = "/etc/pacman.d/mirrorlist";
+
 /// What a row can do with a package.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Status {
@@ -206,8 +210,13 @@ impl Model {
                 let Some(repo) = path.file_name().and_then(|n| n.to_str()) else {
                     continue;
                 };
-                let Some(repo) = repo.strip_suffix(".db") else { continue };
-                if configured.as_ref().is_some_and(|c| !c.iter().any(|r| r == repo)) {
+                let Some(repo) = repo.strip_suffix(".db") else {
+                    continue;
+                };
+                if configured
+                    .as_ref()
+                    .is_some_and(|c| !c.iter().any(|r| r == repo))
+                {
                     continue;
                 }
                 let bytes = match fs::read(&path) {
@@ -286,7 +295,10 @@ impl Model {
             }
         }
 
-        let db_fresh = order.iter().filter_map(|r| fresh.get(r.as_str()).copied()).max();
+        let db_fresh = order
+            .iter()
+            .filter_map(|r| fresh.get(r.as_str()).copied())
+            .max();
         let dependents = dependents_index(&entries);
         let (provided_installed, provided_repo) = provides_index(&entries);
         let installed_kernels = installed_kernel_names(&entries);
@@ -316,7 +328,10 @@ impl Model {
         let mut hits: Vec<(u8, &Entry)> = Vec::new();
         for e in &self.entries {
             if scope == Scope::Installed
-                && !matches!(e.status(), Status::InstalledExplicit | Status::UpdateAvailable)
+                && !matches!(
+                    e.status(),
+                    Status::InstalledExplicit | Status::UpdateAvailable
+                )
             {
                 continue;
             }
@@ -396,7 +411,9 @@ impl Model {
     /// still returns every package, so someone who does want the documentation
     /// half finds it by name on Browse.
     fn is_half_of_an_installed_build(&self, e: &Entry) -> bool {
-        let Some(s) = e.sync.as_ref() else { return false };
+        let Some(s) = e.sync.as_ref() else {
+            return false;
+        };
         s.base != s.name && self.installed_bases.contains(s.base.as_str())
     }
 
@@ -478,7 +495,9 @@ impl Model {
         let mut queue: VecDeque<&str> = VecDeque::new();
         queue.push_back(name);
         while let Some(going) = queue.pop_front() {
-            let Some(local) = self.installed(going) else { continue };
+            let Some(local) = self.installed(going) else {
+                continue;
+            };
             for dep in &local.depends {
                 let dep = db::dep_name(dep);
                 if dep == going || removed.contains(dep) {
@@ -486,7 +505,9 @@ impl Model {
                 }
                 // Only an installed dependency can fall, and a package the user
                 // chose is never taken by `-Rns`.
-                let Some(dependency) = self.installed(dep) else { continue };
+                let Some(dependency) = self.installed(dep) else {
+                    continue;
+                };
                 if dependency.reason == Reason::Explicit {
                     continue;
                 }
@@ -573,10 +594,14 @@ impl Model {
         let mut questions: Vec<ProviderQuestion> = Vec::new();
         let mut asked: HashSet<&str> = HashSet::new();
         for name in names {
-            let Some(requested) = self.get(name) else { continue };
+            let Some(requested) = self.get(name) else {
+                continue;
+            };
             // A local-only package has no %DEPENDS% to read; its requirements
             // are whatever pacman resolves at install time, same as ever.
-            let Some(sync) = requested.sync.as_ref() else { continue };
+            let Some(sync) = requested.sync.as_ref() else {
+                continue;
+            };
             for dep in &sync.depends {
                 let dep = db::dep_name(dep);
                 if self.dep_satisfied(dep) || !asked.insert(dep) {
@@ -591,9 +616,9 @@ impl Model {
                     .iter()
                     .filter(|e| {
                         e.installed.is_none()
-                            && e.sync.as_ref().is_some_and(|s| {
-                                s.provides.iter().any(|p| db::dep_name(p) == dep)
-                            })
+                            && e.sync
+                                .as_ref()
+                                .is_some_and(|s| s.provides.iter().any(|p| db::dep_name(p) == dep))
                     })
                     .filter_map(|e| {
                         let s = e.sync.as_ref()?;
@@ -706,13 +731,18 @@ pub enum AurState {
 fn dependents_index(entries: &[Entry]) -> HashMap<String, Vec<String>> {
     let mut index: HashMap<String, Vec<String>> = HashMap::new();
     for e in entries {
-        let Some(l) = e.installed.as_ref() else { continue };
+        let Some(l) = e.installed.as_ref() else {
+            continue;
+        };
         for dep in &l.depends {
             let dep = db::dep_name(dep);
             if dep == l.name {
                 continue;
             }
-            index.entry(dep.to_string()).or_default().push(l.name.clone());
+            index
+                .entry(dep.to_string())
+                .or_default()
+                .push(l.name.clone());
         }
     }
     for list in index.values_mut() {
@@ -828,7 +858,10 @@ mod tests {
     fn entry(name: &str, installed: Option<LocalPackage>, sync_pkg: Option<SyncPackage>) -> Entry {
         Entry {
             name: name.into(),
-            description: sync_pkg.as_ref().map(|s| s.desc.clone()).unwrap_or_default(),
+            description: sync_pkg
+                .as_ref()
+                .map(|s| s.desc.clone())
+                .unwrap_or_default(),
             repository: sync_pkg.as_ref().map(|s| s.repository.clone()),
             installed,
             sync: sync_pkg,
@@ -838,10 +871,26 @@ mod tests {
     fn fixture() -> Model {
         model(vec![
             entry("firefox", None, Some(sync("firefox", "1.0", "browser"))),
-            entry("htop", Some(local("htop", "3.0-1", Reason::Explicit, &[])), Some(sync("htop", "3.1-1", "monitor"))),
-            entry("glibc", Some(local("glibc", "2.40-1", Reason::Dependency, &[])), Some(sync("glibc", "2.40-1", "libc"))),
-            entry("myapp", Some(local("myapp", "1.0-1", Reason::Explicit, &["glibc"])), None),
-            entry("orphan-dep", Some(local("orphan-dep", "1.0-1", Reason::Dependency, &["myapp"])), None),
+            entry(
+                "htop",
+                Some(local("htop", "3.0-1", Reason::Explicit, &[])),
+                Some(sync("htop", "3.1-1", "monitor")),
+            ),
+            entry(
+                "glibc",
+                Some(local("glibc", "2.40-1", Reason::Dependency, &[])),
+                Some(sync("glibc", "2.40-1", "libc")),
+            ),
+            entry(
+                "myapp",
+                Some(local("myapp", "1.0-1", Reason::Explicit, &["glibc"])),
+                None,
+            ),
+            entry(
+                "orphan-dep",
+                Some(local("orphan-dep", "1.0-1", Reason::Dependency, &["myapp"])),
+                None,
+            ),
         ])
     }
 
@@ -857,7 +906,11 @@ mod tests {
     #[test]
     fn installed_scope_lists_only_explicit_and_updatable() {
         let m = fixture();
-        let names: Vec<_> = m.search("", Scope::Installed).iter().map(|e| e.name.as_str()).collect();
+        let names: Vec<_> = m
+            .search("", Scope::Installed)
+            .iter()
+            .map(|e| e.name.as_str())
+            .collect();
         assert_eq!(names, ["htop", "myapp"]);
         // The dep and the not-installed entry stay out of the page.
         assert_eq!(m.get("orphan-dep").unwrap().status(), Status::InstalledDep);
@@ -868,7 +921,10 @@ mod tests {
     fn search_ranks_name_before_description() {
         let m = fixture();
         let hits = m.search("brow", Scope::All);
-        assert_eq!(hits.iter().map(|e| e.name.as_str()).collect::<Vec<_>>(), ["firefox"]);
+        assert_eq!(
+            hits.iter().map(|e| e.name.as_str()).collect::<Vec<_>>(),
+            ["firefox"]
+        );
         let hits = m.search("mon", Scope::All);
         assert_eq!(hits[0].name, "htop");
     }
@@ -876,7 +932,13 @@ mod tests {
     #[test]
     fn updatable_lists_newer_sync_versions_only() {
         let m = fixture();
-        assert_eq!(m.updatable().iter().map(|e| e.name.as_str()).collect::<Vec<_>>(), ["htop"]);
+        assert_eq!(
+            m.updatable()
+                .iter()
+                .map(|e| e.name.as_str())
+                .collect::<Vec<_>>(),
+            ["htop"]
+        );
     }
 
     #[test]
@@ -887,20 +949,40 @@ mod tests {
         let m = model(vec![
             entry(
                 SELF_PACKAGE,
-                Some(local(SELF_PACKAGE, "0.1.0-1", Reason::Explicit, &["polkit"])),
+                Some(local(
+                    SELF_PACKAGE,
+                    "0.1.0-1",
+                    Reason::Explicit,
+                    &["polkit"],
+                )),
                 Some(sync(SELF_PACKAGE, "0.2.0-1", "the package manager")),
             ),
-            entry("htop", Some(local("htop", "3.0-1", Reason::Explicit, &[])), Some(sync("htop", "3.1-1", "monitor"))),
-            entry("polkit", Some(local("polkit", "128-1", Reason::Dependency, &[])), None),
+            entry(
+                "htop",
+                Some(local("htop", "3.0-1", Reason::Explicit, &[])),
+                Some(sync("htop", "3.1-1", "monitor")),
+            ),
+            entry(
+                "polkit",
+                Some(local("polkit", "128-1", Reason::Dependency, &[])),
+                None,
+            ),
         ]);
         // Listed by the Installed page and by Browse, by empty query and by name.
         for scope in [Scope::Installed, Scope::All] {
             assert!(m.search("", scope).iter().any(|e| e.name == SELF_PACKAGE));
-            assert!(m.search("aelum", scope).iter().any(|e| e.name == SELF_PACKAGE));
+            assert!(
+                m.search("aelum", scope)
+                    .iter()
+                    .any(|e| e.name == SELF_PACKAGE)
+            );
         }
         // 0.1.0-1 < 0.2.0-1, so the app can update itself like any other row.
         assert_eq!(
-            m.updatable().iter().map(|e| e.name.as_str()).collect::<Vec<_>>(),
+            m.updatable()
+                .iter()
+                .map(|e| e.name.as_str())
+                .collect::<Vec<_>>(),
             [SELF_PACKAGE, "htop"]
         );
         // The one thing the row may not do is remove itself.
@@ -916,12 +998,36 @@ mod tests {
         // so `reverse_deps` is empty and the confirmation would say nothing
         // while the system lost the thing it boots through or installs with.
         let m = model(vec![
-            entry("linux-lts", Some(local("linux-lts", "6.12-1", Reason::Explicit, &[])), None),
-            entry("refind", Some(local("refind", "0.14.2-4", Reason::Explicit, &[])), None),
-            entry("mkinitcpio", Some(local("mkinitcpio", "4-1", Reason::Explicit, &[])), None),
-            entry("pacman", Some(local("pacman", "7.1-1", Reason::Explicit, &[])), None),
-            entry("glibc", Some(local("glibc", "2.40-1", Reason::Dependency, &[])), None),
-            entry("htop", Some(local("htop", "3.1-1", Reason::Explicit, &[])), None),
+            entry(
+                "linux-lts",
+                Some(local("linux-lts", "6.12-1", Reason::Explicit, &[])),
+                None,
+            ),
+            entry(
+                "refind",
+                Some(local("refind", "0.14.2-4", Reason::Explicit, &[])),
+                None,
+            ),
+            entry(
+                "mkinitcpio",
+                Some(local("mkinitcpio", "4-1", Reason::Explicit, &[])),
+                None,
+            ),
+            entry(
+                "pacman",
+                Some(local("pacman", "7.1-1", Reason::Explicit, &[])),
+                None,
+            ),
+            entry(
+                "glibc",
+                Some(local("glibc", "2.40-1", Reason::Dependency, &[])),
+                None,
+            ),
+            entry(
+                "htop",
+                Some(local("htop", "3.1-1", Reason::Explicit, &[])),
+                None,
+            ),
         ]);
         assert_eq!(m.unremovable("linux-lts"), Some(Unremovable::Boot));
         assert_eq!(m.unremovable("refind"), Some(Unremovable::Boot));
@@ -941,8 +1047,16 @@ mod tests {
         // The one case where refusing by name would be wrong: with two kernels
         // on the system, removing either still boots, so the grey would lie.
         let m = model(vec![
-            entry("linux-lts", Some(local("linux-lts", "6.12-1", Reason::Explicit, &[])), None),
-            entry("linux", Some(local("linux", "6.17-1", Reason::Explicit, &[])), None),
+            entry(
+                "linux-lts",
+                Some(local("linux-lts", "6.12-1", Reason::Explicit, &[])),
+                None,
+            ),
+            entry(
+                "linux",
+                Some(local("linux", "6.17-1", Reason::Explicit, &[])),
+                None,
+            ),
         ]);
         assert_eq!(m.unremovable("linux-lts"), None);
         assert_eq!(m.unremovable("linux"), None);
@@ -952,14 +1066,30 @@ mod tests {
     fn distro_apps_are_the_uninstalled_distro_repo_packages() {
         let m = model(vec![
             // Published to the channel, not on the system yet: the page's whole point.
-            entry("aelum-newapp", None, Some(aelum("aelum-newapp", "1.0-1", "a new app"))),
+            entry(
+                "aelum-newapp",
+                None,
+                Some(aelum("aelum-newapp", "1.0-1", "a new app")),
+            ),
             // Installed, current or updatable: the Installed and Updates pages own those.
-            entry("aelum-player", Some(local("aelum-player", "2.0-1", Reason::Explicit, &[])), Some(aelum("aelum-player", "2.0-1", "the player"))),
-            entry("aelum-old", Some(local("aelum-old", "1.0-1", Reason::Explicit, &[])), Some(aelum("aelum-old", "2.0-1", "updatable"))),
+            entry(
+                "aelum-player",
+                Some(local("aelum-player", "2.0-1", Reason::Explicit, &[])),
+                Some(aelum("aelum-player", "2.0-1", "the player")),
+            ),
+            entry(
+                "aelum-old",
+                Some(local("aelum-old", "1.0-1", Reason::Explicit, &[])),
+                Some(aelum("aelum-old", "2.0-1", "updatable")),
+            ),
             // Not from the distro repo; and the app's own package is only here
             // because this fixture has it uninstalled (run from a source tree).
             entry("firefox", None, Some(sync("firefox", "1.0", "browser"))),
-            entry(SELF_PACKAGE, None, Some(aelum(SELF_PACKAGE, "0.2.0-1", "the package manager"))),
+            entry(
+                SELF_PACKAGE,
+                None,
+                Some(aelum(SELF_PACKAGE, "0.2.0-1", "the package manager")),
+            ),
         ]);
         let names: Vec<_> = m.distro_apps().iter().map(|e| e.name.as_str()).collect();
         assert_eq!(names, ["aelum-newapp", SELF_PACKAGE]);
@@ -972,18 +1102,44 @@ mod tests {
         // and share `%BASE%`. A system with the boot manager does not lack its
         // documentation, and the tab's dot was counting a man page as an app.
         let m = model(vec![
-            entry("refind", Some(local("refind", "0.14.2-4", Reason::Explicit, &[])), Some(aelum("refind", "0.14.2-4", "an EFI boot manager"))),
-            entry("refind-docs", None, Some(SyncPackage { base: "refind".into(), ..aelum("refind-docs", "0.14.2-4", "documentation")})),
+            entry(
+                "refind",
+                Some(local("refind", "0.14.2-4", Reason::Explicit, &[])),
+                Some(aelum("refind", "0.14.2-4", "an EFI boot manager")),
+            ),
+            entry(
+                "refind-docs",
+                None,
+                Some(SyncPackage {
+                    base: "refind".into(),
+                    ..aelum("refind-docs", "0.14.2-4", "documentation")
+                }),
+            ),
             // A half of a build this system does *not* have stays offered, and
             // so does a real app.
-            entry("player-docs", None, Some(SyncPackage { base: "aelum-video-player".into(), ..aelum("player-docs", "1-1", "docs")})),
-            entry("aelum-newapp", None, Some(aelum("aelum-newapp", "1-1", "a new app"))),
+            entry(
+                "player-docs",
+                None,
+                Some(SyncPackage {
+                    base: "aelum-video-player".into(),
+                    ..aelum("player-docs", "1-1", "docs")
+                }),
+            ),
+            entry(
+                "aelum-newapp",
+                None,
+                Some(aelum("aelum-newapp", "1-1", "a new app")),
+            ),
         ]);
         let names: Vec<_> = m.distro_apps().iter().map(|e| e.name.as_str()).collect();
         assert_eq!(names, ["aelum-newapp", "player-docs"]);
         // Only the app page filters. Someone who does want the documentation
         // half still finds it by name on Browse.
-        assert!(m.search("refind-docs", Scope::All).iter().any(|e| e.name == "refind-docs"));
+        assert!(
+            m.search("refind-docs", Scope::All)
+                .iter()
+                .any(|e| e.name == "refind-docs")
+        );
     }
 
     #[test]
@@ -992,11 +1148,25 @@ mod tests {
         // missing, because a single-package build's base is its own name and
         // the filter asks for a *different* installed package.
         let m = model(vec![
-            entry("refind-docs", Some(local("refind-docs", "0.14.2-4", Reason::Explicit, &[])), Some(SyncPackage { base: "refind".into(), ..aelum("refind-docs", "0.14.2-4", "documentation")})),
-            entry("refind", None, Some(aelum("refind", "0.14.2-4", "an EFI boot manager"))),
+            entry(
+                "refind-docs",
+                Some(local("refind-docs", "0.14.2-4", Reason::Explicit, &[])),
+                Some(SyncPackage {
+                    base: "refind".into(),
+                    ..aelum("refind-docs", "0.14.2-4", "documentation")
+                }),
+            ),
+            entry(
+                "refind",
+                None,
+                Some(aelum("refind", "0.14.2-4", "an EFI boot manager")),
+            ),
         ]);
         assert_eq!(
-            m.distro_apps().iter().map(|e| e.name.as_str()).collect::<Vec<_>>(),
+            m.distro_apps()
+                .iter()
+                .map(|e| e.name.as_str())
+                .collect::<Vec<_>>(),
             ["refind"]
         );
     }
@@ -1026,16 +1196,44 @@ mod tests {
         let mut jdk = local("jdk", "17-1", Reason::Dependency, &[]);
         jdk.provides = vec!["java-runtime>=17".into()];
         let m = model(vec![
-            entry("myapp", Some(local("myapp", "1.0-1", Reason::Explicit, &["java-runtime>=17", "glibc"])), None),
+            entry(
+                "myapp",
+                Some(local(
+                    "myapp",
+                    "1.0-1",
+                    Reason::Explicit,
+                    &["java-runtime>=17", "glibc"],
+                )),
+                None,
+            ),
             entry("jdk", Some(jdk), None),
-            entry("glibc", Some(local("glibc", "2.40-1", Reason::Dependency, &[])), None),
-            entry("cmake", Some(local("cmake", "4.0-1", Reason::Explicit, &[])), None),
+            entry(
+                "glibc",
+                Some(local("glibc", "2.40-1", Reason::Dependency, &[])),
+                None,
+            ),
+            entry(
+                "cmake",
+                Some(local("cmake", "4.0-1", Reason::Explicit, &[])),
+                None,
+            ),
         ]);
-        assert_eq!(m.needed_by_names("jdk"), ["myapp"], "needed through its provision");
-        assert_eq!(m.needed_by_names("java-runtime"), ["myapp"], "the provision itself");
+        assert_eq!(
+            m.needed_by_names("jdk"),
+            ["myapp"],
+            "needed through its provision"
+        );
+        assert_eq!(
+            m.needed_by_names("java-runtime"),
+            ["myapp"],
+            "the provision itself"
+        );
         assert_eq!(m.needed_by_names("glibc"), ["myapp"], "needed by name");
         assert!(m.needed_by_names("cmake").is_empty(), "nothing names it");
-        assert!(m.needed_by_names("absent").is_empty(), "not on the system at all");
+        assert!(
+            m.needed_by_names("absent").is_empty(),
+            "not on the system at all"
+        );
     }
 
     #[test]
@@ -1055,9 +1253,21 @@ mod tests {
         // top → a → b → c: removing top takes all three, each losing its only
         // remaining dependent in turn.
         let m = model(vec![
-            entry("top", Some(local("top", "1-1", Reason::Explicit, &["a"])), None),
-            entry("a", Some(local("a", "1-1", Reason::Dependency, &["b"])), None),
-            entry("b", Some(local("b", "1-1", Reason::Dependency, &["c"])), None),
+            entry(
+                "top",
+                Some(local("top", "1-1", Reason::Explicit, &["a"])),
+                None,
+            ),
+            entry(
+                "a",
+                Some(local("a", "1-1", Reason::Dependency, &["b"])),
+                None,
+            ),
+            entry(
+                "b",
+                Some(local("b", "1-1", Reason::Dependency, &["c"])),
+                None,
+            ),
             entry("c", Some(local("c", "1-1", Reason::Dependency, &[])), None),
         ]);
         assert_eq!(m.orphans_after_removal("top"), ["a", "b", "c"]);
@@ -1068,10 +1278,26 @@ mod tests {
         // glibc is needed by another package the user chose: neither removal
         // takes it, and an explicit package is never taken at all.
         let m = model(vec![
-            entry("one", Some(local("one", "1-1", Reason::Explicit, &["glibc"])), None),
-            entry("two", Some(local("two", "1-1", Reason::Explicit, &["glibc"])), None),
-            entry("helper", Some(local("helper", "1-1", Reason::Dependency, &["glibc"])), None),
-            entry("glibc", Some(local("glibc", "1-1", Reason::Dependency, &[])), None),
+            entry(
+                "one",
+                Some(local("one", "1-1", Reason::Explicit, &["glibc"])),
+                None,
+            ),
+            entry(
+                "two",
+                Some(local("two", "1-1", Reason::Explicit, &["glibc"])),
+                None,
+            ),
+            entry(
+                "helper",
+                Some(local("helper", "1-1", Reason::Dependency, &["glibc"])),
+                None,
+            ),
+            entry(
+                "glibc",
+                Some(local("glibc", "1-1", Reason::Dependency, &[])),
+                None,
+            ),
         ]);
         assert_eq!(m.orphans_after_removal("one"), Vec::<String>::new());
         assert_eq!(m.orphans_after_removal("two"), Vec::<String>::new());
@@ -1097,7 +1323,11 @@ mod tests {
                 .collect();
             scanned.sort();
             scanned.dedup();
-            let indexed = m.dependents.get(target.name.as_str()).cloned().unwrap_or_default();
+            let indexed = m
+                .dependents
+                .get(target.name.as_str())
+                .cloned()
+                .unwrap_or_default();
             assert_eq!(indexed, scanned, "dependents of {}", target.name);
         }
     }
@@ -1119,9 +1349,21 @@ mod tests {
     fn an_aur_update_list_holds_only_rows_with_a_newer_version() {
         let m = model(vec![
             entry("newapp", None, None),
-            entry("htop", Some(local("htop", "3.1-1", Reason::Explicit, &[])), None),
-            entry("gimp", Some(local("gimp", "2.99-1", Reason::Explicit, &[])), None),
-            entry("editor", Some(local("editor", "1.0-2", Reason::Explicit, &[])), None),
+            entry(
+                "htop",
+                Some(local("htop", "3.1-1", Reason::Explicit, &[])),
+                None,
+            ),
+            entry(
+                "gimp",
+                Some(local("gimp", "2.99-1", Reason::Explicit, &[])),
+                None,
+            ),
+            entry(
+                "editor",
+                Some(local("editor", "1.0-2", Reason::Explicit, &[])),
+                None,
+            ),
         ]);
         let rows = m.aur_updates(&[
             hit("gimp", "3.0-1"),   // installed and older: the one real update
@@ -1149,11 +1391,23 @@ mod tests {
             // Not on the system at all.
             entry("newapp", None, None),
             // Installed and current: the AUR has nothing to offer.
-            entry("htop", Some(local("htop", "3.1-1", Reason::Explicit, &[])), None),
+            entry(
+                "htop",
+                Some(local("htop", "3.1-1", Reason::Explicit, &[])),
+                None,
+            ),
             // Installed, and the AUR would build something newer.
-            entry("gimp", Some(local("gimp", "2.99-1", Reason::Explicit, &[])), None),
+            entry(
+                "gimp",
+                Some(local("gimp", "2.99-1", Reason::Explicit, &[])),
+                None,
+            ),
         ]);
-        let rows = m.aur_rows(&[hit("newapp", "1.0-1"), hit("htop", "3.1-1"), hit("gimp", "3.0-1")]);
+        let rows = m.aur_rows(&[
+            hit("newapp", "1.0-1"),
+            hit("htop", "3.1-1"),
+            hit("gimp", "3.0-1"),
+        ]);
         assert_eq!(rows[0].state, AurState::NotInstalled);
         assert!(rows[0].installed_version.is_none());
         assert_eq!(rows[1].state, AurState::Installed);
@@ -1201,8 +1455,16 @@ mod tests {
         group.depends = vec!["gcc".into(), "make".into(), "patch".into()];
         let m = model(vec![
             entry("base-devel", None, Some(group)),
-            entry("gcc", Some(local("gcc", "15-1", Reason::Dependency, &[])), None),
-            entry("make", Some(local("make", "4.4-1", Reason::Dependency, &[])), None),
+            entry(
+                "gcc",
+                Some(local("gcc", "15-1", Reason::Dependency, &[])),
+                None,
+            ),
+            entry(
+                "make",
+                Some(local("make", "4.4-1", Reason::Dependency, &[])),
+                None,
+            ),
         ]);
         assert_eq!(m.missing_dependencies("base-devel").unwrap(), ["patch"]);
         // A group no loaded repository describes is not a fact about the
@@ -1216,7 +1478,11 @@ mod tests {
         group.depends = vec!["make".into()];
         let m = model(vec![
             entry("base-devel", None, Some(group)),
-            entry("make", Some(local("make", "4.4-1", Reason::Dependency, &[])), None),
+            entry(
+                "make",
+                Some(local("make", "4.4-1", Reason::Dependency, &[])),
+                None,
+            ),
         ]);
         assert_eq!(m.missing_dependencies("base-devel"), None);
     }
@@ -1248,25 +1514,93 @@ mod tests {
         ];
         let m = model(vec![
             entry("steam", None, Some(steam)),
-            entry("glibc", Some(local("glibc", "2.40-1", Reason::Dependency, &[])), None),
-            entry("vulkan-radeon", None, Some(sync_provides("vulkan-radeon", "extra", &["vulkan-driver"], 100))),
-            entry("vulkan-intel", None, Some(sync_provides("vulkan-intel", "extra", &["vulkan-driver"], 90))),
-            entry("nvidia-utils", None, Some(sync_provides("nvidia-utils", "extra", &["vulkan-driver"], 400))),
-            entry("lib32-vulkan-radeon", None, Some(sync_provides("lib32-vulkan-radeon", "multilib", &["lib32-vulkan-driver"], 80))),
-            entry("lib32-nvidia-utils", None, Some(sync_provides("lib32-nvidia-utils", "multilib", &["lib32-nvidia-utils"], 300))),
-            entry("lib32-mesa", None, Some(sync_provides("lib32-mesa", "multilib", &["lib32-vulkan-driver", "lib32-vulkan-radeon", "lib32-vulkan-intel"], 500))),
+            entry(
+                "glibc",
+                Some(local("glibc", "2.40-1", Reason::Dependency, &[])),
+                None,
+            ),
+            entry(
+                "vulkan-radeon",
+                None,
+                Some(sync_provides(
+                    "vulkan-radeon",
+                    "extra",
+                    &["vulkan-driver"],
+                    100,
+                )),
+            ),
+            entry(
+                "vulkan-intel",
+                None,
+                Some(sync_provides(
+                    "vulkan-intel",
+                    "extra",
+                    &["vulkan-driver"],
+                    90,
+                )),
+            ),
+            entry(
+                "nvidia-utils",
+                None,
+                Some(sync_provides(
+                    "nvidia-utils",
+                    "extra",
+                    &["vulkan-driver"],
+                    400,
+                )),
+            ),
+            entry(
+                "lib32-vulkan-radeon",
+                None,
+                Some(sync_provides(
+                    "lib32-vulkan-radeon",
+                    "multilib",
+                    &["lib32-vulkan-driver"],
+                    80,
+                )),
+            ),
+            entry(
+                "lib32-nvidia-utils",
+                None,
+                Some(sync_provides(
+                    "lib32-nvidia-utils",
+                    "multilib",
+                    &["lib32-nvidia-utils"],
+                    300,
+                )),
+            ),
+            entry(
+                "lib32-mesa",
+                None,
+                Some(sync_provides(
+                    "lib32-mesa",
+                    "multilib",
+                    &[
+                        "lib32-vulkan-driver",
+                        "lib32-vulkan-radeon",
+                        "lib32-vulkan-intel",
+                    ],
+                    500,
+                )),
+            ),
         ]);
         let q = m.unanswered_providers(&["steam".into()]);
         assert_eq!(q.len(), 2, "one question per unanswered virtual");
         assert_eq!(q[0].virtual_name, "vulkan-driver");
         assert_eq!(
-            q[0].candidates.iter().map(|c| c.name.as_str()).collect::<Vec<_>>(),
+            q[0].candidates
+                .iter()
+                .map(|c| c.name.as_str())
+                .collect::<Vec<_>>(),
             ["vulkan-radeon", "vulkan-intel", "nvidia-utils"]
         );
         assert_eq!(q[0].candidates[0].repository, "extra");
         assert_eq!(q[0].candidates[0].csize, 100);
         assert_eq!(
-            q[1].candidates.iter().map(|c| c.name.as_str()).collect::<Vec<_>>(),
+            q[1].candidates
+                .iter()
+                .map(|c| c.name.as_str())
+                .collect::<Vec<_>>(),
             ["lib32-vulkan-radeon", "lib32-mesa"],
             "a provider of the versioned virtual only; a provision of another name does not count"
         );
@@ -1284,13 +1618,33 @@ mod tests {
         let m = model(vec![
             entry("requester", None, Some(req)),
             entry("vulkan-radeon", Some(radeon), None),
-            entry("nvidia-utils", None, Some(sync_provides("nvidia-utils", "extra", &["vulkan-driver"], 400))),
-            entry("only-one", None, Some(sync_provides("only-one", "extra", &["single-virtual"], 10))),
-            entry("other-thing", None, Some(sync("other-thing", "1-1", "not a provider"))),
+            entry(
+                "nvidia-utils",
+                None,
+                Some(sync_provides(
+                    "nvidia-utils",
+                    "extra",
+                    &["vulkan-driver"],
+                    400,
+                )),
+            ),
+            entry(
+                "only-one",
+                None,
+                Some(sync_provides("only-one", "extra", &["single-virtual"], 10)),
+            ),
+            entry(
+                "other-thing",
+                None,
+                Some(sync("other-thing", "1-1", "not a provider")),
+            ),
             entry("glibc", None, Some(sync("glibc", "2.40-1", "libc"))),
         ]);
         let q = m.unanswered_providers(&["requester".into()]);
-        assert!(q.is_empty(), "answered, single-candidate, and concrete deps ask nothing");
+        assert!(
+            q.is_empty(),
+            "answered, single-candidate, and concrete deps ask nothing"
+        );
     }
 
     #[test]
@@ -1303,7 +1657,10 @@ mod tests {
         assert!(m.unanswered_providers(&["requester".into()]).is_empty());
         // A name the model does not have at all (an AUR build, a local file)
         // has no %DEPENDS% to read here.
-        assert!(m.unanswered_providers(&["some-aur-package".into()]).is_empty());
+        assert!(
+            m.unanswered_providers(&["some-aur-package".into()])
+                .is_empty()
+        );
     }
 
     #[test]
@@ -1321,11 +1678,17 @@ mod tests {
                 &name,
                 &format!("[options]\n{order}"),
                 &[
-                    ("core", &[("core-jdk", "17-1", "%PROVIDES%\njava-runtime>=17\n\n",)]),
-                    ("extra", &[
-                        ("extra-jdk", "17-1", "%PROVIDES%\njava-runtime>=17\n\n"),
-                        ("requester", "1-1", "%DEPENDS%\njava-runtime>=17\n\n"),
-                    ]),
+                    (
+                        "core",
+                        &[("core-jdk", "17-1", "%PROVIDES%\njava-runtime>=17\n\n")],
+                    ),
+                    (
+                        "extra",
+                        &[
+                            ("extra-jdk", "17-1", "%PROVIDES%\njava-runtime>=17\n\n"),
+                            ("requester", "1-1", "%DEPENDS%\njava-runtime>=17\n\n"),
+                        ],
+                    ),
                 ],
                 &[],
             );
@@ -1333,7 +1696,10 @@ mod tests {
             let q = m.unanswered_providers(&["requester".into()]);
             assert_eq!(q.len(), 1, "config: {order}");
             assert_eq!(
-                q[0].candidates.iter().map(|c| c.name.as_str()).collect::<Vec<_>>(),
+                q[0].candidates
+                    .iter()
+                    .map(|c| c.name.as_str())
+                    .collect::<Vec<_>>(),
                 [first, second],
                 "config: {order}"
             );
@@ -1368,7 +1734,11 @@ mod tests {
             if let Some(rest) = line.strip_prefix(":: There are ")
                 && let Some(v) = rest.split(" providers available for ").nth(1)
             {
-                let v = v.trim().trim_start_matches('`').trim_end_matches('`').to_string();
+                let v = v
+                    .trim()
+                    .trim_start_matches('`')
+                    .trim_end_matches('`')
+                    .to_string();
                 asked.push((v, Vec::new()));
             } else if let Some((_, list)) = asked.last_mut()
                 && let Some(rest) = line.strip_prefix(":: [")
@@ -1379,7 +1749,12 @@ mod tests {
         }
         let ours: Vec<(String, Vec<String>)> = ours
             .iter()
-            .map(|q| (q.virtual_name.clone(), q.candidates.iter().map(|c| c.name.clone()).collect()))
+            .map(|q| {
+                (
+                    q.virtual_name.clone(),
+                    q.candidates.iter().map(|c| c.name.clone()).collect(),
+                )
+            })
             .collect();
         assert_eq!(ours, asked, "pacman's prompt is the oracle");
     }
@@ -1387,7 +1762,8 @@ mod tests {
     /// A scratch directory for on-disk fixtures. Named per test and per
     /// process so tests running in parallel cannot collide.
     fn fixture_dir(name: &str) -> std::path::PathBuf {
-        let dir = std::env::temp_dir().join(format!("aelum-pkg-installer-{name}-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("aelum-pkg-installer-{name}-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         dir
     }
@@ -1431,7 +1807,8 @@ mod tests {
             }
             let mut gz = Vec::new();
             {
-                let mut enc = flate2::write::GzEncoder::new(&mut gz, flate2::Compression::default());
+                let mut enc =
+                    flate2::write::GzEncoder::new(&mut gz, flate2::Compression::default());
                 std::io::Write::write_all(&mut enc, &tar).unwrap();
                 enc.finish().unwrap();
             }
@@ -1449,7 +1826,8 @@ mod tests {
     }
 
     fn load_fixture(name: &str) -> Model {
-        let dir = std::env::temp_dir().join(format!("aelum-pkg-installer-{name}-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("aelum-pkg-installer-{name}-{}", std::process::id()));
         let m = Model::load(&dir, &dir.join("pacman.conf")).expect("fixture loads");
         let _ = fs::remove_dir_all(&dir);
         m
@@ -1496,7 +1874,10 @@ mod tests {
             write_pacman_root(
                 &name,
                 &format!("[options]\n{order}"),
-                &[("extra", &[("hello", "1.0-1", "")]), ("aelum", &[("hello", "2.0-1", "")])],
+                &[
+                    ("extra", &[("hello", "1.0-1", "")]),
+                    ("aelum", &[("hello", "2.0-1", "")]),
+                ],
                 &[("hello", "0.9-1")],
             );
             let m = load_fixture(&name);
@@ -1505,7 +1886,10 @@ mod tests {
             assert_eq!(e.display_version(), want_version, "config: {order}");
             // …and that is the only update the Updates page may claim.
             assert_eq!(
-                m.updatable().iter().map(|e| e.display_version()).collect::<Vec<_>>(),
+                m.updatable()
+                    .iter()
+                    .map(|e| e.display_version())
+                    .collect::<Vec<_>>(),
                 [want_version],
                 "config: {order}"
             );
@@ -1540,7 +1924,10 @@ mod tests {
         write_pacman_root(
             "no_config",
             "",
-            &[("zz-a", &[("hello", "1.0-1", "")]), ("zz-b", &[("hello", "2.0-1", "")])],
+            &[
+                ("zz-a", &[("hello", "1.0-1", "")]),
+                ("zz-b", &[("hello", "2.0-1", "")]),
+            ],
             &[],
         );
         let dir = std::env::temp_dir().join(format!(
@@ -1620,7 +2007,9 @@ mod tests {
             .search("", Scope::All)
             .iter()
             .filter(|e| {
-                e.installed.as_ref().is_some_and(|l| l.reason == Reason::Explicit)
+                e.installed
+                    .as_ref()
+                    .is_some_and(|l| l.reason == Reason::Explicit)
             })
             .map(|e| e.name.clone())
             .collect();
@@ -1655,7 +2044,11 @@ mod tests {
         // The failure this guards was silent: every official `.db` is gzip, a
         // zstd-only reader parsed none of them, and the Updates page said
         // "Everything up to date" on a system with updates pending.
-        assert!(m.db_errors.is_empty(), "unreadable databases: {:?}", m.db_errors);
+        assert!(
+            m.db_errors.is_empty(),
+            "unreadable databases: {:?}",
+            m.db_errors
+        );
         assert!(
             m.search("", Scope::All).iter().any(|e| e.sync.is_some()),
             "no sync packages were read at all"

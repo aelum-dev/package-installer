@@ -123,5 +123,14 @@
   "phase.installBuilt": "Cài các gói đã xây dựng…",
   "phase.cleanup": "Gỡ các phụ thuộc khi xây dựng…",
   "chooser.title": "Chọn nhà cung cấp",
-  "chooser.body": "Những gói này cần chọn một nhà cung cấp. Hãy chọn gói nào đáp ứng từng yêu cầu — gói đầu tiên là gói sẽ được cài đặt theo mặc định."
+  "chooser.body": "Những gói này cần chọn một nhà cung cấp. Hãy chọn gói nào đáp ứng từng yêu cầu — gói đầu tiên là gói sẽ được cài đặt theo mặc định.",
+  "action.exit": "Thoát",
+  "mirrors.menu": "Menu",
+  "mirrors.title": "Cập nhật máy chủ gương",
+  "mirrors.question": "Bạn có muốn đồng bộ các máy chủ gương với tốc độ tốt nhất cho quốc gia của bạn?",
+  "mirrors.search": "Tìm quốc gia",
+  "mirrors.willInstall": "Trước tiên hệ thống sẽ cài reflector — chương trình sắp xếp các máy chủ gương theo tốc độ.",
+  "mirrors.running": "Đang cập nhật máy chủ gương…",
+  "mirrors.done": "Đã cập nhật danh sách máy chủ gương.",
+  "mirrors.failed": "Không thể cập nhật các máy chủ gương."
 }

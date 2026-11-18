@@ -123,5 +123,14 @@
   "phase.installBuilt": "De gebouwde pakketten installeren…",
   "phase.cleanup": "Bouwtijd-afhankelijkheden verwijderen…",
   "chooser.title": "Kies een aanbieder",
-  "chooser.body": "Deze pakketten vereisen dat u een aanbieder kiest. Kies welk pakket aan elke vereiste voldoet — de eerste zou standaard worden geïnstalleerd."
+  "chooser.body": "Deze pakketten vereisen dat u een aanbieder kiest. Kies welk pakket aan elke vereiste voldoet — de eerste zou standaard worden geïnstalleerd.",
+  "action.exit": "Afsluiten",
+  "mirrors.menu": "Menu",
+  "mirrors.title": "Spiegels bijwerken",
+  "mirrors.question": "Wilt u de spiegels synchroniseren met de beste snelheid voor uw land?",
+  "mirrors.search": "Zoek een land",
+  "mirrors.willInstall": "Eerst wordt reflector geïnstalleerd — het programma dat spiegels op snelheid sorteer.",
+  "mirrors.running": "Spiegels worden bijgewerkt…",
+  "mirrors.done": "Spiegellijst bijgewerkt.",
+  "mirrors.failed": "De spiegels konden niet worden bijgewerkt."
 }

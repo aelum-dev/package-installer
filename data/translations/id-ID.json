@@ -123,5 +123,14 @@
   "phase.installBuilt": "Memasang paket hasil build…",
   "phase.cleanup": "Menghapus dependensi waktu build…",
   "chooser.title": "Pilih penyedia",
-  "chooser.body": "Paket-paket ini memerlukan pemilihan penyedia. Pilih paket mana yang memenuhi tiap syarat — yang pertama adalah yang akan dipasang secara bawaan."
+  "chooser.body": "Paket-paket ini memerlukan pemilihan penyedia. Pilih paket mana yang memenuhi tiap syarat — yang pertama adalah yang akan dipasang secara bawaan.",
+  "action.exit": "Keluar",
+  "mirrors.menu": "Menu",
+  "mirrors.title": "Perbarui mirror",
+  "mirrors.question": "Apakah Anda ingin menyinkronkan mirror dengan kecepatan terbaik untuk negara Anda?",
+  "mirrors.search": "Cari negara",
+  "mirrors.willInstall": "reflector akan dipasang terlebih dahulu: program yang mengurutkan mirror berdasarkan kecepatan.",
+  "mirrors.running": "Memperbarui mirror…",
+  "mirrors.done": "Daftar mirror diperbarui.",
+  "mirrors.failed": "Gagal memperbarui mirror."
 }

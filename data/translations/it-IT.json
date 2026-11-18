@@ -123,5 +123,14 @@
   "phase.installBuilt": "Installazione dei pacchetti compilati…",
   "phase.cleanup": "Rimozione delle dipendenze di compilazione…",
   "chooser.title": "Scegli un fornitore",
-  "chooser.body": "Questi pacchetti richiedono la scelta di un fornitore. Scegli quale pacchetto soddisfa ogni requisito — il primo è quello che verrebbe installato per impostazione predefinita."
+  "chooser.body": "Questi pacchetti richiedono la scelta di un fornitore. Scegli quale pacchetto soddisfa ogni requisito — il primo è quello che verrebbe installato per impostazione predefinita.",
+  "action.exit": "Esci",
+  "mirrors.menu": "Menu",
+  "mirrors.title": "Aggiorna i mirror",
+  "mirrors.question": "Vuoi sincronizzare i mirror con la velocità migliore per il tuo paese?",
+  "mirrors.search": "Cerca un paese",
+  "mirrors.willInstall": "Viene prima installato reflector: il programma che ordina i mirror per velocità.",
+  "mirrors.running": "Aggiornamento dei mirror…",
+  "mirrors.done": "Elenco dei mirror aggiornato.",
+  "mirrors.failed": "Impossibile aggiornare i mirror."
 }

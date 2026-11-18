@@ -247,7 +247,10 @@ impl Ui {
                         *ui.model.borrow_mut() = Some(Rc::new(model));
                     }
                     Err(e) => {
-                        ui.toast(&i18n::t_fmt("toast.modelLoad", &[("error", &e.to_string())]));
+                        ui.toast(&i18n::t_fmt(
+                            "toast.modelLoad",
+                            &[("error", &e.to_string())],
+                        ));
                     }
                 }
                 ui.refresh_pages();
@@ -289,10 +292,7 @@ impl Ui {
         if let Some(label) = self.fresh.borrow().clone() {
             match fresh {
                 Some(t) => {
-                    label.set_text(&i18n::t_fmt(
-                        "header.fresh",
-                        &[("date", &format_time(t))],
-                    ));
+                    label.set_text(&i18n::t_fmt("header.fresh", &[("date", &format_time(t))]));
                     label.set_visible(true);
                 }
                 None => label.set_visible(false),
@@ -388,6 +388,13 @@ impl Ui {
         self.run_txn(txn, quiet, false);
     }
 
+    /// The "⋯" menu's mirror update: the question, the country, the spinner.
+    /// The dialog owns the flow — its own steps through the one polkit
+    /// action, gated on the same `running` flag every transaction obeys.
+    pub fn update_mirrors(&self) {
+        super::mirrors::show(self);
+    }
+
     /// Asks for the startup update check. It runs when the first model load
     /// answers — see [`Ui::maybe_auto_check`] — because that read is the only
     /// thing that can say how old the databases are.
@@ -448,10 +455,7 @@ impl Ui {
         // a pkexec error in a log dialog.
         if !std::path::Path::new(txn::HELPER).exists() {
             if !quiet {
-                self.say(&i18n::t_fmt(
-                    "toast.noHelper",
-                    &[("helper", txn::HELPER)],
-                ));
+                self.say(&i18n::t_fmt("toast.noHelper", &[("helper", txn::HELPER)]));
             }
             return;
         }
@@ -559,7 +563,10 @@ impl Ui {
             match log {
                 Some(log) => log.finish(Err(-1)),
                 None => {
-                    self.toast(&i18n::t_fmt("toast.startFailed", &[("error", &e.to_string())]));
+                    self.toast(&i18n::t_fmt(
+                        "toast.startFailed",
+                        &[("error", &e.to_string())],
+                    ));
                 }
             }
         }
@@ -842,7 +849,10 @@ impl Ui {
         if let Err(e) = spawned {
             self.running.set(false);
             log.finish(Err(-1));
-            self.toast(&i18n::t_fmt("toast.startFailed", &[("error", &e.to_string())]));
+            self.toast(&i18n::t_fmt(
+                "toast.startFailed",
+                &[("error", &e.to_string())],
+            ));
             return;
         }
         let ui = self.clone();

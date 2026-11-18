@@ -123,5 +123,14 @@
   "phase.installBuilt": "Derlenen paketler kuruluyor…",
   "phase.cleanup": "Derleme bağımlılıkları kaldırılıyor…",
   "chooser.title": "Bir sağlayıcı seçin",
-  "chooser.body": "Bu paketler bir sağlayıcı seçimi gerektiriyor. Her gereksinimi hangi paketin karşıladığını seçin — ilki varsayılan olarak kurulacak olandır."
+  "chooser.body": "Bu paketler bir sağlayıcı seçimi gerektiriyor. Her gereksinimi hangi paketin karşıladığını seçin — ilki varsayılan olarak kurulacak olandır.",
+  "action.exit": "Çık",
+  "mirrors.menu": "Menü",
+  "mirrors.title": "Aynaları güncelle",
+  "mirrors.question": "Aynalarınızı ülkeniz için en iyi hızla eşitlemek istiyor musunuz?",
+  "mirrors.search": "Ülke ara",
+  "mirrors.willInstall": "Önce aynaları hıza göre sıralayan program olan reflector kurulacak.",
+  "mirrors.running": "Aynalar güncelleniyor…",
+  "mirrors.done": "Ayna listesi güncellendi.",
+  "mirrors.failed": "Aynalar güncellenemedi."
 }

@@ -28,7 +28,8 @@
 //! app watched "Retrieving packages..." for a minute with 700 MiB moving.
 //! Line-buffered, every line reaches the app as pacman prints it.
 
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
+use std::os::unix::ffi::OsStrExt;
 use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
@@ -37,16 +38,38 @@ use std::process::Command;
 /// databases from — one path, never a second copy of it.
 const DB_LOCK: &str = "/var/lib/pacman/db.lck";
 
-/// The only caller variables pacman is handed: they choose its language,
-/// nothing else. Everything else is dropped by `env_clear` — `LD_*`,
-/// `IFS`, shell variables, `TMPDIR` (a package's scriptlets mktemp through
-/// it) — and `PATH` is re-added fixed from `exec_pacman`.
+/// The mirror list, the same file the app reads its country default from —
+/// one path, never a second copy of it (pinned against `model::MIRRORLIST`
+/// by a test in `txn.rs`).
+const MIRRORLIST: &str = "/etc/pacman.d/mirrorlist";
+
+/// Where a mirror update writes before the real file is touched: same
+/// directory (so the rename below is atomic) and named so a listing says what
+/// it is if a run is ever killed between the two steps.
+const MIRRORLIST_TMP: &str = "/etc/pacman.d/mirrorlist.aelum-tmp";
+
+/// The fixed PATH both programs are handed. Absolute-path exec leaves no
+/// lookup to chance, and this is the PATH a script's `#! /usr/bin/env` line
+/// resolves through — the caller's never is.
+const ENV_PATH: &str = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
+
+/// The only caller variables the two programs are handed: they choose the
+/// message language, nothing else. Everything else is dropped by `env_clear`
+/// — `LD_*`, `IFS`, shell variables, `TMPDIR` (a package's scriptlets mktemp
+/// through it) — and `PATH` is the fixed `ENV_PATH` alone.
 const ENV_KEEP: [&str; 5] = ["LANG", "LC_ALL", "LC_CTYPE", "LC_MESSAGES", "LANGUAGE"];
 
 fn main() {
     let mut argv = std::env::args_os().skip(1);
     let Some(verb) = argv.next() else { usage() };
     let rest: Vec<OsString> = argv.collect();
+    // The one verb that runs no pacman: the mirror update. It is dispatched
+    // before the pacman_args match so it never clears a database lock it has
+    // no business touching — reflector fetches a JSON file and writes the
+    // mirror list, it never opens a pacman database.
+    if verb == "update-mirrors" {
+        update_mirrors(&rest);
+    }
     // The verbs are named here before anything is touched, so an unknown one
     // is refused instead of clearing a lock on a call that runs no pacman.
     let Some(flags) = pacman_args(&verb.to_string_lossy(), &rest) else {
@@ -90,6 +113,89 @@ fn pacman_args(verb: &str, rest: &[OsString]) -> Option<Vec<OsString>> {
         argv.extend_from_slice(rest);
     }
     Some(argv)
+}
+
+/// The flags the mirror update runs reflector with: the newest twenty https
+/// mirrors of one country — no country means the installer's worldwide
+/// location, every mirror — listed by the mirror-status' own rate, saved to
+/// the temp file `update_mirrors` then moves into place. The country is
+/// accepted only as a bare 2-letter ISO code, the shape the app sends:
+/// nothing else on argv can read as a reflector option. (Measured against
+/// reflector 2023: `--country` matches the status database by name or code,
+/// case-insensitively — the code is what survives every country's spelling.)
+fn reflector_args(rest: &[OsString]) -> Option<Vec<OsString>> {
+    let country = match rest {
+        [] => None,
+        [one] if is_country_code(one) => Some(one.clone()),
+        _ => return None,
+    };
+    let mut argv: Vec<OsString> = ["--latest", "20", "--protocol", "https"]
+        .iter()
+        .map(|flag| (*flag).into())
+        .collect();
+    if let Some(country) = country {
+        argv.push("--country".into());
+        argv.push(country);
+    }
+    argv.extend(
+        ["--sort", "rate", "--save"]
+            .iter()
+            .map(|flag| (*flag).into()),
+    );
+    argv.push(MIRRORLIST_TMP.into());
+    Some(argv)
+}
+
+fn is_country_code(value: &OsStr) -> bool {
+    let bytes = value.as_bytes();
+    bytes.len() == 2 && bytes.iter().all(|b| b.is_ascii_alphabetic())
+}
+
+/// The mirror update — the one verb that cannot exec. reflector opens its
+/// `--save` file truncating, so a run killed mid-write would otherwise leave
+/// the system with a mirror list it cannot sync through: it writes beside the
+/// real file and this program moves it in with `rename(2)` — atomic within
+/// the directory — and only after reflector exited 0. (reflector itself
+/// refuses to save an empty selection, measured: `error: no mirrors found`
+/// before it ever opens the file; the rename is the guard against the rarer
+/// kill.) reflector's output is written at its exit, and the app watches a
+/// spinner, not lines — so no stdbuf here: that works on C stdio, not on
+/// Python's own buffering.
+fn update_mirrors(rest: &[OsString]) -> ! {
+    let Some(flags) = reflector_args(rest) else {
+        usage()
+    };
+    let mut cmd = Command::new("/usr/bin/reflector");
+    cmd.args(&flags)
+        .env_clear()
+        .env("PATH", ENV_PATH)
+        .envs(locale_env());
+    let status = match cmd.spawn().and_then(|mut child| child.wait()) {
+        Ok(status) => status,
+        Err(err) => {
+            eprintln!("aelum-package-installer-helper: cannot run reflector: {err}");
+            std::process::exit(127);
+        }
+    };
+    // A signal's exit (no code) is not a success either.
+    if status.code() != Some(0) {
+        std::process::exit(status.code().unwrap_or(1));
+    }
+    if let Err(err) = std::fs::rename(MIRRORLIST_TMP, MIRRORLIST) {
+        eprintln!(
+            "aelum-package-installer-helper: cannot move the new mirror list into place: {err}"
+        );
+        std::process::exit(1);
+    }
+    std::process::exit(0);
+}
+
+/// The caller variables the two programs are handed: they choose the message
+/// language, nothing else.
+fn locale_env() -> impl Iterator<Item = (&'static str, OsString)> {
+    ENV_KEEP
+        .iter()
+        .filter_map(|key| std::env::var_os(key).map(|value| (*key, value)))
 }
 
 /// Whether any pacman is running right now. Its `comm` is the whole test:
@@ -146,7 +252,8 @@ fn clear_stale_lock() {
 fn usage() -> ! {
     eprintln!(
         "usage: aelum-package-installer-helper \
-         {{refresh|install|install-asdeps|remove|upgrade|file|file-asdeps}} [args...]"
+         {{refresh|install|install-asdeps|remove|upgrade|file|file-asdeps|update-mirrors}} \
+         [args...]"
     );
     std::process::exit(2)
 }
@@ -159,12 +266,8 @@ fn exec_pacman(flags: &[OsString]) -> ! {
         .arg("/usr/bin/pacman")
         .args(flags)
         .env_clear()
-        .env("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
-        .envs(
-            ENV_KEEP
-                .iter()
-                .filter_map(|key| std::env::var_os(key).map(|value| (*key, value))),
-        );
+        .env("PATH", ENV_PATH)
+        .envs(locale_env());
     let err = cmd.exec();
     eprintln!("aelum-package-installer-helper: cannot run pacman: {err}");
     std::process::exit(127)
@@ -241,6 +344,78 @@ mod tests {
         assert!(pacman_args("-Sy", &[]).is_none());
         assert!(pacman_args("rm", &[]).is_none());
         assert!(pacman_args("", &[]).is_none());
+    }
+
+    fn reflector_argv(rest: &[&str]) -> Vec<String> {
+        let rest: Vec<OsString> = rest.iter().map(|name| (*name).into()).collect();
+        reflector_args(&rest)
+            .expect("a valid mirror update")
+            .iter()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect()
+    }
+
+    #[test]
+    fn the_mirror_update_sorts_the_newest_https_mirrors_by_rate() {
+        // The one fixed command of the feature, and the country lands as the
+        // plain ISO code the app sends (reflector matches it case-free).
+        assert_eq!(
+            reflector_argv(&["ua"]),
+            [
+                "--latest",
+                "20",
+                "--protocol",
+                "https",
+                "--country",
+                "ua",
+                "--sort",
+                "rate",
+                "--save",
+                "/etc/pacman.d/mirrorlist.aelum-tmp"
+            ]
+        );
+        // No country means the installer's worldwide location: no --country
+        // at all, every mirror still rate-sorted.
+        let worldwide = reflector_argv(&[]);
+        assert!(
+            !worldwide.iter().any(|arg| arg == "--country"),
+            "{worldwide:?}"
+        );
+        let tail: Vec<String> = worldwide.iter().rev().take(4).cloned().rev().collect();
+        assert_eq!(
+            tail,
+            [
+                "--sort",
+                "rate",
+                "--save",
+                "/etc/pacman.d/mirrorlist.aelum-tmp"
+            ],
+            "{worldwide:?}"
+        );
+    }
+
+    #[test]
+    fn only_a_bare_country_code_reaches_the_reflector_argv() {
+        // Anything else reads as an option, a second country, or a name the
+        // app never sends: the verb names reflector's flags, argv adds at
+        // most two letters.
+        for bad in [
+            "--country",
+            "-c",
+            "u",
+            "usa",
+            "united states",
+            "ua --sort age",
+            "",
+        ] {
+            let bad: Vec<OsString> = vec![bad.into()];
+            assert!(
+                reflector_args(&bad).is_none(),
+                "{bad:?} is not a country code"
+            );
+        }
+        let two: Vec<OsString> = vec!["ua".into(), "de".into()];
+        assert!(reflector_args(&two).is_none(), "one country, one argument");
     }
 
     #[test]

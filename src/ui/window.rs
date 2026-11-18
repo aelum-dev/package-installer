@@ -148,10 +148,26 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     close.add_css_class("flat");
     close.set_tooltip_text(Some(&i18n::t("action.close")));
     close.set_action_name(Some("window.close"));
+    // The "⋯" menu: the two app-level acts — updating the mirrors, and
+    // leaving. They are `app.` actions because the application, not this
+    // window, owns them: the window is one-shot, the process is not. A
+    // MenuButton over a hand-rolled popover, so the panel is the one GNOME
+    // draws identically everywhere, and the labels come from the catalogs
+    // like everything else.
+    let menu = gtk::MenuButton::builder()
+        .icon_name("view-more-symbolic")
+        .tooltip_text(i18n::t("mirrors.menu"))
+        .build();
+    menu.add_css_class("flat");
+    let items = gtk::gio::Menu::new();
+    items.append(Some(&i18n::t("mirrors.title")), Some("app.update-mirrors"));
+    items.append(Some(&i18n::t("action.exit")), Some("app.quit"));
+    menu.set_menu_model(Some(&items));
     let end = gtk::Box::new(gtk::Orientation::Horizontal, 6);
     end.set_halign(gtk::Align::End);
     end.append(&refresh);
     end.append(&about);
+    end.append(&menu);
     end.append(&close);
     *ui.refresh.borrow_mut() = Some(refresh);
 
@@ -169,7 +185,11 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     let (distro_page, distro_root) = distro::build();
     let (aur_page, aur_root) = aur::build(ui);
     let (updates_page, updates_root) = updates::build(ui);
-    let page = stack.add_titled(&installed_root, Some("installed"), &i18n::t("tabs.installed"));
+    let page = stack.add_titled(
+        &installed_root,
+        Some("installed"),
+        &i18n::t("tabs.installed"),
+    );
     page.set_icon_name(Some("package-x-generic-symbolic"));
     let page = stack.add_titled(&browse_root, Some("browse"), &i18n::t("tabs.browse"));
     page.set_icon_name(Some("system-search-symbolic"));
@@ -198,16 +218,12 @@ pub fn build(app: &adw::Application, ui: &Ui) {
             let here = name.as_ref().map(|n| n.as_str()).unwrap_or("");
             let on_updates = here == "updates";
             ui.on_updates_page.set(on_updates);
-            if on_updates
-                && let Some(tab) = ui.updates_tab.borrow().as_ref()
-            {
+            if on_updates && let Some(tab) = ui.updates_tab.borrow().as_ref() {
                 tab.set_needs_attention(false);
             }
             let on_aelum = here == "aelum";
             ui.on_aelum_page.set(on_aelum);
-            if on_aelum
-                && let Some(tab) = ui.aelum_tab.borrow().as_ref()
-            {
+            if on_aelum && let Some(tab) = ui.aelum_tab.borrow().as_ref() {
                 tab.set_needs_attention(false);
             }
         });

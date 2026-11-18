@@ -35,9 +35,9 @@ const FALLBACK: &str = "en-US";
 /// (`distro/installer/frontend/src/translations`), BCP-47 codes keyed the
 /// same way the installer keys its JSON files.
 const SUPPORTED_LOCALES: &[&str] = &[
-    "ar-SA", "bg-BG", "ca-ES", "de-DE", "el-GR", "en-US", "eo", "es-ES", "fa-IR", "fi-FI",
-    "fr-FR", "he-IL", "hu-HU", "id-ID", "it-IT", "ja-JP", "ko-KR", "nb-NO", "nl-NL", "pl-PL",
-    "pt-BR", "ru-RU", "sv-SE", "tr-TR", "uk-UA", "vi-VN", "zh-CN", "zh-TW",
+    "ar-SA", "bg-BG", "ca-ES", "de-DE", "el-GR", "en-US", "eo", "es-ES", "fa-IR", "fi-FI", "fr-FR",
+    "he-IL", "hu-HU", "id-ID", "it-IT", "ja-JP", "ko-KR", "nb-NO", "nl-NL", "pl-PL", "pt-BR",
+    "ru-RU", "sv-SE", "tr-TR", "uk-UA", "vi-VN", "zh-CN", "zh-TW",
 ];
 
 /// The right-to-left locales in the supported list — the same set the
@@ -140,13 +140,15 @@ fn catalog(code: &str) -> HashMap<String, String> {
     CATALOGS
         .iter()
         .find(|(c, _)| *c == code)
-        .map(|(_, json)| match serde_json::from_str::<HashMap<String, String>>(json) {
-            Ok(map) => map,
-            Err(err) => {
-                eprintln!("i18n: {code}.json does not parse: {err}");
-                HashMap::new()
-            }
-        })
+        .map(
+            |(_, json)| match serde_json::from_str::<HashMap<String, String>>(json) {
+                Ok(map) => map,
+                Err(err) => {
+                    eprintln!("i18n: {code}.json does not parse: {err}");
+                    HashMap::new()
+                }
+            },
+        )
         .unwrap_or_default()
 }
 
@@ -357,6 +359,7 @@ mod tests {
             "action.remove",
             "action.cancel",
             "action.close",
+            "action.exit",
             "status.reading",
             "status.refreshing",
             "rows.noMatches",
@@ -443,6 +446,14 @@ mod tests {
             "toast.openFallbackName",
             "toast.openNotLocal",
             "toast.startFailed",
+            "mirrors.menu",
+            "mirrors.title",
+            "mirrors.question",
+            "mirrors.search",
+            "mirrors.willInstall",
+            "mirrors.running",
+            "mirrors.done",
+            "mirrors.failed",
         ] {
             assert!(english.contains_key(key), "en-US.json is missing {key}");
         }
@@ -480,7 +491,10 @@ mod tests {
         // unlocalized `Name`.
         let desktop = include_str!("../data/aelum.packageinstaller.Packages.desktop");
         let localized = localized_values(desktop, "Name");
-        assert!(!localized.is_empty(), "the desktop entry has no Name[] keys");
+        assert!(
+            !localized.is_empty(),
+            "the desktop entry has no Name[] keys"
+        );
         let base = unlocalized_value(desktop, "Name");
         for code in SUPPORTED_LOCALES {
             let shown = resolve_localized(&localized, base, code);
@@ -505,7 +519,10 @@ mod tests {
         let desktop = include_str!("../data/aelum.packageinstaller.Packages.desktop");
         for key in ["GenericName", "Comment"] {
             let localized = localized_values(desktop, key);
-            assert!(!localized.is_empty(), "the desktop entry has no {key}[] keys");
+            assert!(
+                !localized.is_empty(),
+                "the desktop entry has no {key}[] keys"
+            );
             let base = unlocalized_value(desktop, key);
             for code in SUPPORTED_LOCALES {
                 // en-US is the entry's unlocalized value, like the Name.
@@ -590,7 +607,10 @@ mod tests {
             let mut want: Vec<&str> = english.keys().map(String::as_str).collect();
             got.sort_unstable();
             want.sort_unstable();
-            assert_eq!(got, want, "{code}.json does not define exactly the English keys");
+            assert_eq!(
+                got, want,
+                "{code}.json does not define exactly the English keys"
+            );
             for (key, template) in &english {
                 let value = &parsed[key];
                 assert!(!value.trim().is_empty(), "{code}.json has an empty {key}");

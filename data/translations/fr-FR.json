@@ -123,5 +123,14 @@
   "phase.installBuilt": "Installation des paquets compilés…",
   "phase.cleanup": "Suppression des dépendances de compilation…",
   "chooser.title": "Choisir un fournisseur",
-  "chooser.body": "Ces paquets exigent de choisir un fournisseur. Choisissez quel paquet répond à chaque exigence — le premier est celui qui serait installé par défaut."
+  "chooser.body": "Ces paquets exigent de choisir un fournisseur. Choisissez quel paquet répond à chaque exigence — le premier est celui qui serait installé par défaut.",
+  "action.exit": "Quitter",
+  "mirrors.menu": "Menu",
+  "mirrors.title": "Mettre à jour les miroirs",
+  "mirrors.question": "Voulez-vous synchroniser les miroirs avec la meilleure vitesse pour votre pays ?",
+  "mirrors.search": "Rechercher un pays",
+  "mirrors.willInstall": "reflector sera installé d’abord : ce programme classe les miroirs par vitesse.",
+  "mirrors.running": "Mise à jour des miroirs…",
+  "mirrors.done": "La liste des miroirs a été mise à jour.",
+  "mirrors.failed": "Impossible de mettre à jour les miroirs."
 }

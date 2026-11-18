@@ -123,5 +123,14 @@
   "phase.installBuilt": "Instalante la kompilitajn pakaĵojn…",
   "phase.cleanup": "Forigante konstruajn dependaĵojn…",
   "chooser.title": "Elektu provizanton",
-  "chooser.body": "Ĉi tiuj pakaĵoj bezonas elekton de provizanto. Elektu, kiu pakaĵo plenumas ĉiun postulon — la unua estus instalita defaŭlte."
+  "chooser.body": "Ĉi tiuj pakaĵoj bezonas elekton de provizanto. Elektu, kiu pakaĵo plenumas ĉiun postulon — la unua estus instalita defaŭlte.",
+  "action.exit": "Eliri",
+  "mirrors.menu": "Menuo",
+  "mirrors.title": "Ĝisdatigi spegulojn",
+  "mirrors.question": "Ĉu vi volas sinkronigi la spegulojn kun la plej bona rapido por via lando?",
+  "mirrors.search": "Serĉi landon",
+  "mirrors.willInstall": "Unue instalatiĝos reflector — la programo, kiu rangigas la spegulojn laŭ rapido.",
+  "mirrors.running": "Ĝisdatiĝas la speguloj…",
+  "mirrors.done": "La spegula listo ĝisdatiĝis.",
+  "mirrors.failed": "Ne eblis ĝisdatigi la spegulojn."
 }
