@@ -33,6 +33,14 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.7.0" date="2026-11-18">
+      <description>
+        <ul>
+          <li>New Firmware tab: asks fwupd and LVFS for device firmware updates when you press Check, never on its own, and writes them through the same one privileged action the rest of the app uses</li>
+          <li>Fixed: a refresh against an unreachable mirror no longer holds the app spinning — it stops after 60 seconds and frees every other action, including Update mirrors</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.6.1" date="2026-11-18">
       <description>
         <ul>
