@@ -32,6 +32,13 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.6.1" date="2026-11-18">
+      <description>
+        <ul>
+          <li>The window close button now matches the video player's window control: a round ink disc behind the icon, with the theme's own hover and press states.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.6.0" date="2026-11-18">
       <description>
         <ul>
