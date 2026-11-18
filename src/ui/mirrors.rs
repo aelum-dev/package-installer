@@ -119,6 +119,40 @@ pub fn show(ui: &Ui) {
     }
     fill_countries(&list, &search.text(), &selected);
 
+    // The list opens on the country that is about to be confirmed, not at
+    // Albania. Rows only have positions after the dialog's first layout —
+    // the ::size-allocate signal is not bound in this crate, so an idle
+    // asks until the row answers with bounds, then scrolls there once.
+    // (The row's index in the empty-query list is its index in COUNTRIES —
+    // the search entry opens empty and the table is the rows.)
+    {
+        let scrolled = scrolled.clone();
+        let list = list.clone();
+        let selected = Rc::clone(&selected);
+        glib::idle_add_local(move || {
+            // No selection row: done asking. Not laid out yet: ask again.
+            let Some(row) = list.row_at_index(*selected.borrow() as i32) else {
+                return glib::ControlFlow::Break;
+            };
+            let vadj = scrolled.vadjustment();
+            let Some(bounds) = row.compute_bounds(&list) else {
+                return glib::ControlFlow::Continue;
+            };
+            if vadj.page_size() <= 0.0 {
+                return glib::ControlFlow::Continue;
+            }
+            // Bounds relative to the list: the row's offset inside the
+            // content, whatever the viewport is scrolled to. Put it near
+            // the middle — coming back to an old choice should read as
+            // context, neighbours above and below still in sight.
+            let bottom = (vadj.upper() - vadj.page_size()).max(0.0);
+            let centered =
+                f64::from(bounds.y()) - (vadj.page_size() - f64::from(bounds.height())) / 2.0;
+            vadj.set_value(centered.clamp(0.0, bottom));
+            glib::ControlFlow::Break
+        });
+    }
+
     // A failure's words, kept between the question and the buttons: the form
     // comes back with them, so a refused update reads as one retryable fact
     // and not a silent reset.

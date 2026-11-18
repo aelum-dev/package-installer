@@ -525,7 +525,11 @@ environment allowlist: invariants, not unit tests of a string.
   fuzzy-filtered by a search entry — AdwComboRow's built-in search is
   substring-only and its custom-match hook is not bound in libadwaita 0.9,
   so the picker is the pages' own shape: `countries::search` → ListBox rows
-  of grouped CheckButtons, selection an index. The preselection is read from
+  of grouped CheckButtons, selection an index — and the list opens scrolled
+  to it, by a one-shot idle that scrolls the moment the first layout gives
+  the row its bounds, so neither a resize nor a keystroke's row rebuild
+  moves the user's position. The preselection
+  is read from
   the system's own files at open — reflector's `# With:` header in the
   mirrorlist first (it records the command that wrote it), then the
   installer's `## … mirrorlist for <Name>` header, then the locale's
