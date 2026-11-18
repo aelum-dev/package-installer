@@ -15,6 +15,7 @@ use libadwaita::prelude::*;
 use crate::aur;
 use crate::cache;
 use crate::db;
+use crate::fwupd;
 use crate::i18n;
 use crate::model::{Model, PACMAN_CONFIG, PACMAN_ROOT};
 use crate::progress;
@@ -67,6 +68,19 @@ pub struct Ui {
     /// (the same rule as `load_seq`).
     pub aur_searching: Rc<Cell<bool>>,
     pub aur_seq: Rc<Cell<u64>>,
+    /// The Firmware page and its one answer: `fwupdmgr`'s update list plus
+    /// the daemon's restart verdict, or the sentence for why there is none.
+    /// The AUR page's rules own this page too — LVFS is a third-party
+    /// server, so nothing is fetched unasked and there is no badge.
+    pub firmware_page: Rc<RefCell<Option<super::firmware::Page>>>,
+    pub fw_answer: Rc<RefCell<Option<Result<fwupd::Answer, String>>>>,
+    pub fw_checking: Rc<Cell<bool>>,
+    pub fw_seq: Rc<Cell<u64>>,
+    /// A firmware write finished and the answer on screen predates it: the
+    /// success path takes one local re-read of the daemon — no metadata
+    /// refresh, that network answer was already paid for by the check that
+    /// listed the update.
+    pub fw_needs_recheck: Rc<Cell<bool>>,
     /// The header's Refresh button; it doubles as the update-check
     /// indicator (a spinner while any refresh runs).
     pub refresh: Rc<RefCell<Option<gtk::Button>>>,
@@ -117,6 +131,11 @@ impl Ui {
             aur: Rc::new(RefCell::new(None)),
             aur_searching: Rc::new(Cell::new(false)),
             aur_seq: Rc::new(Cell::new(0)),
+            firmware_page: Rc::new(RefCell::new(None)),
+            fw_answer: Rc::new(RefCell::new(None)),
+            fw_checking: Rc::new(Cell::new(false)),
+            fw_seq: Rc::new(Cell::new(0)),
+            fw_needs_recheck: Rc::new(Cell::new(false)),
             refresh: Rc::new(RefCell::new(None)),
             fresh: Rc::new(RefCell::new(None)),
             content: Rc::new(RefCell::new(None)),
@@ -196,6 +215,7 @@ impl Ui {
         *self.browse.borrow_mut() = None;
         *self.distro.borrow_mut() = None;
         *self.aur_page.borrow_mut() = None;
+        *self.firmware_page.borrow_mut() = None;
         *self.updates_tab.borrow_mut() = None;
         *self.aelum_tab.borrow_mut() = None;
         *self.refresh.borrow_mut() = None;
@@ -259,6 +279,13 @@ impl Ui {
     }
 
     pub fn refresh_pages(&self) {
+        // The Firmware page answers from the machine and from its own last
+        // press, not from the databases: it repaints before (and without)
+        // the model, or a page whose check just landed would wait on an
+        // unrelated read to show its answer.
+        if let Some(page) = self.firmware_page.borrow().as_ref() {
+            page.refresh(self);
+        }
         let model = self.model.borrow().clone();
         let Some(model) = model else { return };
         if let Some(page) = self.installed.borrow().as_ref() {
@@ -568,6 +595,14 @@ impl Ui {
                             if ui.window.borrow().is_some() {
                                 ui.load_model();
                             }
+                            // A finished firmware write made the answer on
+                            // the page describe the machine as it was. One
+                            // local re-read replaces it; a failed run leaves
+                            // the flag set for the next reload, which only
+                            // re-reads what is true either way.
+                            if ui.fw_needs_recheck.take() {
+                                ui.recheck_firmware();
+                            }
                         }
                         // A failure's text is the log itself; closing the
                         // dialog is the acknowledgement.
@@ -829,6 +864,84 @@ impl Ui {
                 ui.refresh_pages();
             }
         });
+    }
+
+    /// Ask fwupd what it can do for this machine: the metadata refreshed
+    /// first (that is what makes the answer *today's*), then the device list
+    /// and the restart verdict. A press, never a badge — LVFS is a
+    /// third-party server, and the same offline-first rule that keeps the
+    /// AUR tab silent owns this one. A failed refresh does not fail the
+    /// check (`remote::fwupd_check`): the cached answer plus that fact is
+    /// the honest result, not silence.
+    pub fn check_firmware(&self) {
+        if !std::path::Path::new(fwupd::BINARY).exists() {
+            // The page hides this button when fwupd is absent; a press that
+            // raced an uninstall gets the sentence, not a never-ending
+            // spinner.
+            self.toast(&i18n::t("firmware.none"));
+            return;
+        }
+        self.fw_seq.set(self.fw_seq.get() + 1);
+        let seq = self.fw_seq.get();
+        self.fw_checking.set(true);
+        self.fw_needs_recheck.set(false);
+        self.refresh_pages();
+        let (tx, mut rx) = futures::channel::mpsc::unbounded();
+        std::thread::spawn(move || {
+            let _ = tx.unbounded_send((seq, remote::fwupd_check(true)));
+        });
+        let ui = self.clone();
+        glib::MainContext::default().spawn_local(async move {
+            if let Some((seq, result)) = rx.next().await {
+                // A newer question is already on screen; this answer is stale.
+                if seq != ui.fw_seq.get() {
+                    return;
+                }
+                ui.fw_checking.set(false);
+                *ui.fw_answer.borrow_mut() = Some(result);
+                ui.refresh_pages();
+            }
+        });
+    }
+
+    /// The re-read after a finished write: what the daemon believes now, and
+    /// no network — the metadata was refreshed by the check that listed the
+    /// update, and the offline-first rule does not spend a second fetch to
+    /// learn what the local daemon already knows.
+    pub fn recheck_firmware(&self) {
+        if !std::path::Path::new(fwupd::BINARY).exists() {
+            return;
+        }
+        self.fw_seq.set(self.fw_seq.get() + 1);
+        let seq = self.fw_seq.get();
+        let (tx, mut rx) = futures::channel::mpsc::unbounded();
+        std::thread::spawn(move || {
+            let _ = tx.unbounded_send((seq, remote::fwupd_check(false)));
+        });
+        let ui = self.clone();
+        glib::MainContext::default().spawn_local(async move {
+            if let Some((seq, result)) = rx.next().await {
+                if seq != ui.fw_seq.get() {
+                    return;
+                }
+                // `fw_checking` untouched: this is not a press the page is
+                // waiting on, and a spinner nobody asked for would flicker
+                // a page that already shows an answer.
+                *ui.fw_answer.borrow_mut() = Some(result);
+                ui.refresh_pages();
+            }
+        });
+    }
+
+    /// The Update press: fwupd writes every device the page listed, as root
+    /// through the one polkit action — the fwupd daemon trusts uid 0, so no
+    /// auth agent the desktop may not run is involved, and this app's wheel
+    /// rule is the whole gate. A staged update reboots on its owner's word
+    /// only: the final reboot prompt is read from the log's pipe, and its
+    /// default is no.
+    pub fn update_firmware(&self) {
+        self.fw_needs_recheck.set(true);
+        self.start_txn(Txn::FirmwareUpdate);
     }
 
     /// Build one AUR package and install what the build produces. The whole

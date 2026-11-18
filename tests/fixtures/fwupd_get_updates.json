@@ -1,0 +1,74 @@
+{
+  "Devices": [
+    {
+      "Name": "WDC PC SN730 SDBPNTY-512G",
+      "DeviceId": "f742a6af25cbf58b8c396e506fc4c1f2458b5d6f",
+      "Guid": [
+        "cd0f7577-79f6-54e7-8379-f42c41b55ad6",
+        "nvme_cc53_15ed_001b_448b"
+      ],
+      "Plugin": "nvme",
+      "Flags": ["updatable", "bootloader-target", "has-device-id", "managed", "require-ac"],
+      "Vendor": "Western Digital",
+      "VendorIds": ["nvme_cc53_15ed_001b_448b"],
+      "Version": "73010000",
+      "VersionFormat": "number",
+      "Checksums": ["dc521364b0235d5d8a5b3187f2d72499985c7f4a"],
+      "Protocols": ["org.nvmexpress"],
+      "Icons": ["drive-harddisk"],
+      "Created": 1699999999,
+      "Modified": 1700000000,
+      "Releases": [
+        {
+          "ReleaseId": "WDC-PC-SN730-SDBPNTY-512G",
+          "RemoteId": "lvfs",
+          "Checksum": [
+            "dc521364b0235d5d8a5b3187f2d72499985c7f4a",
+            "be86f8f8f4e650e5b6e4f7f9e8b6e4f7f9e8b6e4f7f9e8b6e4f7f9e8b6e4f7f9"
+          ],
+          "Size": 5185536,
+          "DownloadUri": "https://fwupd.org/downloads/dc521364b0235d5d8a5b.zip",
+          "Uri": "https://fwupd.org/lvfs/devices/com.wdc.sn730.firmware",
+          "DetailsUrl": "https://fwupd.org/lvfs/devices/com.wdc.sn730.firmware",
+          "License": "custom",
+          "Version": "73021000",
+          "Protocol": "org.nvmexpress",
+          "Name": "WDC PC SN730 SDBPNTY-512G Firmware",
+          "Summary": "This release adds a fix for the thermal management.",
+          "Description": "<p>This release adds a fix for the thermal management.</p>",
+          "Urgency": "medium",
+          "TrustFlags": ["vendor-id", "checksum", "firmware", "metadata"],
+          "Created": 1698000000
+        }
+      ]
+    },
+    {
+      "Name": "ThinkPad Dock USB3Hub",
+      "DeviceId": "2c5b5ae0cb24b941dd9414603d6275710e0f5d99",
+      "Guid": ["61f9cd05-3620-5c84-8c55-f626a1c258fd"],
+      "Plugin": "vli",
+      "Flags": ["updatable", "requires-bootloader-mode", "managed"],
+      "Vendor": "VIA",
+      "Version": "05/23",
+      "VersionFormat": "dell-bios",
+      "Protocols": ["com.via.usbhub"],
+      "Created": 1699999999,
+      "Modified": 1699999999
+    },
+    {
+      "Name": "UEFI dbx",
+      "DeviceId": "362301dae1757817dab1173777d3e1364b18b940",
+      "ParentDeviceId": "a16b2c7e8a8031d83d22a71d4b9c2b9b3e6f7b41",
+      "Guid": ["b08f5b05-b53b-5b37-9b3c-c0f7c9e8e5b2"],
+      "Plugin": "uefi_dbx",
+      "Flags": ["internal", "updatable", "is-bootloader", "reporting"],
+      "Vendor": "UEFI",
+      "Version": "193",
+      "VersionFormat": "number",
+      "UpdateState": 4,
+      "Protocols": ["org.uefi.dbx"],
+      "Created": 1699999999,
+      "Modified": 1700000001
+    }
+  ]
+}

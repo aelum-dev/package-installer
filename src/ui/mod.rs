@@ -1,4 +1,4 @@
-//! The GTK shell: shared state (`app`), the window, the five pages, the
+//! The GTK shell: shared state (`app`), the window, the six pages, the
 //! dialogs, and the window's drop target. UI state lives on the GTK main
 //! thread; only the model loading and the transaction output cross threads
 //! (channels into this thread).
@@ -10,6 +10,7 @@ mod dialog;
 mod distro;
 mod dnd;
 mod fileopen;
+mod firmware;
 mod installed;
 mod mirrors;
 mod txnlog;

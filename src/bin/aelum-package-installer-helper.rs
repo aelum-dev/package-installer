@@ -1,7 +1,11 @@
 //! aelum-package-installer-helper — the root half of every package-manager
 //! operation. pkexec authenticates this program (the polkit action names it
 //! through its exec.path annotation); it is the only place pacman runs with
-//! privileges, so one action and one rule cover every verb.
+//! privileges, so one action and one rule cover every verb. The one verb
+//! that runs no pacman is `firmware-update`: it execs fwupdmgr, and the
+//! fwupd daemon treats uid 0 as always trusted — the update needs no auth
+//! agent the desktop may not run, and the app's wheel rule is what stands
+//! between a person and the policy.
 //!
 //! This is the crate's second binary, not a script, and that is the point:
 //! pkexec hands the program it runs as root the *caller's* environment, and
@@ -63,12 +67,16 @@ fn main() {
     let mut argv = std::env::args_os().skip(1);
     let Some(verb) = argv.next() else { usage() };
     let rest: Vec<OsString> = argv.collect();
-    // The one verb that runs no pacman: the mirror update. It is dispatched
-    // before the pacman_args match so it never clears a database lock it has
-    // no business touching — reflector fetches a JSON file and writes the
-    // mirror list, it never opens a pacman database.
+    // The two verbs that run no pacman: the mirror update and the firmware
+    // write. They are dispatched before the pacman_args match so neither
+    // clears a database lock it has no business touching — reflector fetches
+    // a JSON file and writes the mirror list, fwupd talks to its own daemon.
+    // Neither opens a pacman database.
     if verb == "update-mirrors" {
         update_mirrors(&rest);
+    }
+    if verb == "firmware-update" {
+        firmware_update(&rest);
     }
     // The verbs are named here before anything is touched, so an unknown one
     // is refused instead of clearing a lock on a call that runs no pacman.
@@ -190,6 +198,40 @@ fn update_mirrors(rest: &[OsString]) -> ! {
     std::process::exit(0);
 }
 
+/// The flags the firmware write runs fwupdmgr with: the one fixed command,
+/// and no argument — the fwupd daemon answers for which devices take an
+/// update (the app asked it the same question when the page filled), and an
+/// id on argv could only mean a write nobody confirmed. `--assume-yes`
+/// answers fwupdmgr's own prompts; the final "Restart now?" is fwupdmgr's
+/// doing on a TTY, and read from the closed pipe here it takes its default
+/// (no): a staged update waits for a person to reboot.
+fn fwupd_args(rest: &[OsString]) -> Option<Vec<OsString>> {
+    match rest {
+        [] => Some(vec!["update".into(), "--assume-yes".into()]),
+        _ => None,
+    }
+}
+
+/// The firmware write — the second exec verb: fwupd's own progress lines
+/// stream into the caller's log, and pkexec reports fwupdmgr's exit status.
+/// stdbuf for the same measured reason as pacman: through a pipe its stdio
+/// output arrives at the end without line buffering.
+fn firmware_update(rest: &[OsString]) -> ! {
+    let Some(flags) = fwupd_args(rest) else {
+        usage()
+    };
+    let mut cmd = Command::new("/usr/bin/stdbuf");
+    cmd.arg("-oL")
+        .arg("/usr/bin/fwupdmgr")
+        .args(&flags)
+        .env_clear()
+        .env("PATH", ENV_PATH)
+        .envs(locale_env());
+    let err = cmd.exec();
+    eprintln!("aelum-package-installer-helper: cannot run fwupdmgr: {err}");
+    std::process::exit(127)
+}
+
 /// The caller variables the two programs are handed: they choose the message
 /// language, nothing else.
 fn locale_env() -> impl Iterator<Item = (&'static str, OsString)> {
@@ -252,7 +294,7 @@ fn clear_stale_lock() {
 fn usage() -> ! {
     eprintln!(
         "usage: aelum-package-installer-helper \
-         {{refresh|install|install-asdeps|remove|upgrade|file|file-asdeps|update-mirrors}} \
+         {{refresh|install|install-asdeps|remove|upgrade|file|file-asdeps|update-mirrors|firmware-update}} \
          [args...]"
     );
     std::process::exit(2)
@@ -344,6 +386,29 @@ mod tests {
         assert!(pacman_args("-Sy", &[]).is_none());
         assert!(pacman_args("rm", &[]).is_none());
         assert!(pacman_args("", &[]).is_none());
+    }
+
+    fn firmware_argv(rest: &[&str]) -> Option<Vec<String>> {
+        let rest: Vec<OsString> = rest.iter().map(|name| (*name).into()).collect();
+        fwupd_args(&rest).map(|args| {
+            args.iter()
+                .map(|arg| arg.to_string_lossy().into_owned())
+                .collect()
+        })
+    }
+
+    #[test]
+    fn the_firmware_write_is_one_fixed_command() {
+        // The one argv fwupdmgr ever sees: no device id, no flag nobody
+        // asked for, and the prompts answered.
+        assert_eq!(
+            firmware_argv(&[]),
+            Some(vec!["update".to_string(), "--assume-yes".to_string()])
+        );
+        // A device id on argv would be a write the confirmation never
+        // named — refused like an unknown verb.
+        assert_eq!(firmware_argv(&["f742a6af"]), None);
+        assert_eq!(firmware_argv(&["--force"]), None);
     }
 
     fn reflector_argv(rest: &[&str]) -> Vec<String> {

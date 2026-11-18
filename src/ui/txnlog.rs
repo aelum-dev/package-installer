@@ -285,6 +285,7 @@ fn phase_key(phase: Phase) -> &'static str {
         Phase::Build => "phase.build",
         Phase::InstallBuilt => "phase.installBuilt",
         Phase::Cleanup => "phase.cleanup",
+        Phase::Firmware => "phase.firmware",
         // Unknown: the transaction has not reported a phase yet; Done is
         // only reached when the work is over, and finish() owns that text.
         Phase::Unknown | Phase::Done => "txnlog.running",

@@ -51,6 +51,11 @@ pub enum Verb {
     /// steps are *told* through [`crate::txn::TxnEvent::Step`], never
     /// scraped from translated text.
     Aur,
+    /// `fwupdmgr update`: the fwupd client prints no parseable counters —
+    /// its progress is per-device percent lines redrawn on a TTY, which
+    /// through a pipe arrive as unstructured text. One honest creep band,
+    /// so the bar never claims a number fwupd does not emit.
+    Firmware,
 }
 
 /// The phase the tracker currently believes it is in. The AUR variants are
@@ -70,6 +75,10 @@ pub enum Phase {
     Build,
     InstallBuilt,
     Cleanup,
+    /// The whole firmware job: entered by [`Track::new`] for
+    /// [`Verb::Firmware`] and by nothing else — the fwupd client's output
+    /// never names a phase.
+    Firmware,
     Done,
     Unknown,
 }
@@ -128,6 +137,10 @@ fn bands(verb: Verb) -> Vec<Band> {
             (Phase::InstallBuilt, 0.80, 0.95),
             (Phase::Cleanup, 0.95, 1.00),
         ],
+        // One band, creeping: fwupd gives no counters, and the bar says
+        // "Writing firmware" without ever pretending to know how far in
+        // the write is. `finish()` is what takes it to 1.0.
+        Verb::Firmware => &[(Phase::Firmware, 0.00, 1.00)],
     };
     table
         .iter()
@@ -169,7 +182,13 @@ impl Track {
     pub fn new(verb: Verb) -> Track {
         Track {
             bands: bands(verb),
-            phase: Phase::Unknown,
+            // Every pacman verb opens Unknown and its first phase header
+            // names the phase. The firmware job has one phase and no
+            // headers, so it is that phase from the first line on.
+            phase: match verb {
+                Verb::Firmware => Phase::Firmware,
+                _ => Phase::Unknown,
+            },
             txn_total: 0,
             counter: 0,
             counter_total: 0,
@@ -762,5 +781,40 @@ mod tests {
         t.feed("(1/1) installing x");
         assert_eq!(t.phase(), Phase::Process);
         assert_eq!(t.counts(), Some((1, 1)));
+    }
+
+    #[test]
+    fn the_firmware_bar_creeps_and_never_counts() {
+        // fwupd emits no counters, so the firmware job has one band that
+        // creeps: it must move with each line, stay inside (0, 1), and
+        // never hand the UI an "i of n" it did not earn.
+        let mut t = Track::new(Verb::Firmware);
+        assert_eq!(t.phase(), Phase::Firmware, "one phase, from the start");
+        assert!(t.counts().is_none(), "fwupd gives no counts");
+        let mut last = -1.0;
+        for line in [
+            "Downloading UEFI dbx…",
+            "Writing UEFI dbx…",
+            "Waiting for hardware to initialize…",
+        ] {
+            t.feed(line);
+            let f = t.fraction();
+            assert!(f > last && f < 1.0, "{line} moves it forward, stays short");
+            last = f;
+        }
+    }
+
+    #[test]
+    fn firmware_output_cannot_be_read_as_pacman_phases() {
+        // A mislabelled or shared log must not let a pacman header drag the
+        // firmware band to a phase this job never runs — set() ignores any
+        // phase outside this verb's table, so the phase and its creeping
+        // share hold.
+        let mut t = Track::new(Verb::Firmware);
+        t.feed(":: Retrieving packages...");
+        t.feed(" installing htop...");
+        t.feed("(1/1) running post-transaction hooks...");
+        assert_eq!(t.phase(), Phase::Firmware);
+        assert!(t.counts().is_none());
     }
 }

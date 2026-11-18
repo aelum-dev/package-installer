@@ -1,0 +1,28 @@
+{
+  "Devices": [
+    {
+      "Name": "Integrated Camera",
+      "DeviceId": "935908ff3f1f074c9f3e39f4c4e1d0e51514a013",
+      "Guid": ["d1ee58f1-f3ad-5e18-b4c2-17e22c9d923f"],
+      "Plugin": "realtek",
+      "Flags": ["updatable", "managed"],
+      "Vendor": "Realtek",
+      "Version": "0.42",
+      "VersionFormat": "dotted-quad",
+      "UpdateState": 3,
+      "UpdateError": "no space left on device",
+      "Releases": [
+        {
+          "ReleaseId": "RTS1234-camera",
+          "RemoteId": "lvfs",
+          "Size": 3145728,
+          "Version": "0.43",
+          "Protocol": "com.realtek.rtspv",
+          "Name": "Integrated Camera Firmware",
+          "Uri": "https://fwupd.org/lvfs/devices/com.realtek.camera.firmware",
+          "License": "custom"
+        }
+      ]
+    }
+  ]
+}

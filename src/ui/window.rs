@@ -1,11 +1,11 @@
-//! The window: header, view switcher, and the five pages.
+//! The window: header, view switcher, and the six pages.
 
 use gtk::prelude::*;
 use libadwaita as adw;
 use libadwaita::prelude::*;
 
 use super::app::Ui;
-use super::{aur, browse, distro, dnd, installed, updates};
+use super::{aur, browse, distro, dnd, firmware, installed, updates};
 use crate::i18n;
 use crate::txn::Txn;
 
@@ -190,6 +190,7 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     let (browse_page, browse_root) = browse::build(ui);
     let (distro_page, distro_root) = distro::build();
     let (aur_page, aur_root) = aur::build(ui);
+    let (firmware_page, firmware_root) = firmware::build(ui);
     let (updates_page, updates_root) = updates::build(ui);
     let page = stack.add_titled(
         &installed_root,
@@ -209,6 +210,12 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     // here because a badge would mean a query the user never made.
     let page = stack.add_titled(&aur_root, Some("aur"), &i18n::t("tabs.aur"));
     page.set_icon_name(Some("network-server-symbolic"));
+    // Firmware: what fwupd can do for the devices on this machine. It sits
+    // with the other ways to change what is on the system and, like the AUR
+    // tab, keeps quiet until pressed — its answer is a claim about a
+    // third-party server, so no dot may light for it unasked.
+    let page = stack.add_titled(&firmware_root, Some("firmware"), &i18n::t("tabs.firmware"));
+    page.set_icon_name(Some("media-flash-symbolic"));
     // Updates last: it is the page you go to when something is wrong, not
     // the one you open to look at your system. Its badge is the signal.
     let page = stack.add_titled(&updates_root, Some("updates"), &i18n::t("tabs.updates"));
@@ -275,6 +282,7 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     *ui.browse.borrow_mut() = Some(browse_page);
     *ui.distro.borrow_mut() = Some(distro_page);
     *ui.aur_page.borrow_mut() = Some(aur_page);
+    *ui.firmware_page.borrow_mut() = Some(firmware_page);
     // The window is one-shot: closing it destroys it. Every slot `Ui`
     // keeps of this window's widgets belongs to it — clearing them here
     // is what makes a later double-click take the popup path again

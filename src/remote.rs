@@ -20,6 +20,7 @@ use futures::channel::mpsc::UnboundedSender;
 
 use crate::aur;
 use crate::db;
+use crate::fwupd;
 use crate::i18n;
 use crate::model::{self, Model};
 use crate::txn::{self, Txn, TxnEvent};
@@ -74,6 +75,64 @@ pub fn aur_updates(names: &[String]) -> Result<Vec<aur::Hit>, String> {
         }
     }
     Ok(hits)
+}
+
+/// Ask fwupd what its answer is: take the update list, and ask whether a
+/// restart is owed. Both are ordinary D-Bus client calls — the root half is
+/// the daemon, so none of this needs the helper. With `refresh`, the list is
+/// asked for only after the metadata has been refreshed: that is the press's
+/// question ("what is there *today*"). The re-read after a finished write
+/// skips it — the network answer was already paid for by the check that
+/// listed the update, and the daemon knows its own current state.
+///
+/// A failed refresh does not fail the check: `get-updates` answers from the
+/// metadata already on the machine, and an offline system with metadata is
+/// owed the honest cached answer plus the fact that it could not be refreshed
+/// (`Answer::refresh_failed`), not silence. A failed *list* is the check
+/// failing, and fwupd's own sentence — translated on the machine, like
+/// pacman's — is what the page shows.
+pub fn fwupd_check(refresh: bool) -> Result<fwupd::Answer, String> {
+    let refresh_failed = refresh && run_bounded(&fwupd::REFRESH_ARGS).is_err();
+    let listed = run_bounded(&fwupd::GET_UPDATES_ARGS)?;
+    // The answer is UTF-8 JSON; a name carrying odd bytes is shown as it is,
+    // like any other lossy read in this app — the JSON itself must parse.
+    let devices = fwupd::parse_get_updates(&String::from_utf8_lossy(&listed.stdout))?;
+    // exit 0 = something waits for a restart, 2 = nothing does (the codes
+    // are pinned in fwupd.rs); anything else claims nothing, so it is 2's
+    // quiet answer — and a device state in the list still gets the word in.
+    let reboot_pending = run_bounded(&fwupd::CHECK_REBOOT_ARGS)
+        .ok()
+        .is_some_and(|out| out.status.code() == Some(0));
+    Ok(fwupd::Answer {
+        devices,
+        reboot_pending,
+        refresh_failed,
+    })
+}
+
+/// One fwupdmgr read, bounded. `refresh --json` against an unreachable LVFS
+/// would otherwise sit in a socket timeout with the page spinning — the same
+/// reason a database refresh runs under `txn::REFRESH_TIMEOUT`. `timeout(1)`
+/// is coreutils, so it is on every Arch system; exit 124 is its timeout.
+fn run_bounded(args: &[&str]) -> Result<std::process::Output, String> {
+    let out = Command::new("/usr/bin/timeout")
+        .arg("60")
+        .arg(fwupd::BINARY)
+        .args(args)
+        .output()
+        .map_err(|e| format!("could not run fwupdmgr: {e}"))?;
+    if out.status.success() {
+        return Ok(out);
+    }
+    let code = out.status.code().unwrap_or(-1);
+    let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
+    Err(if code == 124 {
+        "fwupdmgr did not answer within 60 seconds".to_string()
+    } else if err.is_empty() {
+        format!("fwupdmgr exited with {code}")
+    } else {
+        err
+    })
 }
 
 /// Where AUR build directories live: the app's own cache directory (see

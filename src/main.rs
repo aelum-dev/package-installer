@@ -1,9 +1,11 @@
 //! Packages — a package manager for the Aelum desktop.
 //!
-//! Five pages over one in-memory model: the explicitly-installed packages
+//! Six pages over one in-memory model: the explicitly-installed packages
 //! (with a real uninstall), everything the configured sync repositories and
 //! the distro's own `[aelum]` repository carry (searched, installed), the AUR
-//! (searched when asked, built on this machine), and the pending updates. At
+//! (searched when asked, built on this machine), device firmware (checked
+//! through fwupd when asked, written when confirmed), and the pending
+//! updates. At
 //! startup the model is read and, unless the databases were last checked
 //! minutes ago ([`cache`]), a database refresh checks for updates — quiet on
 //! success, a log dialog on failure. A `.pkg.tar.zst` double-clicked in a
@@ -21,6 +23,7 @@ mod aur;
 mod cache;
 mod countries;
 mod db;
+mod fwupd;
 mod i18n;
 mod model;
 mod progress;

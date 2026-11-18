@@ -68,6 +68,13 @@ pub enum Txn {
     /// This runs under the mirrors dialog's own spinner, never in a txn log:
     /// a mirror rewrite has no pacman progress to parse.
     UpdateMirrors(Option<String>),
+    /// Write firmware, through the helper's `firmware-update` verb: the only
+    /// thing on the page's Update press. It runs as root because the fwupd
+    /// daemon trusts uid 0 without an auth agent the desktop may not run;
+    /// `fwupdmgr update --assume-yes` answers every one of its own prompts,
+    /// and the final "Restart now?" reads its no-TTY default (no) — a staged
+    /// update waits for its owner to reboot, never for this app.
+    FirmwareUpdate,
 }
 
 impl Txn {
@@ -106,6 +113,7 @@ impl Txn {
                 a.extend(country.iter().cloned());
                 a
             }
+            Txn::FirmwareUpdate => vec!["firmware-update".into()],
         }
     }
 
@@ -137,6 +145,7 @@ impl Txn {
             // The mirrors dialog is open over the job this names; no sentence
             // about it is ever printed next to it.
             Txn::UpdateMirrors(_) => i18n::t("mirrors.title"),
+            Txn::FirmwareUpdate => i18n::t("txn.summaryFirmware"),
         }
     }
 
@@ -150,6 +159,7 @@ impl Txn {
             Txn::Remove(_) => crate::progress::Verb::Remove,
             Txn::Upgrade => crate::progress::Verb::Upgrade,
             Txn::InstallFiles(_) | Txn::InstallFilesAsDeps(_) => crate::progress::Verb::File,
+            Txn::FirmwareUpdate => crate::progress::Verb::Firmware,
             // Not a pacman transaction, and the mirrors dialog streams its job
             // into a spinner, never a progress bar. Asking for a band is a
             // misuse of this variant — and a misuse that names its own exit.
@@ -372,8 +382,8 @@ mod tests {
     /// The helper's whole interface, in its own order. The tests that read
     /// the helper script ask about exactly these, so a verb added to the
     /// helper cannot be missed by one of them. Only the pacman verbs go
-    /// through its `pacman_args` match; the mirror update is dispatched
-    /// beside it.
+    /// through its `pacman_args` match; the mirror update and the firmware
+    /// write are dispatched beside it — neither runs pacman.
     const PACMAN_VERBS: [&str; 7] = [
         "refresh",
         "install",
@@ -383,7 +393,8 @@ mod tests {
         "file",
         "file-asdeps",
     ];
-    const ALL_VERBS: [&str; 8] = [
+    const NON_PACMAN_VERBS: [&str; 2] = ["update-mirrors", "firmware-update"];
+    const ALL_VERBS: [&str; 9] = [
         "refresh",
         "install",
         "install-asdeps",
@@ -392,6 +403,7 @@ mod tests {
         "file",
         "file-asdeps",
         "update-mirrors",
+        "firmware-update",
     ];
 
     #[test]
@@ -431,6 +443,9 @@ mod tests {
             ["update-mirrors", "ua"]
         );
         assert_eq!(Txn::UpdateMirrors(None).argv(), ["update-mirrors"]);
+        // The firmware job takes no argument: fwupd answers for the devices,
+        // and an id on argv could only mean an act nobody confirmed.
+        assert_eq!(Txn::FirmwareUpdate.argv(), ["firmware-update"]);
     }
 
     #[test]
@@ -462,6 +477,8 @@ mod tests {
             // untouched as a removal does.
             Txn::UpdateMirrors(Some("ua".into())),
             Txn::UpdateMirrors(None),
+            // Writing firmware says nothing about how old the databases are.
+            Txn::FirmwareUpdate,
         ] {
             assert!(!txn.syncs_databases(), "{txn:?} only reads the databases");
         }
@@ -470,7 +487,8 @@ mod tests {
     #[test]
     fn only_the_refresh_runs_under_a_deadline() {
         // Stopping a refresh costs a re-download; stopping an install or an
-        // upgrade mid-transaction costs a half-configured system. The
+        // upgrade mid-transaction costs a half-configured system — and
+        // stopping a firmware write mid-run costs a device. The
         // bounded list is exactly the list where a kill is safe.
         assert_eq!(timeout_for(&Txn::Refresh), Some(REFRESH_TIMEOUT));
         assert_eq!(REFRESH_TIMEOUT, Duration::from_secs(60));
@@ -483,6 +501,7 @@ mod tests {
             Txn::InstallFilesAsDeps(vec!["/t/x.pkg.tar.zst".into()]),
             Txn::UpdateMirrors(Some("ua".into())),
             Txn::UpdateMirrors(None),
+            Txn::FirmwareUpdate,
         ] {
             assert!(
                 timeout_for(&txn).is_none(),
@@ -548,6 +567,20 @@ mod tests {
                 "helper lacks {verb}"
             );
         }
+        // The two interfaces are dispatched in two shapes, and the shapes
+        // are the invariant: pacman verbs are arms of its argv match, the
+        // rest are `if verb == …` branches that never reach that match —
+        // a firmware write or a mirror rewrite must not gain a pacman flag.
+        for verb in NON_PACMAN_VERBS {
+            assert!(
+                helper.contains(&format!("verb == \"{verb}\"")),
+                "helper must dispatch {verb} beside the pacman match"
+            );
+            assert!(
+                !helper.contains(&format!("\"{verb}\" =>")),
+                "{verb} must not be a pacman verb"
+            );
+        }
         // Line-buffered: with stdout a pipe glibc holds pacman's output in
         // 4 KiB blocks, and the app would watch a frozen log through a
         // whole download (measured: 53 s of silence for ~200 MiB).
@@ -589,17 +622,47 @@ mod tests {
         // A live pacman is a transaction in progress: dropping its lock would
         // let two of them write the same databases.
         assert!(helper.contains("pacman_running"), "must keep a live lock");
-        // And the one verb that runs no pacman is dispatched before any of
-        // this exists: reflector neither takes the database lock nor needs a
-        // leftover one cleared — it fetches a JSON file and writes the mirror
-        // list, it never opens a pacman database.
+        // And the verbs that run no pacman are dispatched before any of
+        // this exists: reflector and fwupd neither take the database lock
+        // nor need a leftover one cleared — reflector fetches a JSON file
+        // and writes the mirror list, fwupd talks to its own daemon. Neither
+        // opens a pacman database.
         let mirrored = helper.find("verb == \"update-mirrors\"").unwrap();
         assert!(
             mirrored < cleared,
             "the mirror update must not touch the database lock"
         );
+        let firmware = helper.find("verb == \"firmware-update\"").unwrap();
+        assert!(
+            firmware < cleared,
+            "the firmware write must not touch the database lock"
+        );
     }
 
+    #[test]
+    fn the_firmware_write_is_assumed_yes_and_line_buffered() {
+        let helper = include_str!("bin/aelum-package-installer-helper.rs");
+        // fwupd by absolute path, in the same cleared environment as
+        // pacman: pkexec hands over the caller's environment and the daemon
+        // trusts uid 0 — there is no interpreter or agent between them.
+        assert!(
+            helper.contains("\"/usr/bin/fwupdmgr\""),
+            "fwupd by path"
+        );
+        assert!(helper.contains(".env_clear()"));
+        // --assume-yes answers every prompt of `fwupdmgr update`; without
+        // it the run would wait for a TTY it does not have (the final
+        // reboot prompt is the exception the daemon reads its no-TTY
+        // default for, and it stages rather than reboots).
+        assert!(helper.contains("\"--assume-yes\""), "must not prompt");
+        // stdbuf again: fwupdmgr writes through glibc stdio, and through a
+        // pipe that buffers in 4 KiB blocks like pacman's output does —
+        // the log would freeze to its last line for minutes at a time.
+        assert!(
+            helper.contains("\"-oL\""),
+            "the firmware job's output must arrive live"
+        );
+    }
     #[test]
     fn the_mirror_update_replaces_the_mirrorlist_atomically() {
         let helper = include_str!("bin/aelum-package-installer-helper.rs");

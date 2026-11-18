@@ -34,8 +34,14 @@ installs ship it preinstalled. Updates still come from the repo.
 - `src/aur.rs` — the AUR's protocol: the RPC URLs, its reply format, and
   `plan()` (what an install needs, in build order). **No GTK, no network, no
   process** — the caller brings the answers and the model's answers.
+- `src/fwupd.rs` — the firmware service's protocol: the `fwupdmgr` argv for the
+  unprivileged reads, and the reading of its `get-updates` JSON (`UpdateState`
+  as the integer 2.x emits, `Devices`, releases, the restart verdict). **No
+  GTK, no network, no process** — the caller brings the answer, and an answer
+  that is not the JSON is an error, never an empty list.
 - `src/remote.rs` — the commands that run **without** root: curl (the RPC and
-  the PKGBUILD snapshot) and makepkg. Holds the sequence one AUR install is.
+  the PKGBUILD snapshot), makepkg, and the bounded `fwupdmgr` reads. Holds the
+  sequence one AUR install is, and the firmware check's sequence.
 - `src/model.rs` — the merged model (sync × local), `Status`/`Reason`
   classification, search, `updatable`, reverse-deps and orphans, what an AUR
   answer means for this system (`aur_rows`, `aur_updates`, `foreign_names`),
@@ -52,7 +58,8 @@ installs ship it preinstalled. Updates still come from the repo.
   crate's second binary, the only code that runs as root, and std-only.
   Why it is compiled and not a script belongs to "The one polkit action".
 - `src/ui/` — thin: `app.rs` is the shared state (`Ui`), the transaction gate
-  and the AUR search/job entry points, `window.rs` the five-page `ViewStack`,
+  and the AUR/firmware search-and-job entry points, `window.rs` the six-page
+  `ViewStack`,
   one module per page, `dialog`/`txnlog`/`fileopen`/`mirrors` the dialogs (all shown
   through `Ui::present_dialog`: over the window, or alone as a popup — the
   double-click shape), `dnd` the window's drop target (dropping a package file
@@ -281,14 +288,66 @@ measurement).
   survives every `-Rns`, and the next plan reads it as satisfied — an earlier
   install's cmake was never a cleanup candidate at all.
 
+## Measured facts about fwupd
+
+The Firmware page talks to someone else's daemon through someone else's client,
+so every fact here was measured against the fwupd release the distro ships
+(2.1.10, `extra`) — its source at that tag, or the live daemon where one can be
+run (`cargo test -- --ignored`). Re-verify when that release moves.
+
+- **`UpdateState` is an integer in 2.x, not 1.9's string**
+  (`fwupd_device_add_json` adds it with `add_integer`; the names exist only in
+  the human dump). The enum: 1 Pending, 2 Success, 3 Failed, 4 NeedsReboot,
+  5 FailedTransient; 0 (Unknown) is never emitted. A parser matching
+  `"needs-reboot"` reads nothing but true on Arch's current fwupd.
+- **`get-updates --json` lists only devices that have work.** The `Devices`
+  array omits devices the remotes do not support and devices whose upgrade
+  query answered "nothing to do" (`fu_util_get_updates_as_json`) — an empty
+  `Devices` *is* fwupd's own "no updates", so the page may call it up to date.
+  A listed device carries `Releases` when there is a release to write and omits
+  it when its only work is a restart for a write already done; a failed one
+  carries `UpdateState: 3` and fwupd's own `UpdateError` sentence, which the
+  row shows untranslated, like a pacman error in a log.
+- **`--json` disables every prompt *and* the metadata refresh the command would
+  otherwise consider** (its own help text). The reads carry `--json` — which is
+  why a press runs `refresh --json` itself when it wants today's answer, and
+  why a failed refresh is *not* a failed check: `get-updates` answers from the
+  metadata already on the machine, and the offline system with metadata is owed
+  that cached answer plus the fact of the failed fetch, never silence. The
+  privileged `update` runs `--assume-yes` instead, which answers the prompts
+  and keeps the human lines the log dialog streams.
+- **`fwupdmgr`'s exit codes are the answer sometimes**: 0 work done, 1 failed,
+  2 `FWUPD_ERROR_NOTHING_TO_DO`, 3 NOT-FOUND, and **101 `ENETUNREACH`** — a
+  network failure reported back through the daemon, which is what an offline
+  machine's refresh ends with. `check-reboot-needed --json` says nothing at
+  all and means its code: 0 iff a device waits on a restart, 2 if not.
+- **The daemon treats uid 0 as always trusted** (`fu_engine_is_uid_trusted`:
+  root needs no agent). That is why the write runs as root through the one
+  polkit action: as the user it would wait on fwupd's own auth prompt — a
+  desktop service this app must not assume — and the wheel rule has already
+  authenticated the person.
+- **The final "Restart now?" prompt reads EOF and takes its default (no)**:
+  `fwupdmgr update` with no TTY stages every device and exits 0 without
+  rebooting. A staged update reboots on its owner's word, never on this app's.
+- **fwupdmgr writes through glibc stdio, so through a pipe its output would
+  arrive at the end** — like pacman's; the helper wraps it in the same
+  `stdbuf -oL`. It emits no parseable `( i/n)` counters at all, so
+  `progress::Verb::Firmware` is one honest creep band: the bar says *Writing
+  firmware* and never a fraction it does not have.
+- **The package enables nothing** (measured in the Arch package's file list:
+  `fwupd.service` and `fwupd-refresh.timer` ship, no `system-preset` does), so
+  the daemon starts on its bus name — on the first client — and shipping the
+  package wakes no hardware and asks no server.
+
 ## The one polkit action
 
 `dev.aelum.package.manage` + `/usr/bin/aelum-package-installer-helper`
 (`{refresh|install|install-asdeps|remove|upgrade|file|file-asdeps}` →
 `stdbuf -oL pacman -Sy|-S|-S --asdeps|-Rns|-Syu|-U|-U --asdeps`, all `--noconfirm` —
 the stdbuf is what makes the output arrive during the download, not after it —
-plus `update-mirrors`, the one verb that runs reflector instead of pacman,
-described below), the `aelum-snapshot-restore` shape. The helper is the crate's second binary
+plus the two verbs that run no pacman, `update-mirrors` (reflector) and
+`firmware-update` (fwupdmgr), described below), the `aelum-snapshot-restore`
+shape. The helper is the crate's second binary
 (`src/bin/`), not a script, and that is load-bearing: pkexec hands the
 program it runs as root the **caller's** environment, and a shell script
 inside that environment obeys `BASH_ENV` and imported shell functions,
@@ -321,6 +380,14 @@ refused like an unknown verb, because it would read as a reflector option.
 reflector is not part of an Aelum install, so the dialog's Update press puts
 `install reflector` through this same action first, and says so above the
 buttons before the press, never after.
+`firmware-update` is the other verb dispatched before the lock work: it execs
+`/usr/bin/stdbuf -oL /usr/bin/fwupdmgr update --assume-yes` in the same
+env-cleared environment and takes no argument (see the fwupd facts — the daemon
+answers for which devices take an update, and an id on argv could only mean a
+write the confirmation never named). It is the one action still standing between
+a person and the policy because the fwupd daemon treats uid 0 as always trusted:
+run as the user, the update would wait on fwupd's own polkit agent — a desktop
+service this app must not assume — and root needs none.
 An AUR install is one request of several
 steps — `install-asdeps` (repository dependencies, makepkg's marking), the
 build as the user, `file-asdeps` (the built dependencies' archives), `file`
@@ -342,12 +409,21 @@ environment allowlist: invariants, not unit tests of a string.
 
 ## UI rules the app holds to
 
-- **Tab order Installed · Browse · Aelum · AUR · Updates.** Aelum lists the
-  `[aelum]` repo's packages that are not installed yet — the distribution
-  channel as a page; installing one moves it to Installed. Updates is last
-  because it is the page you go to when something is waiting, and its
-  `needs-attention` badge is the only update signal — the Installed page has
-  no banner, a count there was the same fact twice.
+- **Tab order Installed · Browse · Aelum · AUR · Firmware · Updates.** Aelum
+  lists the `[aelum]` repo's packages that are not installed yet — the
+  distribution channel as a page; installing one moves it to Installed.
+  Firmware sits last among the ways to change the system and keeps the AUR
+  tab's silence: its answer is a claim about someone else's server, so it has
+  no dot and no startup query either — a press refreshes and lists in one go.
+  Updates is last because it is the page you go to when something is waiting,
+  and its `needs-attention` badge is the only update signal — the Installed
+  page has no banner, a count there was the same fact twice.
+- **The Firmware page's Check sits below its words.** While the page has no
+  rows, the status page's centered child holds them: the title and
+  description, and under them the one Check button — the answer's place and
+  its act in one place, centered. Only when rows are up does the button move
+  to the header row, beside the Update it feeds. One button, two homes,
+  never a duplicate: a page states its act once, wherever its answer is.
 - **The AUR page fetches nothing until asked**: no badge, no startup query.
   This desktop is offline-first, and "N AUR updates waiting" would be a claim
   about a third-party server the user never contacted; the app's only
