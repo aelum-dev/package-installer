@@ -432,6 +432,7 @@ mod tests {
             "txnlog.done",
             "txnlog.failed",
             "txn.summaryRefresh",
+            "txn.timedOut",
             "txn.summaryInstall",
             "txn.summaryRemove",
             "txn.summaryUpgrade",

@@ -93,6 +93,7 @@
   "txnlog.done": "Finita.",
   "txnlog.failed": "Malsukcesis (elira kodo {code}).",
   "txn.summaryRefresh": "Refreŝigado de la pakaĵaj datumbazoj…",
+  "txn.timedOut": "La sinkronigo tempolimiĝis post {seconds} sekundoj — eble la speguloj ne estas alireblaj. Provu «Ĝisdatigi spegulojn» en la menuo kaj poste reŝargu.",
   "txn.summaryInstall": "Instalado de {names}…",
   "txn.summaryRemove": "Forigado de {names}…",
   "txn.summaryUpgrade": "Ĝisdatigo de ĉiuj pakaĵoj…",

@@ -93,6 +93,7 @@
   "txnlog.done": "Klar.",
   "txnlog.failed": "Misslyckades (felkod {code}).",
   "txn.summaryRefresh": "Uppdaterar paketdatabaserna…",
+  "txn.timedOut": "Synkroniseringen avbröts efter {seconds} sekunder — speglarna kan vara onåbara. Prova Uppdatera speglar i menyn och uppdatera igen.",
   "txn.summaryInstall": "Installerar {names}…",
   "txn.summaryRemove": "Tar bort {names}…",
   "txn.summaryUpgrade": "Uppdaterar alla paket…",

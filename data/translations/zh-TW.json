@@ -93,6 +93,7 @@
   "txnlog.done": "完成。",
   "txnlog.failed": "失敗（結束碼 {code}）。",
   "txn.summaryRefresh": "正在重新整理軟體包資料庫…",
+  "txn.timedOut": "同步在 {seconds} 秒後逾時——鏡像來源可能無法連線。請在功能表中選取「更新鏡像來源」，然後重新整理。",
   "txn.summaryInstall": "正在安裝 {names}…",
   "txn.summaryRemove": "正在移除 {names}…",
   "txn.summaryUpgrade": "正在更新所有軟體包…",

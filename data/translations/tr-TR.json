@@ -93,6 +93,7 @@
   "txnlog.done": "Bitti.",
   "txnlog.failed": "Başarısız oldu (çıkış kodu {code}).",
   "txn.summaryRefresh": "Paket veritabanları yenileniyor…",
+  "txn.timedOut": "Eşitleme {seconds} saniyede zaman aşımına uğradı — aynalar erişilemiyor olabilir. Menüden Aynaları güncelle seçeneğini deneyin, ardından yeniden yenileyin.",
   "txn.summaryInstall": "{names} yükleniyor…",
   "txn.summaryRemove": "{names} kaldırılıyor…",
   "txn.summaryUpgrade": "Tüm paketler güncelleniyor…",

@@ -93,6 +93,7 @@
   "txnlog.done": "انجام شد.",
   "txnlog.failed": "ناموفق (کد خروج {code}).",
   "txn.summaryRefresh": "نوسازی پایگاه‌های داده بسته‌ها…",
+  "txn.timedOut": "همگام‌سازی پس از {seconds} ثانیه به مهلت رسید — شاید آینه‌ها در دسترس نباشند. «به‌روزرسانی آینه‌ها» را از منو امتحان کنید و دوباره بخوانید.",
   "txn.summaryInstall": "در حال نصب {names}…",
   "txn.summaryRemove": "در حال حذف {names}…",
   "txn.summaryUpgrade": "در حال به‌روزرسانی همه بسته‌ها…",

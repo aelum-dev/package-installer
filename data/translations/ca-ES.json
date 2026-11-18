@@ -93,6 +93,7 @@
   "txnlog.done": "Fet.",
   "txnlog.failed": "Ha fallat (codi de sortida {code}).",
   "txn.summaryRefresh": "S'estan actualitzant les bases de dades de paquets…",
+  "txn.timedOut": "La sincronització ha superat els {seconds} segons — pot ser que els miralls no siguin accessibles. Proveu «Actualitza els miralls» al menú i torneu a actualitzar.",
   "txn.summaryInstall": "S'estan instal·lant {names}…",
   "txn.summaryRemove": "S'estan suprimint {names}…",
   "txn.summaryUpgrade": "S'estan actualitzant tots els paquets…",

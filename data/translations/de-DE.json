@@ -93,6 +93,7 @@
   "txnlog.done": "Fertig.",
   "txnlog.failed": "Fehlgeschlagen (Exit-Code {code}).",
   "txn.summaryRefresh": "Paketdatenbanken werden aufgefrischt…",
+  "txn.timedOut": "Synchronisierung nach {seconds} Sekunden abgebrochen — die Spiegel sind möglicherweise nicht erreichbar. Versuchen Sie „Spiegel aktualisieren“ im Menü und aktualisieren Sie dann erneut.",
   "txn.summaryInstall": "{names} werden installiert…",
   "txn.summaryRemove": "{names} werden entfernt…",
   "txn.summaryUpgrade": "Alle Pakete werden aktualisiert…",

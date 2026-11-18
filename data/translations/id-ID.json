@@ -93,6 +93,7 @@
   "txnlog.done": "Selesai.",
   "txnlog.failed": "Gagal (kode keluar {code}).",
   "txn.summaryRefresh": "Menyegarkan basis data paket…",
+  "txn.timedOut": "Sinkronisasi kehabisan waktu setelah {seconds} detik — mirror mungkin tidak dapat dijangkau. Coba Perbarui mirror di menu, lalu segarkan lagi.",
   "txn.summaryInstall": "Memasang {names}…",
   "txn.summaryRemove": "Menghapus {names}…",
   "txn.summaryUpgrade": "Memperbarui semua paket…",

@@ -414,6 +414,19 @@ environment allowlist: invariants, not unit tests of a string.
   target is paused for the same moment (`Ui::refreshing`): a file drag is
   refused at `accept`, so the drop hint never promises an install the busy gate
   would only refuse.
+- **A refresh runs under a deadline** (`txn::REFRESH_TIMEOUT`, 60 s). While a
+  check runs the gate holds every other act — including Update mirrors, which
+  is exactly what a dead mirror needs, and the startup check runs unasked — so
+  an unreachable mirror must not get to hold the app spinning forever. At the
+  deadline the wait thread emits `txn.timedOut` into the quiet buffer and
+  stops the **whole process group** (`spawn` gives the child one; a signal
+  aimed at pkexec alone is not obliged to travel further, and a root pacman
+  left running would hold the `db.lck` the deadline exists to free — the next
+  verb's stale-lock clear is the other half of the recovery). The quiet
+  failure then opens the buffered log and the gate — and the menu — are free
+  again. Only `Refresh` is bounded: stopping it costs a re-download, while
+  stopping an install or an upgrade mid-transaction costs a half-configured
+  system (`only_the_refresh_runs_under_a_deadline` pins that list).
 - **A double-click is a popup, not the manager.** The custom MIME arrives at
   `connect_open`, and that is where the window question is answered: with one
   open it comes forward and gets the dialog over it; with none **the manager is
@@ -561,6 +574,7 @@ environment allowlist: invariants, not unit tests of a string.
 | `flate2` | 1.1, default (pure-Rust) backend | gzip DBs; no new system dependency in the build image |
 | `futures` | 0.3 | worker → main-thread channels (glib 0.22 removed `MainContext::channel`) |
 | `serde_json` | 1 | the i18n catalogs **and** the AUR RPC replies |
+| `libc` | 0.2 | one `kill(2)` into a stuck refresh's process group — pure bindings, no new system library |
 
 No libalpm, no `alpm` crate, no `pacman` subprocess for reads: the on-disk
 formats are stable and parsing them is what makes search instant. Version

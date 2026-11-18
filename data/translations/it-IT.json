@@ -93,6 +93,7 @@
   "txnlog.done": "Completata.",
   "txnlog.failed": "Fallita (codice di uscita {code}).",
   "txn.summaryRefresh": "Aggiornamento dei database dei pacchetti…",
+  "txn.timedOut": "Sincronizzazione scaduta dopo {seconds} secondi: i mirror potrebbero non essere raggiungibili. Prova «Aggiorna mirror» nel menu, poi aggiorna di nuovo.",
   "txn.summaryInstall": "Installazione di {names}…",
   "txn.summaryRemove": "Rimozione di {names}…",
   "txn.summaryUpgrade": "Aggiornamento di tutti i pacchetti…",

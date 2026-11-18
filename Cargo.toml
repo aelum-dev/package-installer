@@ -21,3 +21,6 @@ flate2 = "1.1.10"
 xz2 = "0.1"
 # i18n catalogs are flat JSON string maps — the player's pattern.
 serde_json = "1"
+# one kill(2) into a stuck refresh's process group; pure bindings, and
+# everything already links libc.
+libc = "0.2"

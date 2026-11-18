@@ -93,6 +93,7 @@
   "txnlog.done": "完了しました。",
   "txnlog.failed": "失敗しました（終了コード {code}）。",
   "txn.summaryRefresh": "パッケージデータベースを更新中…",
+  "txn.timedOut": "同期が{seconds}秒でタイムアウトしました。ミラーに接続できない可能性があります。メニューの「ミラーを更新」を試してから、再読み込みしてください。",
   "txn.summaryInstall": "{names} をインストール中…",
   "txn.summaryRemove": "{names} を削除中…",
   "txn.summaryUpgrade": "すべてのパッケージを更新中…",

@@ -93,6 +93,7 @@
   "txnlog.done": "Fullført.",
   "txnlog.failed": "Mislykket (avslutningskode {code}).",
   "txn.summaryRefresh": "Oppdaterer pakkedatabaser…",
+  "txn.timedOut": "Synkroniseringen fikk tidsavbrudd etter {seconds} sekunder — speilene er kanskje utilgjengelige. Prøv «Oppdater speil» fra menyen og last inn på nytt.",
   "txn.summaryInstall": "Installerer {names}…",
   "txn.summaryRemove": "Fjerner {names}…",
   "txn.summaryUpgrade": "Oppdaterer alle pakker…",

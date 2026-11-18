@@ -93,6 +93,7 @@
   "txnlog.done": "Готово.",
   "txnlog.failed": "Сбой (код выхода {code}).",
   "txn.summaryRefresh": "Обновление баз данных пакетов…",
+  "txn.timedOut": "Синхронизация прервана по истечении {seconds} с — возможно, зеркала недоступны. Попробуйте «Обновить зеркала» в меню, затем обновите снова.",
   "txn.summaryInstall": "Установка {names}…",
   "txn.summaryRemove": "Удаление {names}…",
   "txn.summaryUpgrade": "Обновление всех пакетов…",

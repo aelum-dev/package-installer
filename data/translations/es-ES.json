@@ -93,6 +93,7 @@
   "txnlog.done": "Hecho.",
   "txnlog.failed": "Falló (código de salida {code}).",
   "txn.summaryRefresh": "Refrescando las bases de datos de paquetes…",
+  "txn.timedOut": "La sincronización superó los {seconds} segundos; puede que los espejos no sean accesibles. Prueba «Actualizar espejos» en el menú y vuelve a actualizar.",
   "txn.summaryInstall": "Instalando {names}…",
   "txn.summaryRemove": "Quitando {names}…",
   "txn.summaryUpgrade": "Actualizando todos los paquetes…",

@@ -93,6 +93,7 @@
   "txnlog.done": "Done.",
   "txnlog.failed": "Failed (exit {code}).",
   "txn.summaryRefresh": "Refreshing package databases…",
+  "txn.timedOut": "Sync timed out after {seconds} seconds — the mirrors may be unreachable. Try Update mirrors in the menu, then refresh again.",
   "txn.summaryInstall": "Installing {names}…",
   "txn.summaryRemove": "Removing {names}…",
   "txn.summaryUpgrade": "Updating all packages…",

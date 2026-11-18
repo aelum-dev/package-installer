@@ -93,6 +93,7 @@
   "txnlog.done": "Valmis.",
   "txnlog.failed": "Epäonnistui (poistumiskoodi {code}).",
   "txn.summaryRefresh": "Päivitetään pakettitietokantoja…",
+  "txn.timedOut": "Synkronointi aikakatkaistiin {seconds} sekunnissa — peilit eivät ehkä ole tavoitettavissa. Kokeile valintaa „Päivitä peilit“ valikossa ja päivitä uudelleen.",
   "txn.summaryInstall": "Asennetaan {names}…",
   "txn.summaryRemove": "Poistetaan {names}…",
   "txn.summaryUpgrade": "Päivitetään kaikki paketit…",

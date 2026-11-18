@@ -93,6 +93,7 @@
   "txnlog.done": "Concluído.",
   "txnlog.failed": "Falhou (código de saída {code}).",
   "txn.summaryRefresh": "Atualizando os bancos de dados de pacotes…",
+  "txn.timedOut": "A sincronização expirou após {seconds} segundos — os espelhos podem estar inacessíveis. Tente «Atualizar espelhos» no menu e atualize novamente.",
   "txn.summaryInstall": "Instalando {names}…",
   "txn.summaryRemove": "Removendo {names}…",
   "txn.summaryUpgrade": "Atualizando todos os pacotes…",

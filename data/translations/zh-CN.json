@@ -93,6 +93,7 @@
   "txnlog.done": "完成。",
   "txnlog.failed": "失败（退出码 {code}）。",
   "txn.summaryRefresh": "正在刷新软件包数据库…",
+  "txn.timedOut": "同步在 {seconds} 秒后超时——镜像源可能无法访问。请在菜单中选择“更新镜像源”，然后重新刷新。",
   "txn.summaryInstall": "正在安装 {names}…",
   "txn.summaryRemove": "正在移除 {names}…",
   "txn.summaryUpgrade": "正在更新所有软件包…",

@@ -93,6 +93,7 @@
   "txnlog.done": "Gotowe.",
   "txnlog.failed": "Nie powiodło się (kod {code}).",
   "txn.summaryRefresh": "Odświeżanie baz pakietów…",
+  "txn.timedOut": "Synchronizacja przekroczyła limit {seconds} s — serwery lustrzane mogą być niedostępne. Spróbuj pozycji „Aktualizuj listę serwerów” w menu i odśwież ponownie.",
   "txn.summaryInstall": "Instalowanie {names}…",
   "txn.summaryRemove": "Usuwanie {names}…",
   "txn.summaryUpgrade": "Aktualizowanie wszystkich pakietów…",

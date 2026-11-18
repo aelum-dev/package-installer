@@ -93,6 +93,7 @@
   "txnlog.done": "Hoàn tất.",
   "txnlog.failed": "Thất bại (mã thoát {code}).",
   "txn.summaryRefresh": "Đang làm mới cơ sở dữ liệu gói…",
+  "txn.timedOut": "Đồng bộ đã hết thời gian sau {seconds} giây — có thể không kết nối được với các mirror. Hãy thử “Cập nhật mirror” trong menu rồi làm mới lại.",
   "txn.summaryInstall": "Đang cài đặt {names}…",
   "txn.summaryRemove": "Đang gỡ {names}…",
   "txn.summaryUpgrade": "Đang cập nhật tất cả gói…",

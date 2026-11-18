@@ -93,6 +93,7 @@
   "txnlog.done": "Kész.",
   "txnlog.failed": "Sikertelen (kilépési kód: {code}).",
   "txn.summaryRefresh": "Csomag-adatbázisok frissítése…",
+  "txn.timedOut": "A szinkronizálás {seconds} másodperc után időtúllépésbe ütközött — a tükrök lehet, hogy nem érhetők el. Próbáld a „Tükrek frissítése” pontot a menüben, majd frissítsd újra.",
   "txn.summaryInstall": "{names} telepítése…",
   "txn.summaryRemove": "{names} eltávolítása…",
   "txn.summaryUpgrade": "Minden csomag frissítése…",

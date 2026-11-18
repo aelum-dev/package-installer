@@ -93,6 +93,7 @@
   "txnlog.done": "Voltooid.",
   "txnlog.failed": "Mislukt (afsluitcode {code}).",
   "txn.summaryRefresh": "Pakketdatabases verversen…",
+  "txn.timedOut": "Synchronisatie afgebroken na {seconds} seconden — de mirrors zijn mogelijk onbereikbaar. Probeer „Mirrors bijwerken” in het menu en vernieuw daarna opnieuw.",
   "txn.summaryInstall": "{names} installeren…",
   "txn.summaryRemove": "{names} verwijderen…",
   "txn.summaryUpgrade": "Alle pakketten bijwerken…",

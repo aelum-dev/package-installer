@@ -93,6 +93,7 @@
   "txnlog.done": "완료했습니다.",
   "txnlog.failed": "실패했습니다(종료 코드 {code}).",
   "txn.summaryRefresh": "패키지 데이터베이스 갱신 중…",
+  "txn.timedOut": "동기화가 {seconds}초 후 시간 초과되었습니다. 미러에 연결할 수 없을 수 있습니다. 메뉴에서 \"미러 업데이트\"를 시도한 후 새로 고침하세요.",
   "txn.summaryInstall": "{names} 설치 중…",
   "txn.summaryRemove": "{names} 삭제 중…",
   "txn.summaryUpgrade": "모든 패키지 업데이트 중…",

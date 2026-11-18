@@ -601,6 +601,7 @@ dependencies = [
  "futures",
  "gtk4",
  "libadwaita",
+ "libc",
  "serde_json",
  "tar",
  "xz2",

@@ -17,9 +17,11 @@
 //! for a TTY that does not exist.
 
 use std::io::BufRead;
+use std::os::unix::process::CommandExt;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::thread;
+use std::time::{Duration, Instant};
 
 use futures::channel::mpsc::UnboundedSender;
 
@@ -29,6 +31,17 @@ use crate::progress;
 /// The helper shipped by the package; pkexec resolves it to the
 /// `dev.aelum.package.manage` action through the policy's exec.path.
 pub const HELPER: &str = "/usr/bin/aelum-package-installer-helper";
+
+/// How long a database refresh may run before the app stops waiting for it.
+/// The refresh is the one transaction the app starts by itself, it is pure
+/// network, and while it runs the gate holds every other act — including
+/// Update mirrors, which is precisely what a dead mirror needs. An
+/// unreachable mirror must not be able to hold the app open forever.
+pub const REFRESH_TIMEOUT: Duration = Duration::from_secs(60);
+
+/// …and how long a stopped run gets to notice SIGTERM — pacman removes its
+/// own lock on a clean exit — before the kill becomes real.
+const KILL_GRACE: Duration = Duration::from_secs(10);
 
 #[derive(Clone, Debug)]
 pub enum Txn {
@@ -180,8 +193,13 @@ pub fn run(txn: &Txn, tx: UnboundedSender<TxnEvent>) -> std::io::Result<()> {
     let mut child = spawn(txn)?;
     read_pipes(&mut child, &tx);
     // The caller is not held: the exit status arrives as an event.
+    let deadline = timeout_for(txn);
+    let tx_stop = tx.clone();
     thread::spawn(move || {
-        let status = child.wait().map(|s| s.code().unwrap_or(-1));
+        let status = match deadline {
+            Some(dur) => wait_or_stop(&mut child, dur, &tx_stop),
+            None => child.wait().map(|s| s.code().unwrap_or(-1)),
+        };
         let _ = tx.unbounded_send(match status {
             Ok(0) => TxnEvent::Finished(Ok(())),
             Ok(code) => TxnEvent::Finished(Err(code)),
@@ -189,6 +207,81 @@ pub fn run(txn: &Txn, tx: UnboundedSender<TxnEvent>) -> std::io::Result<()> {
         });
     });
     Ok(())
+}
+
+/// Which transactions run under a deadline, and what it is. Only the
+/// refresh: stopping it costs a re-download, while stopping an install or
+/// an upgrade mid-transaction costs a half-configured system. The clock
+/// starts at the spawn, and on this desktop the wheel-session grant answers
+/// authorization without asking — every second of the deadline is a second
+/// given to the mirrors.
+fn timeout_for(txn: &Txn) -> Option<Duration> {
+    match txn {
+        Txn::Refresh => Some(REFRESH_TIMEOUT),
+        _ => None,
+    }
+}
+
+/// The wait, bounded. At the deadline the run's whole process group is
+/// stopped and one translated line names what happened — it lands in the
+/// buffer the quiet refresh replays into the log dialog a failure opens, so
+/// the timeout explains itself rather than reading as a hang that finally
+/// gave up. What the kill leaves behind (`db.lck`, a `*.db.part`) is
+/// exactly what the helper's stale-lock clear and alpm's partial-download
+/// naming already recover from.
+fn wait_or_stop(
+    child: &mut std::process::Child,
+    deadline: Duration,
+    tx: &UnboundedSender<TxnEvent>,
+) -> std::io::Result<i32> {
+    if let Some(status) = poll_wait(child, deadline)? {
+        return Ok(status.code().unwrap_or(-1));
+    }
+    let _ = tx.unbounded_send(TxnEvent::Line(i18n::t_fmt(
+        "txn.timedOut",
+        &[("seconds", &deadline.as_secs().to_string())],
+    )));
+    stop_group(child, libc::SIGTERM);
+    if let Some(status) = poll_wait(child, KILL_GRACE)? {
+        return Ok(status.code().unwrap_or(-1));
+    }
+    stop_group(child, libc::SIGKILL);
+    // A group leader killed with SIGKILL has nowhere left to wait.
+    Ok(child.wait()?.code().unwrap_or(-1))
+}
+
+/// `Child::try_wait` with a bound. std's own `wait_timeout` cannot be named
+/// without an unstable feature gate (its trait now carries the pending
+/// signal-send additions); this deadline is 60 seconds of wall clock, and
+/// 50 ms of polling resolves far finer than that means.
+fn poll_wait(
+    child: &mut std::process::Child,
+    for_long: Duration,
+) -> std::io::Result<Option<std::process::ExitStatus>> {
+    let started = Instant::now();
+    loop {
+        if let Some(status) = child.try_wait()? {
+            return Ok(Some(status));
+        }
+        let left = for_long.saturating_sub(started.elapsed());
+        if left.is_zero() {
+            return Ok(None);
+        }
+        thread::sleep(left.min(Duration::from_millis(50)));
+    }
+}
+
+/// One signal, addressed to the child's whole process group. That is the
+/// point: `spawn` gives the child a group of its own, so the negative pid
+/// reaches pkexec, the root helper and pacman alike — a signal addressed to
+/// pkexec alone is not obliged to travel any further, and a root pacman
+/// left running would hold `db.lck` past the very deadline it was stopped
+/// for, making every later transaction read as the stuck one.
+fn stop_group(child: &std::process::Child, signal: i32) {
+    // The child is ours and not yet reaped, so its pid — the group id —
+    // cannot name anybody else's group, and a group that has already
+    // emptied only answers ESRCH, which is the outcome being wished for.
+    unsafe { libc::kill(-(child.id() as libc::pid_t), signal) };
 }
 
 /// Several transactions as one job: every step runs in order on a worker
@@ -238,12 +331,15 @@ pub fn run_wait(txn: &Txn, tx: &UnboundedSender<TxnEvent>) -> Result<(), i32> {
 
 /// The helper, under pkexec, with both pipes piped and not yet read.
 fn spawn(txn: &Txn) -> std::io::Result<std::process::Child> {
-    Command::new("pkexec")
-        .arg(HELPER)
+    let mut cmd = Command::new("pkexec");
+    cmd.arg(HELPER)
         .args(txn.argv())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
+        .stderr(Stdio::piped());
+    // Its own process group, so `stop_group` has a group to stop: the child
+    // leads it, and everything pkexec runs after it is spawned inherits.
+    cmd.process_group(0);
+    cmd.spawn()
 }
 
 /// Both pipes get their own reader: leaving one unread can deadlock a long
@@ -369,6 +465,65 @@ mod tests {
         ] {
             assert!(!txn.syncs_databases(), "{txn:?} only reads the databases");
         }
+    }
+
+    #[test]
+    fn only_the_refresh_runs_under_a_deadline() {
+        // Stopping a refresh costs a re-download; stopping an install or an
+        // upgrade mid-transaction costs a half-configured system. The
+        // bounded list is exactly the list where a kill is safe.
+        assert_eq!(timeout_for(&Txn::Refresh), Some(REFRESH_TIMEOUT));
+        assert_eq!(REFRESH_TIMEOUT, Duration::from_secs(60));
+        for txn in [
+            Txn::Install(vec!["htop".into()]),
+            Txn::InstallAsDeps(vec!["cmake".into()]),
+            Txn::Remove(vec!["htop".into()]),
+            Txn::Upgrade,
+            Txn::InstallFiles(vec!["/t/x.pkg.tar.zst".into()]),
+            Txn::InstallFilesAsDeps(vec!["/t/x.pkg.tar.zst".into()]),
+            Txn::UpdateMirrors(Some("ua".into())),
+            Txn::UpdateMirrors(None),
+        ] {
+            assert!(
+                timeout_for(&txn).is_none(),
+                "{txn:?} must never be stopped mid-run"
+            );
+        }
+    }
+
+    #[test]
+    fn a_deadline_stops_a_run_that_never_answers() {
+        // The shape of a dead mirror: a child that answers nothing. It gets
+        // a process group of its own exactly like `spawn` does — otherwise
+        // the negative-pid kill would sweep the test harness with it.
+        use futures::StreamExt;
+        let mut child = Command::new("sleep")
+            .arg("30")
+            .process_group(0)
+            .spawn()
+            .unwrap();
+        let (tx, mut rx) = futures::channel::mpsc::unbounded();
+        let deadline = Duration::from_millis(200);
+        let code = wait_or_stop(&mut child, deadline, &tx).unwrap();
+        assert_ne!(code, 0, "a stopped run is not a success");
+        // And it says what happened, before the status: that line is what
+        // the user reads in the log dialog the failure opens.
+        let line = futures::executor::block_on(rx.next());
+        match line {
+            Some(TxnEvent::Line(text)) => assert_eq!(
+                text,
+                i18n::t_fmt("txn.timedOut", &[("seconds", &deadline.as_secs().to_string())]),
+            ),
+            other => panic!("the timeout must speak before it reports, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_run_that_answers_in_time_is_left_alone() {
+        let mut child = Command::new("true").spawn().unwrap();
+        let (tx, _rx) = futures::channel::mpsc::unbounded();
+        let code = wait_or_stop(&mut child, Duration::from_secs(60), &tx).unwrap();
+        assert_eq!(code, 0);
     }
 
     #[test]

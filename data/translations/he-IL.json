@@ -93,6 +93,7 @@
   "txnlog.done": "הושלם.",
   "txnlog.failed": "נכשל (קוד יציאה {code}).",
   "txn.summaryRefresh": "רענון מאגרי החבילות…",
+  "txn.timedOut": "הסנכרון חרג מהזמן הקצוב לאחר {seconds} שניות — ייתכן שהאטומים אינם זמינים. נסו את «עדכון אטומים» בתפריט ואז רעננו שוב.",
   "txn.summaryInstall": "מתקין את {names}…",
   "txn.summaryRemove": "מסיר את {names}…",
   "txn.summaryUpgrade": "מעדכן את כל החבילות…",

@@ -93,6 +93,7 @@
   "txnlog.done": "Terminé.",
   "txnlog.failed": "Échec (code de sortie {code}).",
   "txn.summaryRefresh": "Actualisation des bases de données de paquets…",
+  "txn.timedOut": "La synchronisation a expiré au bout de {seconds} secondes — les miroirs sont peut-être injoignables. Essayez « Mettre à jour les miroirs » dans le menu, puis actualisez.",
   "txn.summaryInstall": "Installation de {names}…",
   "txn.summaryRemove": "Suppression de {names}…",
   "txn.summaryUpgrade": "Mise à jour de tous les paquets…",

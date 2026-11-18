@@ -93,6 +93,7 @@
   "txnlog.done": "تمّت.",
   "txnlog.failed": "فشلت (رمز الخروج {code}).",
   "txn.summaryRefresh": "تحديث قواعد بيانات الحزم…",
+  "txn.timedOut": "انتهت مهلة المزامنة بعد {seconds} ثانية — قد تكون المرايا غير متاحة. جرّب «تحديث المرايا» من القائمة ثم أعد التحديث.",
   "txn.summaryInstall": "تثبيت {names}…",
   "txn.summaryRemove": "إزالة {names}…",
   "txn.summaryUpgrade": "تحديث جميع الحزم…",
