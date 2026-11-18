@@ -395,6 +395,27 @@ impl Ui {
         super::mirrors::show(self);
     }
 
+    /// The "⋯" menu's About: `AdwAboutDialog` is the GNOME-standard one —
+    /// it draws itself from these fields, follows the theme, and closes on
+    /// Escape. The version is the crate's — `bump-version.sh` moves it and
+    /// this dialog cannot drift — and the icon name is the app ID, under
+    /// which the package installs the SVG (hicolor). Same dialog and fields
+    /// as the video-player. Only the menu reaches it, and the menu lives in
+    /// the manager's window, so that window is the parent whenever it is
+    /// absent nobody asks.
+    pub fn show_about(&self) {
+        let parent = self.window.borrow().clone();
+        adw::AboutDialog::builder()
+            .application_name(i18n::t("app.name"))
+            .application_icon(crate::APP_ID)
+            .developer_name("Aelum")
+            .version(env!("CARGO_PKG_VERSION"))
+            .website("https://aelum.dev")
+            .license_type(gtk::License::Gpl30Only)
+            .build()
+            .present(parent.as_ref());
+    }
+
     /// Asks for the startup update check. It runs when the first model load
     /// answers — see [`Ui::maybe_auto_check`] — because that read is the only
     /// thing that can say how old the databases are.

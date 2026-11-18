@@ -515,9 +515,12 @@ environment allowlist: invariants, not unit tests of a string.
   and silently answer the virtual forever after), then the requested names
   Explicit — one job, one log (`txn::run_all`). A single candidate or an
   already-installed provider is never asked about — pacman would not ask either.
-- **The "⋯" menu holds the two app-level acts** — Update mirrors, Exit — and
-  they are `app.` actions because the manager's window is one-shot while both
-  acts outlive it. Update mirrors asks its one question over the installer's
+- **The "⋯" menu holds the app-level acts** — Update mirrors, About, Exit —
+  and they are `app.` actions because the manager's window is one-shot while
+  the acts outlive it. About is the stock `AdwAboutDialog` (the icon button's
+  old job); its entry reuses `about.label`, and it parents to the open window
+  because only the menu reaches it, and the menu lives in that window.
+  Update mirrors asks its one question over the installer's
   region table (`countries.rs`: its 73 countries + Worldwide, first),
   fuzzy-filtered by a search entry — AdwComboRow's built-in search is
   substring-only and its custom-match hook is not bound in libadwaita 0.9,

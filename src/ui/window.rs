@@ -110,31 +110,9 @@ pub fn build(app: &adw::Application, ui: &Ui) {
         refresh.connect_clicked(move |_| ui.start_txn(Txn::Refresh));
     }
 
-    // The (i) button. `AdwAboutDialog` is the GNOME-standard About: it draws
-    // itself from these fields, follows the theme, and closes on Escape. The
-    // version is the crate's — `bump-version.sh` moves it and this dialog
-    // cannot drift — and the icon name is the app ID, under which the package
-    // installs the SVG (hicolor). Same dialog and fields as the video-player.
-    let about = gtk::Button::from_icon_name("help-about-symbolic");
-    about.add_css_class("flat");
-    about.set_tooltip_text(Some(&i18n::t("about.label")));
-    {
-        let window = window.clone();
-        about.connect_clicked(move |_| {
-            adw::AboutDialog::builder()
-                .application_name(i18n::t("app.name"))
-                .application_icon(crate::APP_ID)
-                .developer_name("Aelum")
-                .version(env!("CARGO_PKG_VERSION"))
-                .website("https://aelum.dev")
-                .license_type(gtk::License::Gpl30Only)
-                .build()
-                .present(Some(&window));
-        });
-    }
     // The buttons live in the title's end box, not the header's: the title
     // owns the full width now (see show-end-title-buttons above). Append
-    // order is left-to-right — refresh, then (i), then close outermost-
+    // order is left-to-right — refresh, then ⋯, then close outermost-
     // right; the box hugs the right edge.
     //
     // Close is a real button, not `gtk::WindowControls`: this window draws
@@ -148,7 +126,7 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     close.add_css_class("flat");
     close.set_tooltip_text(Some(&i18n::t("action.close")));
     close.set_action_name(Some("window.close"));
-    // The "⋯" menu: the two app-level acts — updating the mirrors, and
+    // The "⋯" menu: the app-level acts — updating the mirrors, About, and
     // leaving. They are `app.` actions because the application, not this
     // window, owns them: the window is one-shot, the process is not. A
     // MenuButton over a hand-rolled popover, so the panel is the one GNOME
@@ -161,12 +139,12 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     menu.add_css_class("flat");
     let items = gtk::gio::Menu::new();
     items.append(Some(&i18n::t("mirrors.title")), Some("app.update-mirrors"));
+    items.append(Some(&i18n::t("about.label")), Some("app.about"));
     items.append(Some(&i18n::t("action.exit")), Some("app.quit"));
     menu.set_menu_model(Some(&items));
     let end = gtk::Box::new(gtk::Orientation::Horizontal, 6);
     end.set_halign(gtk::Align::End);
     end.append(&refresh);
-    end.append(&about);
     end.append(&menu);
     end.append(&close);
     *ui.refresh.borrow_mut() = Some(refresh);

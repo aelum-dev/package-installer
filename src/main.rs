@@ -49,15 +49,24 @@ fn main() -> gtk::glib::ExitCode {
     *ui.app.borrow_mut() = Some(app.clone());
 
     // The "⋯" menu's owners (window.rs). Application actions, not window
-    // actions: the manager's window is one-shot, and both acts — the mirror
-    // update and leaving — outlive any single window. The application handle
-    // arrives as the callback's own argument, so no closure has to keep one.
+    // actions: the manager's window is one-shot, and the acts — the mirror
+    // update, About, and leaving — outlive any single window. The
+    // application handle arrives as the callback's own argument, so no
+    // closure has to keep one.
     app.add_action_entries([
         {
             let ui = Rc::clone(&ui);
             gtk::gio::ActionEntry::builder("update-mirrors")
                 .activate(move |_app: &adw::Application, _action, _parameter| {
                     ui.update_mirrors();
+                })
+                .build()
+        },
+        {
+            let ui = Rc::clone(&ui);
+            gtk::gio::ActionEntry::builder("about")
+                .activate(move |_app: &adw::Application, _action, _parameter| {
+                    ui.show_about();
                 })
                 .build()
         },
