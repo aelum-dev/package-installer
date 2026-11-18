@@ -15,7 +15,9 @@
 #
 # The old package is deleted from R2 only AFTER the publish verified the new
 # DB entry: there is never a moment where the served DB names a missing file.
-# (The edge caches the DB ~4 h — see repo/REPO.md.)
+# (The DBs are not edge-cached — cf-cache-status: DYNAMIC, measured 2026-11-18,
+# see repo/REPO.md — so the only pointer that can go stale is a client that has
+# not synced yet, and -Syu syncs before it downloads.)
 #
 # Usage:
 #   ./scripts/bump-version.sh 0.1.1                     # full release

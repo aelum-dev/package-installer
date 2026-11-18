@@ -719,8 +719,11 @@ cargo run                                  # GUI. Reads work from a source tree;
   test disk, and leaves the disk first in the boot order, so `make -C ../docker run-disk` opens the
   desktop it belongs to. A `pkgrel` bump is enough to name the test artifact beside the published
   one — put `pkgrel` back to 1 afterwards so the next version bump does not inherit it.
-- The published DB is edge-cached for ~4 h (see `../repo/REPO.md`), so a fresh
-  publish is not instantly visible to `pacman -Sy`.
+- The published DB is **not** edge-cached (`cf-cache-status: DYNAMIC`, no `Cache-Control`/`Age`,
+  measured 2026-11-18), so a fresh publish is visible to the next `pacman -Sy` (see
+  `../repo/REPO.md`). What *is* deleted is the superseded package file, so a machine that has not
+  synced yet lists a version whose download now 404s — `pacman -Syu`, and this app's Update press,
+  sync first and are never affected.
 
 ## Conventions
 
