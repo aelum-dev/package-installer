@@ -32,6 +32,19 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.6.0" date="2026-11-18">
+      <description>
+        <ul>
+          <li>New "⋯" menu: Update mirrors, About (moved from the header icon) and Exit</li>
+          <li>Update mirrors runs reflector over the installer region list: type to search, the country is preselected from the mirrorlist headers and the locale and the picker opens scrolled to it, reflector is installed first when missing, and the new list is written atomically — a run killed midway cannot leave a broken mirror list</li>
+          <li>The file-open popup gained an Extract button that unpacks the package into a folder beside the file</li>
+          <li>Fixed: a half-extracted .pkg.tar is no longer offered back as a package — the archive format is sniffed from the file, so a package still opens whatever its name says</li>
+          <li>Fixed: tab dots light only while the package databases are current, so a dot never claims an update from days-old files</li>
+          <li>The privileged helper is now a compiled binary running pacman with a cleared environment, closing the way a hostile environment variable could run root code through a shell script</li>
+          <li>Fixed: the manager window has a real close button, and closing a dialog always frees the application, so an invisible instance can no longer outlive it and hijack the next launch</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.12" date="2026-11-17">
       <description>
         <ul>
