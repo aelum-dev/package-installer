@@ -17,6 +17,7 @@
   "action.cancel": "Nuligi",
   "action.close": "Fermi",
   "action.extract": "Eltiri",
+  "action.repair": "Ripari",
   "status.reading": "Legado de la pakaĵaj datumbazoj…",
   "status.refreshing": "La ĝisdatigo de la datumbazoj estas okazanta, bonvolu atendi…",
   "rows.noMatches": "Neniuj kongruoj",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "Instalado de {file}…",
   "txn.summaryBuild": "Konstruado de {name} el AUR…",
   "txn.summaryFirmware": "Firmvaraj ĝisdatigoj",
+  "txn.summaryKeyring": "Riparante la subskribajn ŝlosilojn…",
   "toast.busy": "Alia operacio jam rulas.",
   "toast.noHelper": "Pakaĵaj operacioj bezonas la instalitan aelum-package-installer ({helper} mankas).",
   "toast.dbErrors": "Ne eblis legi {count} pakaĵajn datumbazojn: {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "Instalante la kompilitajn pakaĵojn…",
   "phase.cleanup": "Forigante konstruajn dependaĵojn…",
   "phase.firmware": "Skribi firmvaron…",
+  "phase.keyring": "Rekonstruante la subskribajn ŝlosilojn…",
   "chooser.title": "Elektu provizanton",
   "chooser.body": "Ĉi tiuj pakaĵoj bezonas elekton de provizanto. Elektu, kiu pakaĵo plenumas ĉiun postulon — la unua estus instalita defaŭlte.",
   "action.exit": "Eliri",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "Unue instalatiĝos reflector — la programo, kiu rangigas la spegulojn laŭ rapido.",
   "mirrors.running": "Ĝisdatiĝas la speguloj…",
   "mirrors.done": "La spegula listo ĝisdatiĝis.",
-  "mirrors.failed": "Ne eblis ĝisdatigi la spegulojn."
+  "mirrors.failed": "Ne eblis ĝisdatigi la spegulojn.",
+  "keyring.menu": "Ripari subskribajn ŝlosilojn",
+  "keyring.title": "Ĉu ripari la subskribajn ŝlosilojn?",
+  "keyring.body": "Ĉiu pakaĵo, kiun ĉi tiu sistemo instalas, estas kontrolata kontraŭ tiuj ŝlosiloj. La ŝlosiloj estas rekonstruataj el la ŝlosildosieroj jam sur tiu maŝino. Neniu pakaĵo estas aldonata aŭ forigata."
 }

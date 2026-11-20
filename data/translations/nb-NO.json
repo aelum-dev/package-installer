@@ -17,6 +17,7 @@
   "action.cancel": "Avbryt",
   "action.close": "Lukk",
   "action.extract": "Pakk ut",
+  "action.repair": "Reparer",
   "status.reading": "Leser pakkedatabaser…",
   "status.refreshing": "Oppdatering av databaser pågår, vennligst vent…",
   "rows.noMatches": "Ingen treff",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "Installerer {file}…",
   "txn.summaryBuild": "Bygger {name} fra AUR…",
   "txn.summaryFirmware": "Fastvareoppdateringer",
+  "txn.summaryKeyring": "Reparerer signeringsnøklene…",
   "toast.busy": "En annen handling kjører allerede.",
   "toast.noHelper": "Pakkehandlinger krever installert aelum-package-installer ({helper} mangler).",
   "toast.dbErrors": "Kunne ikke lese {count} pakkedatabase(e): {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "Installerer de bygde pakkene…",
   "phase.cleanup": "Fjerner byggeavhengigheter…",
   "phase.firmware": "Skriver fastvaren…",
+  "phase.keyring": "Bygger på nytt signeringsnøklene…",
   "chooser.title": "Velg en leverandør",
   "chooser.body": "Disse pakkene krever at du velger en leverandør. Velg hvilken pakke som dekker hvert krav — den første ville blitt installert som standard.",
   "action.exit": "Avslutt",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "Først installeres reflector – programmet som rangerer speilere etter hastighet.",
   "mirrors.running": "Oppdaterer speilere…",
   "mirrors.done": "Speillisten ble oppdatert.",
-  "mirrors.failed": "Kunne ikke oppdatere speilerne."
+  "mirrors.failed": "Kunne ikke oppdatere speilerne.",
+  "keyring.menu": "Reparer signeringsnøklene",
+  "keyring.title": "Reparere signeringsnøklene?",
+  "keyring.body": "Hver pakke systemet installerer sjekkes mot disse nøklene. Nøklene bygges på nytt fra nøkkelfilene som allerede er på denne maskinen. Ingen pakker legges til eller fjernes."
 }

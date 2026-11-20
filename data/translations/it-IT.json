@@ -17,6 +17,7 @@
   "action.cancel": "Annulla",
   "action.close": "Chiudi",
   "action.extract": "Estrai",
+  "action.repair": "Ripara",
   "status.reading": "Lettura dei database dei pacchetti…",
   "status.refreshing": "Aggiornamento dei database in corso, attendere…",
   "rows.noMatches": "Nessuna corrispondenza",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "Installazione di {file}…",
   "txn.summaryBuild": "Compilazione di {name} dall'AUR…",
   "txn.summaryFirmware": "Aggiornamenti firmware",
+  "txn.summaryKeyring": "Riparazione delle chiavi di firma…",
   "toast.busy": "Un’altra operazione è già in corso.",
   "toast.noHelper": "Le operazioni sui pacchetti richiedono che aelum-package-installer sia installato ({helper} mancante).",
   "toast.dbErrors": "Impossibile leggere {count} database dei pacchetti: {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "Installazione dei pacchetti compilati…",
   "phase.cleanup": "Rimozione delle dipendenze di compilazione…",
   "phase.firmware": "Scrittura del firmware…",
+  "phase.keyring": "Ricostruzione delle chiavi di firma…",
   "chooser.title": "Scegli un fornitore",
   "chooser.body": "Questi pacchetti richiedono la scelta di un fornitore. Scegli quale pacchetto soddisfa ogni requisito — il primo è quello che verrebbe installato per impostazione predefinita.",
   "action.exit": "Esci",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "Viene prima installato reflector: il programma che ordina i mirror per velocità.",
   "mirrors.running": "Aggiornamento dei mirror…",
   "mirrors.done": "Elenco dei mirror aggiornato.",
-  "mirrors.failed": "Impossibile aggiornare i mirror."
+  "mirrors.failed": "Impossibile aggiornare i mirror.",
+  "keyring.menu": "Ripara le chiavi di firma",
+  "keyring.title": "Riparare le chiavi di firma?",
+  "keyring.body": "Ogni pacchetto installato da questo sistema viene controllato rispetto a queste chiavi. Le chiavi vengono ricostruite dai file di chiave già presenti su questa macchina. Nessun pacchetto viene aggiunto o rimosso."
 }

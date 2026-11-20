@@ -17,6 +17,7 @@
   "action.cancel": "Anuluj",
   "action.close": "Zamknij",
   "action.extract": "Wypakuj",
+  "action.repair": "Napraw",
   "status.reading": "Odczytywanie baz pakietów…",
   "status.refreshing": "Odświeżanie baz trwa, proszę czekać…",
   "rows.noMatches": "Brak wyników",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "Instalowanie {file}…",
   "txn.summaryBuild": "Budowanie {name} z AUR…",
   "txn.summaryFirmware": "Aktualizacje mikroprogramu",
+  "txn.summaryKeyring": "Naprawianie kluczy podpisu…",
   "toast.busy": "Inna operacja jest już wykonywana.",
   "toast.noHelper": "Operacje na pakietach wymagają zainstalowanego pakietu aelum-package-installer (brak {helper}).",
   "toast.dbErrors": "Nie udało się odczytać baz pakietów ({count}): {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "Instalowanie zbudowanych pakietów…",
   "phase.cleanup": "Usuwanie zależności czasu budowania…",
   "phase.firmware": "Zapisywanie mikroprogramu…",
+  "phase.keyring": "Odtwarzanie kluczy podpisu…",
   "chooser.title": "Wybierz dostawcę",
   "chooser.body": "Te pakiety wymagają wyboru dostawcy. Wybierz, który pakiet spełnia każde wymaganie — pierwszy zostałby zainstalowany domyślnie.",
   "action.exit": "Zakończ",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "Najpierw zostanie zainstalowany program reflector — porządkuje on lustra według prędkości.",
   "mirrors.running": "Aktualizowanie luster…",
   "mirrors.done": "Lista luster została zaktualizowana.",
-  "mirrors.failed": "Nie udało się zaktualizować luster."
+  "mirrors.failed": "Nie udało się zaktualizować luster.",
+  "keyring.menu": "Napraw klucze podpisu",
+  "keyring.title": "Naprawić klucze podpisu?",
+  "keyring.body": "Każdy pakiet instalowany przez ten system jest sprawdzany wobec tych kluczy. Klucze są odtwarzane z plików kluczy, które już są na tej maszynie. Żaden pakiet nie jest dodawany ani usuwany."
 }

@@ -3,8 +3,9 @@
 //! Every privileged action runs through the package's own helper under
 //! pkexec — the polkit action's `exec.path` annotation authenticates the
 //! *program*, exactly like `aelum-snapshot-restore`. The helper is the only
-//! place pacman is invoked with privileges, so one action + one rule cover
-//! install, removal, refresh, upgrade, and local files.
+//! place pacman and pacman-key are invoked with privileges, so one action +
+//! one rule cover install, removal, refresh, upgrade, local files, and the
+//! keyring repair.
 //!
 //! The helper is the crate's second binary (`src/bin/`), not a script:
 //! pkexec hands a root process the caller's environment, and that is an
@@ -75,6 +76,13 @@ pub enum Txn {
     /// and the final "Restart now?" reads its no-TTY default (no) — a staged
     /// update waits for its owner to reboot, never for this app.
     FirmwareUpdate,
+    /// Rebuild what pacman verifies package signatures against, through the
+    /// helper's `fix-keyring` verb. The menu's answer to the failure a system
+    /// that has not been updated in months meets: `invalid or corrupted
+    /// package (PGP signature)`, an unknown key, or a keyring directory an
+    /// interrupted transaction left unreadable. It changes no packages, so it
+    /// is offered as a repair and never as an install.
+    FixKeyring,
 }
 
 impl Txn {
@@ -114,6 +122,10 @@ impl Txn {
                 a
             }
             Txn::FirmwareUpdate => vec!["firmware-update".into()],
+            // No argument, like the firmware write: pacman-key's two stages
+            // are the helper's to name, and a stage on argv could mean a
+            // keyring operation the confirmation never named.
+            Txn::FixKeyring => vec!["fix-keyring".into()],
         }
     }
 
@@ -146,6 +158,7 @@ impl Txn {
             // about it is ever printed next to it.
             Txn::UpdateMirrors(_) => i18n::t("mirrors.title"),
             Txn::FirmwareUpdate => i18n::t("txn.summaryFirmware"),
+            Txn::FixKeyring => i18n::t("txn.summaryKeyring"),
         }
     }
 
@@ -160,6 +173,7 @@ impl Txn {
             Txn::Upgrade => crate::progress::Verb::Upgrade,
             Txn::InstallFiles(_) | Txn::InstallFilesAsDeps(_) => crate::progress::Verb::File,
             Txn::FirmwareUpdate => crate::progress::Verb::Firmware,
+            Txn::FixKeyring => crate::progress::Verb::Keyring,
             // Not a pacman transaction, and the mirrors dialog streams its job
             // into a spinner, never a progress bar. Asking for a band is a
             // misuse of this variant — and a misuse that names its own exit.
@@ -382,8 +396,8 @@ mod tests {
     /// The helper's whole interface, in its own order. The tests that read
     /// the helper script ask about exactly these, so a verb added to the
     /// helper cannot be missed by one of them. Only the pacman verbs go
-    /// through its `pacman_args` match; the mirror update and the firmware
-    /// write are dispatched beside it — neither runs pacman.
+    /// through its `pacman_args` match; the mirror update, the firmware write
+    /// and the keyring repair are dispatched beside it — none runs pacman.
     const PACMAN_VERBS: [&str; 7] = [
         "refresh",
         "install",
@@ -393,8 +407,8 @@ mod tests {
         "file",
         "file-asdeps",
     ];
-    const NON_PACMAN_VERBS: [&str; 2] = ["update-mirrors", "firmware-update"];
-    const ALL_VERBS: [&str; 9] = [
+    const NON_PACMAN_VERBS: [&str; 3] = ["update-mirrors", "firmware-update", "fix-keyring"];
+    const ALL_VERBS: [&str; 10] = [
         "refresh",
         "install",
         "install-asdeps",
@@ -404,6 +418,7 @@ mod tests {
         "file-asdeps",
         "update-mirrors",
         "firmware-update",
+        "fix-keyring",
     ];
 
     #[test]
@@ -446,6 +461,9 @@ mod tests {
         // The firmware job takes no argument: fwupd answers for the devices,
         // and an id on argv could only mean an act nobody confirmed.
         assert_eq!(Txn::FirmwareUpdate.argv(), ["firmware-update"]);
+        // The keyring repair is the same shape: pacman-key's two stages are
+        // the helper's to name, so the verb carries nothing at all.
+        assert_eq!(Txn::FixKeyring.argv(), ["fix-keyring"]);
     }
 
     #[test]
@@ -479,6 +497,10 @@ mod tests {
             Txn::UpdateMirrors(None),
             // Writing firmware says nothing about how old the databases are.
             Txn::FirmwareUpdate,
+            // A keyring repair rewrites what signatures are checked against,
+            // and fetches no database: like the mirror update, it leaves the
+            // freshness record exactly as it found it.
+            Txn::FixKeyring,
         ] {
             assert!(!txn.syncs_databases(), "{txn:?} only reads the databases");
         }
@@ -502,6 +524,10 @@ mod tests {
             Txn::UpdateMirrors(Some("ua".into())),
             Txn::UpdateMirrors(None),
             Txn::FirmwareUpdate,
+            // gpg writes the rings it is rebuilding in place: a repair stopped
+            // between reading and writing is the damaged keyring the user
+            // pressed the button to get away from.
+            Txn::FixKeyring,
         ] {
             assert!(
                 timeout_for(&txn).is_none(),
@@ -623,10 +649,11 @@ mod tests {
         // let two of them write the same databases.
         assert!(helper.contains("pacman_running"), "must keep a live lock");
         // And the verbs that run no pacman are dispatched before any of
-        // this exists: reflector and fwupd neither take the database lock
-        // nor need a leftover one cleared — reflector fetches a JSON file
-        // and writes the mirror list, fwupd talks to its own daemon. Neither
-        // opens a pacman database.
+        // this exists: reflector, fwupd and pacman-key neither take the
+        // database lock nor need a leftover one cleared — reflector fetches a
+        // JSON file and writes the mirror list, fwupd talks to its own daemon,
+        // pacman-key writes under the GPG directory pacman names in its config.
+        // None opens a pacman database.
         let mirrored = helper.find("verb == \"update-mirrors\"").unwrap();
         assert!(
             mirrored < cleared,
@@ -636,6 +663,11 @@ mod tests {
         assert!(
             firmware < cleared,
             "the firmware write must not touch the database lock"
+        );
+        let keyring = helper.find("verb == \"fix-keyring\"").unwrap();
+        assert!(
+            keyring < cleared,
+            "the keyring repair must not touch the database lock"
         );
     }
 
@@ -663,6 +695,31 @@ mod tests {
             "the firmware job's output must arrive live"
         );
     }
+    #[test]
+    fn the_keyring_repair_is_pacman_keys_own_two_stages_in_order() {
+        let helper = include_str!("bin/aelum-package-installer-helper.rs");
+        // pacman-key by absolute path, in the same cleared environment as
+        // pacman: pkexec hands over the caller's environment, and pacman-key
+        // is a shell script — the one program here where that is root code.
+        assert!(
+            helper.contains("\"/usr/bin/pacman-key\""),
+            "pacman-key by path"
+        );
+        assert!(helper.contains(".env_clear()"));
+        // --init creates the secret key --populate needs in order to sign, so
+        // a repair on a keyring that has none has to run them in this order.
+        let stages = helper.find("const KEYRING_STAGES:").unwrap();
+        let init = helper[stages..].find("\"--init\"").unwrap();
+        let populate = helper[stages..].find("\"--populate\"").unwrap();
+        assert!(init < populate, "--init before --populate");
+        // stdbuf once more: gpg writes through glibc stdio, so through a pipe
+        // its lines would arrive when the repair ended, not as it worked.
+        assert!(
+            helper.contains("\"-oL\""),
+            "the keyring repair's output must arrive live"
+        );
+    }
+
     #[test]
     fn the_mirror_update_replaces_the_mirrorlist_atomically() {
         let helper = include_str!("bin/aelum-package-installer-helper.rs");

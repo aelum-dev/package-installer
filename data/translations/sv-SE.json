@@ -17,6 +17,7 @@
   "action.cancel": "Avbryt",
   "action.close": "Stäng",
   "action.extract": "Extrahera",
+  "action.repair": "Reparera",
   "status.reading": "Läser paketdatabaser…",
   "status.refreshing": "Uppdatering av databaser pågår, vänta…",
   "rows.noMatches": "Inga träffar",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "Installerar {file}…",
   "txn.summaryBuild": "Bygger {name} från AUR…",
   "txn.summaryFirmware": "Firmwareuppdateringar",
+  "txn.summaryKeyring": "Reparerar signeringsnycklarna…",
   "toast.busy": "En annan åtgärd pågår redan.",
   "toast.noHelper": "Paketåtgärder kräver att aelum-package-installer är installerat ({helper} saknas).",
   "toast.dbErrors": "Kunde inte läsa {count} paketdatabas(er): {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "Installerar de byggda paketen…",
   "phase.cleanup": "Tar bort byggberoenden…",
   "phase.firmware": "Skriver firmwaren…",
+  "phase.keyring": "Bygger upp signeringsnycklarna igen…",
   "chooser.title": "Välj en leverantör",
   "chooser.body": "Dessa paket kräver att du väljer en leverantör. Välj vilket paket som uppfyller varje krav — det första skulle ha installerats som standard.",
   "action.exit": "Avsluta",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "Först installeras reflector — programmet som sorterar speglar efter hastighet.",
   "mirrors.running": "Uppdaterar speglar…",
   "mirrors.done": "Spegellistan uppdaterades.",
-  "mirrors.failed": "Kunde inte uppdatera speglarna."
+  "mirrors.failed": "Kunde inte uppdatera speglarna.",
+  "keyring.menu": "Reparera signeringsnycklarna",
+  "keyring.title": "Reparera signeringsnycklarna?",
+  "keyring.body": "Varje paket det här systemet installeras kontrolleras mot dessa nycklar. Nycklarna byggs upp igen från nyckelfilerna som redan finns på den här maskinen. Inga paket läggs till eller tas bort."
 }

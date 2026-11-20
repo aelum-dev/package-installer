@@ -17,6 +17,7 @@
   "action.cancel": "Batal",
   "action.close": "Tutup",
   "action.extract": "Ekstrak",
+  "action.repair": "Perbaiki",
   "status.reading": "Membaca basis data paket…",
   "status.refreshing": "Penyegaran basis data sedang berlangsung, harap tunggu…",
   "rows.noMatches": "Tidak ada yang cocok",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "Memasang {file}…",
   "txn.summaryBuild": "Membangun {name} dari AUR…",
   "txn.summaryFirmware": "Pembaruan firmware",
+  "txn.summaryKeyring": "Memperbaiki kunci penandatanganan…",
   "toast.busy": "Operasi lain sedang berjalan.",
   "toast.noHelper": "Operasi paket memerlukan aelum-package-installer yang terpasang ({helper} tidak ada).",
   "toast.dbErrors": "Tidak dapat membaca {count} basis data paket: {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "Memasang paket hasil build…",
   "phase.cleanup": "Menghapus dependensi waktu build…",
   "phase.firmware": "Menuliskan firmware…",
+  "phase.keyring": "Menyusun ulang kunci penandatanganan…",
   "chooser.title": "Pilih penyedia",
   "chooser.body": "Paket-paket ini memerlukan pemilihan penyedia. Pilih paket mana yang memenuhi tiap syarat — yang pertama adalah yang akan dipasang secara bawaan.",
   "action.exit": "Keluar",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "reflector akan dipasang terlebih dahulu: program yang mengurutkan mirror berdasarkan kecepatan.",
   "mirrors.running": "Memperbarui mirror…",
   "mirrors.done": "Daftar mirror diperbarui.",
-  "mirrors.failed": "Gagal memperbarui mirror."
+  "mirrors.failed": "Gagal memperbarui mirror.",
+  "keyring.menu": "Perbaiki kunci penandatanganan",
+  "keyring.title": "Perbaiki kunci penandatanganan?",
+  "keyring.body": "Setiap paket yang dipasang sistem ini diperiksa terhadap kunci-kunci ini. Kunci-kunci itu disusun ulang dari berkas kunci yang sudah ada di mesin ini. Tidak ada paket yang ditambahkan atau dihapus."
 }

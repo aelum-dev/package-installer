@@ -17,6 +17,7 @@
   "action.cancel": "Peru",
   "action.close": "Sulje",
   "action.extract": "Pura",
+  "action.repair": "Korjaa",
   "status.reading": "Luetaan pakettitietokantoja…",
   "status.refreshing": "Tietokantojen päivitys on käynnissä, odota…",
   "rows.noMatches": "Ei osumia",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "Asennetaan {file}…",
   "txn.summaryBuild": "Käännetään {name} AUR:sta…",
   "txn.summaryFirmware": "Laiteohjelmistopäivitykset",
+  "txn.summaryKeyring": "Korjataan allekirjoitusavaimia…",
   "toast.busy": "Toinen toiminto on jo käynnissä.",
   "toast.noHelper": "Pakettitoiminnot edellyttävät asennettua aelum-package-installeria ({helper} puuttuu).",
   "toast.dbErrors": "{count} pakettitietokantaa ei voitu lukea: {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "Asennetaan käännetyt paketit…",
   "phase.cleanup": "Poistetaan käännösaikaiset riippuvuudet…",
   "phase.firmware": "Kirjoitetaan laiteohjelmistoa…",
+  "phase.keyring": "Rakennetaan allekirjoitusavaimet uudelleen…",
   "chooser.title": "Valitse tarjoaja",
   "chooser.body": "Nämä paketit vaativat tarjoajan valinnan. Valitse, mikä paketeista täyttää kunkin vaatimuksen — ensimmäinen asennettaisiin oletuksena.",
   "action.exit": "Lopeta",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "Reflector asennetaan ensin: ohjelma, joka järjestää peilit nopeuden mukaan.",
   "mirrors.running": "Päivitetään peilejä…",
   "mirrors.done": "Peililuettelo päivitettiin.",
-  "mirrors.failed": "Peilien päivitys ei onnistunut."
+  "mirrors.failed": "Peilien päivitys ei onnistunut.",
+  "keyring.menu": "Korjaa allekirjoitusavaimet",
+  "keyring.title": "Korjataanko allekirjoitusavaimet?",
+  "keyring.body": "Järjestelmän asentama joka paketti tarkistetaan näillä avaimilla. Avaimet rakennetaan uudelleen koneella jo olevista avaintiedostoista. Yhtään pakettia ei lisätä eikä poisteta."
 }

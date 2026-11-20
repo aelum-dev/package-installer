@@ -17,6 +17,7 @@
   "action.cancel": "Hủy",
   "action.close": "Đóng",
   "action.extract": "Trích xuất",
+  "action.repair": "Sửa chữa",
   "status.reading": "Đang đọc cơ sở dữ liệu gói…",
   "status.refreshing": "Đang làm mới cơ sở dữ liệu, vui lòng đợi…",
   "rows.noMatches": "Không có kết quả",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "Đang cài đặt {file}…",
   "txn.summaryBuild": "Đang dựng {name} từ AUR…",
   "txn.summaryFirmware": "Cập nhật firmware",
+  "txn.summaryKeyring": "Đang sửa các khóa ký…",
   "toast.busy": "Một thao tác khác đang chạy.",
   "toast.noHelper": "Thao tác với gói cần aelum-package-installer đã được cài đặt ({helper} không tồn tại).",
   "toast.dbErrors": "Không đọc được {count} cơ sở dữ liệu gói: {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "Cài các gói đã xây dựng…",
   "phase.cleanup": "Gỡ các phụ thuộc khi xây dựng…",
   "phase.firmware": "Đang ghi firmware…",
+  "phase.keyring": "Đang dựng lại các khóa ký…",
   "chooser.title": "Chọn nhà cung cấp",
   "chooser.body": "Những gói này cần chọn một nhà cung cấp. Hãy chọn gói nào đáp ứng từng yêu cầu — gói đầu tiên là gói sẽ được cài đặt theo mặc định.",
   "action.exit": "Thoát",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "Trước tiên hệ thống sẽ cài reflector — chương trình sắp xếp các máy chủ gương theo tốc độ.",
   "mirrors.running": "Đang cập nhật máy chủ gương…",
   "mirrors.done": "Đã cập nhật danh sách máy chủ gương.",
-  "mirrors.failed": "Không thể cập nhật các máy chủ gương."
+  "mirrors.failed": "Không thể cập nhật các máy chủ gương.",
+  "keyring.menu": "Sửa các khóa ký",
+  "keyring.title": "Sửa các khóa ký?",
+  "keyring.body": "Mọi gói mà hệ thống này cài đặt đều được kiểm tra dựa trên các khóa này. Các khóa được dựng lại từ các tệp khóa đã có trên máy này. Không có gói nào được thêm hay gỡ bỏ."
 }

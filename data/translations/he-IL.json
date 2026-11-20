@@ -17,6 +17,7 @@
   "action.cancel": "ביטול",
   "action.close": "סגירה",
   "action.extract": "חילוץ",
+  "action.repair": "תיקון",
   "status.reading": "קריאת מאגרי החבילות…",
   "status.refreshing": "רענון מאגרי הנתונים מתבצע, נא להמתין…",
   "rows.noMatches": "אין תוצאות",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "מתקין את {file}…",
   "txn.summaryBuild": "בונה את {name} מה־AUR…",
   "txn.summaryFirmware": "עדכוני תוכנה קשיחה",
+  "txn.summaryKeyring": "מתקן מפתחות חתימה…",
   "toast.busy": "פעולה אחרת כבר מתבצעת.",
   "toast.noHelper": "פעולות חבילות דורשות את aelum-package-installer המותקן ({helper} חסר).",
   "toast.dbErrors": "לא ניתן לקרוא {count} מאגרי חבילות: {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "התקנת החבילות שנבנו…",
   "phase.cleanup": "הסרת תלויות זמן בנייה…",
   "phase.firmware": "כותב תוכנה קשיחה…",
+  "phase.keyring": "בונה מחדש מפתחות חתימה…",
   "chooser.title": "בחירת ספק",
   "chooser.body": "חבילות אלו דורשות בחירת ספק. נא לבחור איזו חבילה עונה על כל דרישה — הראשונה היא מה שתותקן כברירת מחדל.",
   "action.exit": "יציאה",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "התוכנית reflector תותקן תחילה — היא מדרגת את המראות לפי מהירות.",
   "mirrors.running": "מעדכן מראות…",
   "mirrors.done": "רשימת המראות עודכנה.",
-  "mirrors.failed": "לא ניתן לעדכן את המראות."
+  "mirrors.failed": "לא ניתן לעדכן את המראות.",
+  "keyring.menu": "תיקון מפתחות חתימה",
+  "keyring.title": "לתקן את מפתחות החתימה?",
+  "keyring.body": "כל חבילה שהמערכת מתקינה נבדקת מול המפתחות האלה. המפתחות נבנים מחדש מקבצי המפתחות שכבר נמצאים במכונה זו. אף חבילה אינה נוספת ואינה מוסרת."
 }

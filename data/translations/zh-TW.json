@@ -17,6 +17,7 @@
   "action.cancel": "取消",
   "action.close": "關閉",
   "action.extract": "解壓",
+  "action.repair": "修復",
   "status.reading": "正在讀取軟體包資料庫…",
   "status.refreshing": "資料庫正在重新整理，請稍候…",
   "rows.noMatches": "沒有相符的項目",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "正在安裝 {file}…",
   "txn.summaryBuild": "正在從 AUR 建置 {name}…",
   "txn.summaryFirmware": "韌體更新",
+  "txn.summaryKeyring": "正在修復簽章金鑰…",
   "toast.busy": "已有另一個操作正在執行。",
   "toast.noHelper": "軟體包操作需要已安裝的 aelum-package-installer（缺少 {helper}）。",
   "toast.dbErrors": "無法讀取 {count} 個軟體包資料庫：{errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "正在安裝建置的軟體包…",
   "phase.cleanup": "正在移除建置時的相依套件…",
   "phase.firmware": "正在寫入韌體…",
+  "phase.keyring": "正在重建簽章金鑰…",
   "chooser.title": "選擇提供者",
   "chooser.body": "這些軟體包需要選擇提供者。請選擇滿足每項要求的軟體包 — 第一個是預設會安裝的。",
   "action.exit": "結束",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "將先安裝 reflector——依速度為鏡像源排序的程式。",
   "mirrors.running": "正在更新鏡像源…",
   "mirrors.done": "鏡像源清單已更新。",
-  "mirrors.failed": "無法更新鏡像源。"
+  "mirrors.failed": "無法更新鏡像源。",
+  "keyring.menu": "修復簽章金鑰",
+  "keyring.title": "要修復簽章金鑰嗎?",
+  "keyring.body": "此系統安裝的每個軟體包都會依據這些金鑰驗證。金鑰會由這台電腦上既有的金鑰檔案重建。不會新增或移除任何軟體包。"
 }

@@ -17,6 +17,7 @@
   "action.cancel": "Cancel·la",
   "action.close": "Tanca",
   "action.extract": "Extreu",
+  "action.repair": "Repara",
   "status.reading": "S'estan llegint les bases de dades de paquets…",
   "status.refreshing": "L'actualització de les bases de dades és en curs, espereu…",
   "rows.noMatches": "No hi ha coincidències",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "S'està instal·lant {file}…",
   "txn.summaryBuild": "S'està compilant {name} de l'AUR…",
   "txn.summaryFirmware": "Actualitzacions de microprogramari",
+  "txn.summaryKeyring": "Reparant les claus de signatura…",
   "toast.busy": "Ja s'està executant una altra operació.",
   "toast.noHelper": "Les operacions de paquets necessiten l'aelum-package-installer instal·lat (falta {helper}).",
   "toast.dbErrors": "No s'han pogut llegir {count} base(s) de dades de paquets: {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "Instal·lant els paquets compilats…",
   "phase.cleanup": "Suprimint dependències de compilació…",
   "phase.firmware": "S'està gravant el microprogramari…",
+  "phase.keyring": "Reconstruint les claus de signatura…",
   "chooser.title": "Trieu un proveïdor",
   "chooser.body": "Aquests paquets necessiten triar un proveïdor. Trieu quin paquet satisfà cada requisit — el primer és el que s'instal·laria per defecte.",
   "action.exit": "Surt",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "Primer s'instal·la reflector, el programa que ordena els miralls per velocitat.",
   "mirrors.running": "Actualitzant els miralls…",
   "mirrors.done": "La llista de miralls s'ha actualitzat.",
-  "mirrors.failed": "No s'han pogut actualitzar els miralls."
+  "mirrors.failed": "No s'han pogut actualitzar els miralls.",
+  "keyring.menu": "Repara les claus de signatura",
+  "keyring.title": "Voleu reparar les claus de signatura?",
+  "keyring.body": "Cada paquet que aquest sistema instal·la es comprova amb aquestes claus. Les claus es reconstrueixen a partir dels fitxers de claus que ja són en aquesta màquina. No s'afegeix ni se suprimeix cap paquet."
 }

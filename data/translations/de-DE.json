@@ -17,6 +17,7 @@
   "action.cancel": "Abbrechen",
   "action.close": "Schließen",
   "action.extract": "Entpacken",
+  "action.repair": "Reparieren",
   "status.reading": "Paketdatenbanken werden gelesen…",
   "status.refreshing": "Aktualisierung der Paketdatenbanken läuft, bitte warten…",
   "rows.noMatches": "Keine Treffer",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "{file} wird installiert…",
   "txn.summaryBuild": "{name} wird aus dem AUR gebaut…",
   "txn.summaryFirmware": "Firmware-Aktualisierungen",
+  "txn.summaryKeyring": "Signaturschlüssel werden repariert…",
   "toast.busy": "Es läuft bereits ein anderer Vorgang.",
   "toast.noHelper": "Paketvorgänge erfordern das installierte aelum-package-installer ({helper} fehlt).",
   "toast.dbErrors": "{count} Paketdatenbank(en) konnten nicht gelesen werden: {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "Die gebauten Pakete werden installiert…",
   "phase.cleanup": "Build-Abhängigkeiten werden entfernt…",
   "phase.firmware": "Firmware wird geschrieben…",
+  "phase.keyring": "Signaturschlüssel werden neu aufgebaut…",
   "chooser.title": "Anbieter wählen",
   "chooser.body": "Für diese Pakete muss ein Anbieter gewählt werden. Wählen Sie, welches Paket jede Anforderung erfüllt — das Erste ist das, was standardmäßig installiert würde.",
   "action.exit": "Beenden",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "Zuerst wird reflector installiert – das Programm, das die Spiegel nach Geschwindigkeit sortiert.",
   "mirrors.running": "Spiegel werden aktualisiert…",
   "mirrors.done": "Spiegelliste aktualisiert.",
-  "mirrors.failed": "Die Spiegel konnten nicht aktualisiert werden."
+  "mirrors.failed": "Die Spiegel konnten nicht aktualisiert werden.",
+  "keyring.menu": "Signaturschlüssel reparieren",
+  "keyring.title": "Signaturschlüssel reparieren?",
+  "keyring.body": "Jedes Paket, das dieses System installiert, wird gegen diese Schlüssel geprüft. Die Schlüssel werden aus den Schlüsseldateien neu aufgebaut, die sich bereits auf diesem Rechner befinden. Kein Paket wird hinzugefügt oder entfernt."
 }

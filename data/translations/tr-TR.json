@@ -17,6 +17,7 @@
   "action.cancel": "İptal",
   "action.close": "Kapat",
   "action.extract": "Ayıkla",
+  "action.repair": "Onar",
   "status.reading": "Paket veritabanları okunuyor…",
   "status.refreshing": "Veritabanları yenileniyor, lütfen bekleyin…",
   "rows.noMatches": "Eşleşme yok",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "{file} yükleniyor…",
   "txn.summaryBuild": "AUR'dan {name} derleniyor…",
   "txn.summaryFirmware": "Aygıt yazılımı güncellemeleri",
+  "txn.summaryKeyring": "İmzalama anahtarları onarılıyor…",
   "toast.busy": "Zaten başka bir işlem çalışıyor.",
   "toast.noHelper": "Paket işlemleri kurulu aelum-package-installer'ı gerektirir ({helper} eksik).",
   "toast.dbErrors": "{count} paket veritabanı okunamadı: {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "Derlenen paketler kuruluyor…",
   "phase.cleanup": "Derleme bağımlılıkları kaldırılıyor…",
   "phase.firmware": "Aygıt yazılımı yazılıyor…",
+  "phase.keyring": "İmzalama anahtarları yeniden kuruluyor…",
   "chooser.title": "Bir sağlayıcı seçin",
   "chooser.body": "Bu paketler bir sağlayıcı seçimi gerektiriyor. Her gereksinimi hangi paketin karşıladığını seçin — ilki varsayılan olarak kurulacak olandır.",
   "action.exit": "Çık",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "Önce aynaları hıza göre sıralayan program olan reflector kurulacak.",
   "mirrors.running": "Aynalar güncelleniyor…",
   "mirrors.done": "Ayna listesi güncellendi.",
-  "mirrors.failed": "Aynalar güncellenemedi."
+  "mirrors.failed": "Aynalar güncellenemedi.",
+  "keyring.menu": "İmzalama anahtarlarını onar",
+  "keyring.title": "İmzalama anahtarları onarılsın mı?",
+  "keyring.body": "Bu sistemin kurduğu her paket bu anahtarlara karşı denetlenir. Anahtarlar, bu makinede zaten bulunan anahtar dosyalarından yeniden kurulur. Hiçbir paket eklenmez veya kaldırılmaz."
 }

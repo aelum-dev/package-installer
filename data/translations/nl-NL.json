@@ -17,6 +17,7 @@
   "action.cancel": "Annuleren",
   "action.close": "Sluiten",
   "action.extract": "Uitpakken",
+  "action.repair": "Repareren",
   "status.reading": "Pakketdatabases lezen…",
   "status.refreshing": "Vernieuwen van databases is bezig, even geduld…",
   "rows.noMatches": "Geen overeenkomsten",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "{file} installeren…",
   "txn.summaryBuild": "{name} wordt uit het AUR gebouwd…",
   "txn.summaryFirmware": "Firmware-updates",
+  "txn.summaryKeyring": "Bezig met repareren van de ondertekeningssleutels…",
   "toast.busy": "Er is al een andere bewerking bezig.",
   "toast.noHelper": "Pakketbewerkingen vereisen het geïnstalleerde aelum-package-installer ({helper} ontbreekt).",
   "toast.dbErrors": "Kon {count} pakketdatabase(s) niet lezen: {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "De gebouwde pakketten installeren…",
   "phase.cleanup": "Bouwtijd-afhankelijkheden verwijderen…",
   "phase.firmware": "Bezig met schrijven van firmware…",
+  "phase.keyring": "Bezig met opbouwen van de ondertekeningssleutels…",
   "chooser.title": "Kies een aanbieder",
   "chooser.body": "Deze pakketten vereisen dat u een aanbieder kiest. Kies welk pakket aan elke vereiste voldoet — de eerste zou standaard worden geïnstalleerd.",
   "action.exit": "Afsluiten",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "Eerst wordt reflector geïnstalleerd — het programma dat spiegels op snelheid sorteer.",
   "mirrors.running": "Spiegels worden bijgewerkt…",
   "mirrors.done": "Spiegellijst bijgewerkt.",
-  "mirrors.failed": "De spiegels konden niet worden bijgewerkt."
+  "mirrors.failed": "De spiegels konden niet worden bijgewerkt.",
+  "keyring.menu": "Ondertekeningssleutels repareren",
+  "keyring.title": "Ondertekeningssleutels repareren?",
+  "keyring.body": "Elk pakket dat dit systeem installeert wordt aan deze sleutels getoetst. De sleutels worden opnieuw opgebouwd uit de sleutelbestanden die al op deze machine staan. Er wordt geen pakket toegevoegd of verwijderd."
 }

@@ -17,6 +17,7 @@
   "action.cancel": "취소",
   "action.close": "닫기",
   "action.extract": "추출",
+  "action.repair": "복구",
   "status.reading": "패키지 데이터베이스 읽는 중…",
   "status.refreshing": "데이터베이스 갱신 중입니다. 잠시 기다려 주세요…",
   "rows.noMatches": "일치하는 항목 없음",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "{file} 설치 중…",
   "txn.summaryBuild": "AUR에서 {name} 빌드 중…",
   "txn.summaryFirmware": "펌웨어 업데이트",
+  "txn.summaryKeyring": "서명 키 복구 중…",
   "toast.busy": "다른 작업이 이미 실행 중입니다.",
   "toast.noHelper": "패키지 작업에는 설치된 aelum-package-installer가 필요합니다({helper}이(가) 없습니다).",
   "toast.dbErrors": "패키지 데이터베이스 {count}개를 읽을 수 없습니다: {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "빌드한 패키지 설치 중…",
   "phase.cleanup": "빌드 의존성 제거 중…",
   "phase.firmware": "펌웨어 기록 중…",
+  "phase.keyring": "서명 키 다시 만드는 중…",
   "chooser.title": "제공자 선택",
   "chooser.body": "이 패키지들은 제공자 선택이 필요합니다. 각 요구를 충족하는 패키지를 선택하세요 — 첫 번째가 기본으로 설치될 패키지입니다.",
   "action.exit": "종료",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "먼저 reflector를 설치합니다. reflector는 미러를 속도로 정렬하는 프로그램입니다.",
   "mirrors.running": "미러를 갱신하는 중…",
   "mirrors.done": "미러 목록이 갱신되었습니다.",
-  "mirrors.failed": "미러를 갱신할 수 없습니다."
+  "mirrors.failed": "미러를 갱신할 수 없습니다.",
+  "keyring.menu": "서명 키 복구",
+  "keyring.title": "서명 키를 복구할까요?",
+  "keyring.body": "이 시스템이 설치하는 모든 패키지는 이 키들로 확인합니다. 키는 이 컴퓨터에 이미 있는 키 파일로 다시 만듭니다. 패키지를 추가하거나 삭제하지 않습니다."
 }

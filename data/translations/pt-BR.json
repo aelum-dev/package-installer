@@ -17,6 +17,7 @@
   "action.cancel": "Cancelar",
   "action.close": "Fechar",
   "action.extract": "Extrair",
+  "action.repair": "Reparar",
   "status.reading": "Lendo os bancos de dados de pacotes…",
   "status.refreshing": "Atualização dos bancos de dados em andamento, aguarde…",
   "rows.noMatches": "Nenhuma correspondência",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "Instalando {file}…",
   "txn.summaryBuild": "Compilando {name} do AUR…",
   "txn.summaryFirmware": "Atualizações de firmware",
+  "txn.summaryKeyring": "Reparando as chaves de assinatura…",
   "toast.busy": "Outra operação já está em execução.",
   "toast.noHelper": "Operações de pacotes exigem o aelum-package-installer instalado ({helper} está ausente).",
   "toast.dbErrors": "Não foi possível ler {count} banco(s) de dados de pacotes: {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "Instalando os pacotes compilados…",
   "phase.cleanup": "Removendo dependências de compilação…",
   "phase.firmware": "Gravando o firmware…",
+  "phase.keyring": "Reconstruindo as chaves de assinatura…",
   "chooser.title": "Escolher um provedor",
   "chooser.body": "Estes pacotes exigem a escolha de um provedor. Escolha qual pacote atende a cada requisito — o primeiro é o que seria instalado por padrão.",
   "action.exit": "Sair",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "O reflector será instalado primeiro: o programa que ordena os espelhos por velocidade.",
   "mirrors.running": "Atualizando os espelhos…",
   "mirrors.done": "Lista de espelhos atualizada.",
-  "mirrors.failed": "Não foi possível atualizar os espelhos."
+  "mirrors.failed": "Não foi possível atualizar os espelhos.",
+  "keyring.menu": "Reparar as chaves de assinatura",
+  "keyring.title": "Reparar as chaves de assinatura?",
+  "keyring.body": "Cada pacote que este sistema instala é verificado com estas chaves. As chaves são reconstruídas a partir dos arquivos de chave que já estão nesta máquina. Nenhum pacote é adicionado nem removido."
 }

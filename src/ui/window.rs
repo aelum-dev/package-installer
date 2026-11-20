@@ -154,12 +154,12 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     close.add_css_class("window-close");
     close.set_tooltip_text(Some(&i18n::t("action.close")));
     close.set_action_name(Some("window.close"));
-    // The "⋯" menu: the app-level acts — updating the mirrors, About, and
-    // leaving. They are `app.` actions because the application, not this
-    // window, owns them: the window is one-shot, the process is not. A
-    // MenuButton over a hand-rolled popover, so the panel is the one GNOME
-    // draws identically everywhere, and the labels come from the catalogs
-    // like everything else.
+    // The "⋯" menu: the app-level acts — repairing the mirrors, repairing the
+    // signing keys, About, and leaving. They are `app.` actions because the
+    // application, not this window, owns them: the window is one-shot, the
+    // process is not. A MenuButton over a hand-rolled popover, so the panel is
+    // the one GNOME draws identically everywhere, and the labels come from the
+    // catalogs like everything else.
     let menu = gtk::MenuButton::builder()
         .icon_name("view-more-symbolic")
         .tooltip_text(i18n::t("mirrors.menu"))
@@ -167,6 +167,11 @@ pub fn build(app: &adw::Application, ui: &Ui) {
     menu.add_css_class("flat");
     let items = gtk::gio::Menu::new();
     items.append(Some(&i18n::t("mirrors.title")), Some("app.update-mirrors"));
+    // Both repairs of how pacman reaches its own data go first — one fixes
+    // where packages come from, the other fixes what their signatures are
+    // checked against — and a system that cannot sync or verify needs one of
+    // them before anything else here can work.
+    items.append(Some(&i18n::t("keyring.menu")), Some("app.fix-keyring"));
     items.append(Some(&i18n::t("about.label")), Some("app.about"));
     items.append(Some(&i18n::t("action.exit")), Some("app.quit"));
     menu.set_menu_model(Some(&items));

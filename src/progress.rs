@@ -56,6 +56,10 @@ pub enum Verb {
     /// through a pipe arrive as unstructured text. One honest creep band,
     /// so the bar never claims a number fwupd does not emit.
     Firmware,
+    /// `pacman-key --init` then `--populate`: pacman-key names no phases and
+    /// prints no counters either — its lines are one per keyring file and one
+    /// per signed key. One honest creep band, like the firmware write.
+    Keyring,
 }
 
 /// The phase the tracker currently believes it is in. The AUR variants are
@@ -79,6 +83,10 @@ pub enum Phase {
     /// [`Verb::Firmware`] and by nothing else — the fwupd client's output
     /// never names a phase.
     Firmware,
+    /// The whole keyring repair: entered by [`Track::new`] for
+    /// [`Verb::Keyring`] and by nothing else — pacman-key's output names no
+    /// phase either, and no line of it may move the band.
+    Keyring,
     Done,
     Unknown,
 }
@@ -141,6 +149,10 @@ fn bands(verb: Verb) -> Vec<Band> {
         // "Writing firmware" without ever pretending to know how far in
         // the write is. `finish()` is what takes it to 1.0.
         Verb::Firmware => &[(Phase::Firmware, 0.00, 1.00)],
+        // The same shape for the keyring repair: pacman-key prints one line
+        // per keyring file and one per signed key, which is a count of
+        // nothing the user is waiting on.
+        Verb::Keyring => &[(Phase::Keyring, 0.00, 1.00)],
     };
     table
         .iter()
@@ -183,10 +195,11 @@ impl Track {
         Track {
             bands: bands(verb),
             // Every pacman verb opens Unknown and its first phase header
-            // names the phase. The firmware job has one phase and no
-            // headers, so it is that phase from the first line on.
+            // names the phase. The firmware and keyring jobs have one phase
+            // and no headers, so they are that phase from the first line on.
             phase: match verb {
                 Verb::Firmware => Phase::Firmware,
+                Verb::Keyring => Phase::Keyring,
                 _ => Phase::Unknown,
             },
             txn_total: 0,
@@ -815,6 +828,40 @@ mod tests {
         t.feed(" installing htop...");
         t.feed("(1/1) running post-transaction hooks...");
         assert_eq!(t.phase(), Phase::Firmware);
+        assert!(t.counts().is_none());
+    }
+
+    #[test]
+    fn the_keyring_bar_creeps_and_never_counts() {
+        // pacman-key prints one line per keyring file and one per batch of
+        // signed keys — never progress toward a total it named — so the
+        // repair's band creeps and hands the UI no "i of n" it did not earn.
+        let mut t = Track::new(Verb::Keyring);
+        assert_eq!(t.phase(), Phase::Keyring, "one phase, from the start");
+        assert!(t.counts().is_none(), "pacman-key gives no counts");
+        let mut last = -1.0;
+        for line in [
+            "==> Appending keys from archlinux.gpg...",
+            "==> Locally signing trusted keys in keyring...",
+            "  -> Locally signed 2 keys.",
+            "==> Updating trust database...",
+        ] {
+            t.feed(line);
+            let f = t.fraction();
+            assert!(f > last && f < 1.0, "{line} moves it forward, stays short");
+            last = f;
+        }
+    }
+
+    #[test]
+    fn keyring_output_cannot_be_read_as_pacman_phases() {
+        // The same guard as the firmware job: set() ignores any phase outside
+        // this verb's band table, so a header from another log cannot move it.
+        let mut t = Track::new(Verb::Keyring);
+        t.feed(":: Retrieving packages...");
+        t.feed(" installing htop...");
+        t.feed("(1/1) running post-transaction hooks...");
+        assert_eq!(t.phase(), Phase::Keyring);
         assert!(t.counts().is_none());
     }
 }

@@ -1,11 +1,12 @@
 //! aelum-package-installer-helper — the root half of every package-manager
 //! operation. pkexec authenticates this program (the polkit action names it
-//! through its exec.path annotation); it is the only place pacman runs with
-//! privileges, so one action and one rule cover every verb. The one verb
-//! that runs no pacman is `firmware-update`: it execs fwupdmgr, and the
-//! fwupd daemon treats uid 0 as always trusted — the update needs no auth
-//! agent the desktop may not run, and the app's wheel rule is what stands
-//! between a person and the policy.
+//! through its exec.path annotation); it is the only place pacman and
+//! pacman-key run with privileges, so one action and one rule cover every
+//! verb. The verbs that
+//! run no pacman are `firmware-update` (fwupdmgr — the fwupd daemon treats
+//! uid 0 as always trusted, so the update needs no auth agent the desktop may
+//! not run, and the app's wheel rule is what stands between a person and the
+//! policy), `update-mirrors` (reflector) and `fix-keyring` (pacman-key).
 //!
 //! This is the crate's second binary, not a script, and that is the point:
 //! pkexec hands the program it runs as root the *caller's* environment, and
@@ -52,12 +53,16 @@ const MIRRORLIST: &str = "/etc/pacman.d/mirrorlist";
 /// it is if a run is ever killed between the two steps.
 const MIRRORLIST_TMP: &str = "/etc/pacman.d/mirrorlist.aelum-tmp";
 
-/// The fixed PATH both programs are handed. Absolute-path exec leaves no
+/// pacman's own keyring manager: the keyring repair runs its two documented
+/// stages rather than reimplementing what pacman verifies signatures against.
+const PACMAN_KEY: &str = "/usr/bin/pacman-key";
+
+/// The fixed PATH these programs are handed. Absolute-path exec leaves no
 /// lookup to chance, and this is the PATH a script's `#! /usr/bin/env` line
 /// resolves through — the caller's never is.
 const ENV_PATH: &str = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
 
-/// The only caller variables the two programs are handed: they choose the
+/// The only caller variables these programs are handed: they choose the
 /// message language, nothing else. Everything else is dropped by `env_clear`
 /// — `LD_*`, `IFS`, shell variables, `TMPDIR` (a package's scriptlets mktemp
 /// through it) — and `PATH` is the fixed `ENV_PATH` alone.
@@ -67,16 +72,20 @@ fn main() {
     let mut argv = std::env::args_os().skip(1);
     let Some(verb) = argv.next() else { usage() };
     let rest: Vec<OsString> = argv.collect();
-    // The two verbs that run no pacman: the mirror update and the firmware
-    // write. They are dispatched before the pacman_args match so neither
-    // clears a database lock it has no business touching — reflector fetches
-    // a JSON file and writes the mirror list, fwupd talks to its own daemon.
-    // Neither opens a pacman database.
+    // The verbs that run no pacman: the mirror update, the firmware write and
+    // the keyring repair. They are dispatched before the pacman_args match so
+    // none clears a database lock it has no business touching — reflector
+    // fetches a JSON file and writes the mirror list, fwupd talks to its own
+    // daemon, pacman-key writes under the GPG directory pacman names in its
+    // config. None opens a pacman database.
     if verb == "update-mirrors" {
         update_mirrors(&rest);
     }
     if verb == "firmware-update" {
         firmware_update(&rest);
+    }
+    if verb == "fix-keyring" {
+        fix_keyring(&rest);
     }
     // The verbs are named here before anything is touched, so an unknown one
     // is refused instead of clearing a lock on a call that runs no pacman.
@@ -159,7 +168,8 @@ fn is_country_code(value: &OsStr) -> bool {
     bytes.len() == 2 && bytes.iter().all(|b| b.is_ascii_alphabetic())
 }
 
-/// The mirror update — the one verb that cannot exec. reflector opens its
+/// The mirror update — a verb that cannot exec, because the file it asked for
+/// has to be moved into place first: reflector opens its
 /// `--save` file truncating, so a run killed mid-write would otherwise leave
 /// the system with a mirror list it cannot sync through: it writes beside the
 /// real file and this program moves it in with `rename(2)` — atomic within
@@ -232,8 +242,70 @@ fn firmware_update(rest: &[OsString]) -> ! {
     std::process::exit(127)
 }
 
-/// The caller variables the two programs are handed: they choose the message
-/// language, nothing else.
+/// The two pacman-key stages the keyring repair runs, in this order.
+const KEYRING_STAGES: [&str; 2] = ["--init", "--populate"];
+
+/// The repair's stages, and the verb's whole argument surface: pacman-key's
+/// flags are the helper's to name, so one on argv could mean a keyring
+/// operation nobody confirmed. The order is load-bearing — `--populate`
+/// refuses to run on a keyring that holds no secret key, and `--init` is what
+/// creates one. Neither stage asks a keyserver: the key files come from
+/// `/usr/share/pacman/keyrings`, so a repair works offline.
+fn keyring_stages(rest: &[OsString]) -> Option<&'static [&'static str]> {
+    match rest {
+        [] => Some(&KEYRING_STAGES),
+        _ => None,
+    }
+}
+
+/// The keyring repair — the third verb that runs no pacman, and the second
+/// that cannot exec: `--init` has to finish before `--populate` starts. stdbuf
+/// for the same measured reason as pacman and fwupdmgr: gpg writes through C
+/// stdio, and through a pipe that buffers until the run ends.
+fn fix_keyring(rest: &[OsString]) -> ! {
+    let Some(stages) = keyring_stages(rest) else {
+        usage()
+    };
+    let (last, first) = stages
+        .split_last()
+        .expect("the keyring repair names at least one stage");
+    for stage in first {
+        let mut cmd = keyring_command(stage);
+        let status = match cmd.spawn().and_then(|mut child| child.wait()) {
+            Ok(status) => status,
+            Err(err) => {
+                eprintln!("aelum-package-installer-helper: cannot run pacman-key: {err}");
+                std::process::exit(127);
+            }
+        };
+        // A signal's exit (no code) is not a success either: a repair that
+        // never finished must not report the keyring as repaired.
+        if status.code() != Some(0) {
+            std::process::exit(status.code().unwrap_or(1));
+        }
+    }
+    let err = keyring_command(last).exec();
+    eprintln!("aelum-package-installer-helper: cannot run pacman-key: {err}");
+    std::process::exit(127)
+}
+
+/// One stage of the keyring repair, in the same cleared environment as every
+/// other program this helper runs: pacman-key is a shell script, and pkexec
+/// hands it the caller's environment — which is how `BASH_ENV`, an `LD_*` or a
+/// chosen `PATH` would otherwise choose what runs as root.
+fn keyring_command(stage: &str) -> Command {
+    let mut cmd = Command::new("/usr/bin/stdbuf");
+    cmd.arg("-oL")
+        .arg(PACMAN_KEY)
+        .arg(stage)
+        .env_clear()
+        .env("PATH", ENV_PATH)
+        .envs(locale_env());
+    cmd
+}
+
+/// The caller variables the programs this helper runs are handed: they choose
+/// the message language, nothing else.
 fn locale_env() -> impl Iterator<Item = (&'static str, OsString)> {
     ENV_KEEP
         .iter()
@@ -294,7 +366,7 @@ fn clear_stale_lock() {
 fn usage() -> ! {
     eprintln!(
         "usage: aelum-package-installer-helper \
-         {{refresh|install|install-asdeps|remove|upgrade|file|file-asdeps|update-mirrors|firmware-update}} \
+         {{refresh|install|install-asdeps|remove|upgrade|file|file-asdeps|update-mirrors|firmware-update|fix-keyring}} \
          [args...]"
     );
     std::process::exit(2)
@@ -409,6 +481,27 @@ mod tests {
         // named — refused like an unknown verb.
         assert_eq!(firmware_argv(&["f742a6af"]), None);
         assert_eq!(firmware_argv(&["--force"]), None);
+    }
+
+    fn stages(rest: &[&str]) -> Option<Vec<String>> {
+        let rest: Vec<OsString> = rest.iter().map(|name| (*name).into()).collect();
+        keyring_stages(&rest)
+            .map(|stages| stages.iter().map(|stage| (*stage).to_string()).collect())
+    }
+
+    #[test]
+    fn the_keyring_repair_is_two_stages_in_one_order() {
+        // --init before --populate: --populate refuses to run on a keyring
+        // holding no secret key to sign with, and --init is what creates one.
+        assert_eq!(
+            stages(&[]),
+            Some(vec!["--init".into(), "--populate".into()])
+        );
+        // A pacman-key flag on argv would be a keyring operation the
+        // confirmation never named — refused like an unknown verb.
+        assert_eq!(stages(&["--populate"]), None);
+        assert_eq!(stages(&["--keyserver"]), None);
+        assert_eq!(stages(&["archlinux"]), None);
     }
 
     fn reflector_argv(rest: &[&str]) -> Vec<String> {

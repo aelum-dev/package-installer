@@ -128,6 +128,22 @@ release you target before changing the code that encodes them.
   nobody's, while a live one is a transaction that must not run twice.
   `txn.rs::every_verb_clears_a_stale_db_lock_but_never_a_live_one` pins the
   path against `model::PACMAN_ROOT` and the refused → cleared → exec'd order.
+- **`pacman-key --init` repairs a keyring without deleting one** (read from
+  `/usr/bin/pacman-key` on pacman 7.1): `initialize()` creates only what is
+  missing — the directory, `pubring.gpg`, `secring.gpg`, `trustdb.gpg`, its
+  `gpg.conf`/`gpg-agent.conf` — `chmod`s the rings to 644/600, and generates the
+  master signing key only when the keyring has none. It removes nothing and
+  never refuses an already-initialized keyring, so running it twice costs
+  nothing. `--populate` then `gpg --import`s every
+  `/usr/share/pacman/keyrings/*.gpg` and locally signs the keys those packages'
+  `-trusted` files name: no keyserver is contacted, so the whole repair works
+  offline. **And it needs a secret key to sign with** — `(( ! INIT )) &&
+  check_keyring` means a bare `--populate` on a keyring with no secret key exits
+  with "There is no secret key available to sign with" — which is why the
+  helper runs `--init` first and never one stage alone. pacman-key itself is a
+  bash script with an absolute `#!/usr/bin/bash` shebang that finds `gpg`, `awk`
+  and `pacman-conf` through `PATH`: the absolute-path, `env_clear`'d exec is what
+  makes running *a script* as root safe here.
 - **An alpm hook `Depends` value is stored verbatim** (pacman `hook.c` does no
   word splitting): one dependency per line, or the hook never runs.
 - `filesystem` owns `/etc/polkit-1/rules.d` at **750**; `install -D` records a
@@ -345,8 +361,9 @@ run (`cargo test -- --ignored`). Re-verify when that release moves.
 (`{refresh|install|install-asdeps|remove|upgrade|file|file-asdeps}` →
 `stdbuf -oL pacman -Sy|-S|-S --asdeps|-Rns|-Syu|-U|-U --asdeps`, all `--noconfirm` —
 the stdbuf is what makes the output arrive during the download, not after it —
-plus the two verbs that run no pacman, `update-mirrors` (reflector) and
-`firmware-update` (fwupdmgr), described below), the `aelum-snapshot-restore`
+plus the three verbs that run no pacman, `update-mirrors` (reflector),
+`firmware-update` (fwupdmgr) and `fix-keyring` (pacman-key), described
+below), the `aelum-snapshot-restore`
 shape. The helper is the crate's second binary
 (`src/bin/`), not a script, and that is load-bearing: pkexec hands the
 program it runs as root the **caller's** environment, and a shell script
@@ -362,8 +379,8 @@ package's scriptlets. Every verb first drops a leftover
 a killed transaction — closing the app mid-sync does exactly that — would
 otherwise leave every later transaction failing with "unable to lock
 database", and the log says which of the two happened.
-`update-mirrors` is the one verb that runs no pacman, and it is dispatched
-before that lock work: reflector fetches the mirror-status JSON and writes
+`update-mirrors` is the first verb dispatched before that lock work: reflector
+fetches the mirror-status JSON and writes
 the mirror list, it never opens a database, so it neither takes `db.lck` nor
 needs a leftover cleared. It runs `/usr/bin/reflector --latest 20 --protocol
 https [--country xx] --sort rate --save <mirrorlist>.aelum-tmp` in the same
@@ -380,7 +397,7 @@ refused like an unknown verb, because it would read as a reflector option.
 reflector is not part of an Aelum install, so the dialog's Update press puts
 `install reflector` through this same action first, and says so above the
 buttons before the press, never after.
-`firmware-update` is the other verb dispatched before the lock work: it execs
+`firmware-update` is another verb dispatched before the lock work: it execs
 `/usr/bin/stdbuf -oL /usr/bin/fwupdmgr update --assume-yes` in the same
 env-cleared environment and takes no argument (see the fwupd facts — the daemon
 answers for which devices take an update, and an id on argv could only mean a
@@ -388,6 +405,15 @@ write the confirmation never named). It is the one action still standing between
 a person and the policy because the fwupd daemon treats uid 0 as always trusted:
 run as the user, the update would wait on fwupd's own polkit agent — a desktop
 service this app must not assume — and root needs none.
+`fix-keyring` is the third verb dispatched before the lock work, and the second
+that cannot exec: it runs `/usr/bin/stdbuf -oL /usr/bin/pacman-key --init`,
+waits, and only then execs the same program under `--populate`. It takes no
+argument either — pacman-key's stages are the helper's to name, and one on argv
+could only mean a keyring operation the confirmation never named. The order is
+not free: `--populate` refuses to run on a keyring that holds no secret key, and
+`--init` is what creates one (see the pacman-key facts). The menu's answer to an
+unknown signing key or an unreadable `/etc/pacman.d/gnupg`, it opens no pacman
+database, so it neither takes `db.lck` nor needs a leftover cleared.
 An AUR install is one request of several
 steps — `install-asdeps` (repository dependencies, makepkg's marking), the
 build as the user, `file-asdeps` (the built dependencies' archives), `file`
@@ -604,9 +630,17 @@ environment allowlist: invariants, not unit tests of a string.
   and silently answer the virtual forever after), then the requested names
   Explicit — one job, one log (`txn::run_all`). A single candidate or an
   already-installed provider is never asked about — pacman would not ask either.
-- **The "⋯" menu holds the app-level acts** — Update mirrors, About, Exit —
+- **The "⋯" menu holds the app-level acts** — Update mirrors, Repair signing
+  keys, About, Exit —
   and they are `app.` actions because the manager's window is one-shot while
-  the acts outlive it. About is the stock `AdwAboutDialog` (the icon button's
+  the acts outlive it. The two repairs come first: both fix how pacman reaches
+  its own data (where packages come from, and what their signatures are checked
+  against), and a system that cannot sync needs one of them before anything
+  else on the menu can work. Repair signing keys is the cheap shape of the same
+  rule the transactions hold — one `dialog::confirm` naming the act, then the
+  ordinary log dialog through the one polkit action; it is not destructive, so
+  the button is suggested rather than destructive, and it takes no page because
+  it has no list to show first. About is the stock `AdwAboutDialog` (the icon button's
   old job); its entry reuses `about.label`, and it parents to the open window
   because only the menu reaches it, and the menu lives in that window.
   Update mirrors asks its one question over the installer's

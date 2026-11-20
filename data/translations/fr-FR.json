@@ -17,6 +17,7 @@
   "action.cancel": "Annuler",
   "action.close": "Fermer",
   "action.extract": "Extraire",
+  "action.repair": "Réparer",
   "status.reading": "Lecture des bases de données de paquets…",
   "status.refreshing": "Mise à jour des bases de données en cours, veuillez patienter…",
   "rows.noMatches": "Aucune correspondance",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "Installation de {file}…",
   "txn.summaryBuild": "Compilation de {name} depuis l'AUR…",
   "txn.summaryFirmware": "Mises à jour de micrologiciel",
+  "txn.summaryKeyring": "Réparation des clés de signature…",
   "toast.busy": "Une autre opération est déjà en cours.",
   "toast.noHelper": "Les opérations sur les paquets nécessitent un aelum-package-installer installé ({helper} est manquant).",
   "toast.dbErrors": "Impossible de lire {count} base(s) de données de paquets : {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "Installation des paquets compilés…",
   "phase.cleanup": "Suppression des dépendances de compilation…",
   "phase.firmware": "Écriture du micrologiciel…",
+  "phase.keyring": "Reconstruction des clés de signature…",
   "chooser.title": "Choisir un fournisseur",
   "chooser.body": "Ces paquets exigent de choisir un fournisseur. Choisissez quel paquet répond à chaque exigence — le premier est celui qui serait installé par défaut.",
   "action.exit": "Quitter",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "reflector sera installé d’abord : ce programme classe les miroirs par vitesse.",
   "mirrors.running": "Mise à jour des miroirs…",
   "mirrors.done": "La liste des miroirs a été mise à jour.",
-  "mirrors.failed": "Impossible de mettre à jour les miroirs."
+  "mirrors.failed": "Impossible de mettre à jour les miroirs.",
+  "keyring.menu": "Réparer les clés de signature",
+  "keyring.title": "Réparer les clés de signature ?",
+  "keyring.body": "Chaque paquet installé par ce système est vérifié contre ces clés. Les clés sont reconstruites à partir des fichiers de clés déjà présents sur cette machine. Aucun paquet n'est ajouté ni supprimé."
 }

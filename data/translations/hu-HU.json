@@ -17,6 +17,7 @@
   "action.cancel": "Mégse",
   "action.close": "Bezárás",
   "action.extract": "Kibontás",
+  "action.repair": "Javítás",
   "status.reading": "Csomag-adatbázisok beolvasása…",
   "status.refreshing": "Az adatbázisok frissítése folyamatban van, kérem várjon…",
   "rows.noMatches": "Nincs találat",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "{file} telepítése…",
   "txn.summaryBuild": "{name} fordítása az AUR-ból…",
   "txn.summaryFirmware": "Firmware-frissítések",
+  "txn.summaryKeyring": "Aláíró kulcsok javítása…",
   "toast.busy": "Már fut egy másik művelet.",
   "toast.noHelper": "A csomagműveletekhez a telepített aelum-package-installer szükséges (hiányzik: {helper}).",
   "toast.dbErrors": "{count} csomag-adatbázis nem olvasható: {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "A lefordított csomagok telepítése…",
   "phase.cleanup": "A fordítási függőségek eltávolítása…",
   "phase.firmware": "Firmware írása…",
+  "phase.keyring": "Aláíró kulcsok újraépítése…",
   "chooser.title": "Válasszon szolgáltatót",
   "chooser.body": "Ezekhez a csomagokhoz szolgáltatóválasztás szükséges. Válassza ki, melyik csomag teljesíti minden követelményt — az első lenne alapértelmezésben telepítve.",
   "action.exit": "Kilépés",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "Először a reflector kerül telepítésre – ez a program rendezi a tükröket sebesség szerint.",
   "mirrors.running": "Tükrök frissítése…",
   "mirrors.done": "A tükörlista frissült.",
-  "mirrors.failed": "Nem sikerült frissíteni a tükröket."
+  "mirrors.failed": "Nem sikerült frissíteni a tükröket.",
+  "keyring.menu": "Az aláíró kulcsok javítása",
+  "keyring.title": "Javítja az aláíró kulcsokat?",
+  "keyring.body": "A rendszer által telepített minden csomag e kulcsok ellenőrzésén esik át. A kulcsok a gépen már megtalálható kulcsfájlokból épülnek újra. Egy csomag sem kerül hozzáadásra vagy eltávolításra."
 }

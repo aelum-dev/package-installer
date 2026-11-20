@@ -17,6 +17,7 @@
   "action.cancel": "取消",
   "action.close": "关闭",
   "action.extract": "解压",
+  "action.repair": "修复",
   "status.reading": "正在读取软件包数据库…",
   "status.refreshing": "数据库正在刷新，请稍候…",
   "rows.noMatches": "没有匹配的项",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "正在安装 {file}…",
   "txn.summaryBuild": "正在从 AUR 构建 {name}…",
   "txn.summaryFirmware": "固件更新",
+  "txn.summaryKeyring": "正在修复签名密钥…",
   "toast.busy": "已有另一个操作正在运行。",
   "toast.noHelper": "软件包操作需要已安装的 aelum-package-installer（缺少 {helper}）。",
   "toast.dbErrors": "无法读取 {count} 个软件包数据库：{errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "正在安装构建的软件包…",
   "phase.cleanup": "正在移除构建时依赖…",
   "phase.firmware": "正在写入固件…",
+  "phase.keyring": "正在重新生成签名密钥…",
   "chooser.title": "选择提供者",
   "chooser.body": "这些软件包需要选择提供者。请选择满足每项要求的软件包 — 第一个是默认会安装的。",
   "action.exit": "退出",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "将首先安装 reflector——按速度对镜像源排序的程序。",
   "mirrors.running": "正在更新镜像源…",
   "mirrors.done": "镜像源列表已更新。",
-  "mirrors.failed": "无法更新镜像源。"
+  "mirrors.failed": "无法更新镜像源。",
+  "keyring.menu": "修复签名密钥",
+  "keyring.title": "要修复签名密钥吗?",
+  "keyring.body": "此系统安装的每个软件包都会根据这些密钥进行校验。密钥将由这台计算机上已有的密钥文件重新生成。不会添加或移除任何软件包。"
 }

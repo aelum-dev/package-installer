@@ -422,6 +422,28 @@ impl Ui {
         super::mirrors::show(self);
     }
 
+    /// The "⋯" menu's keyring repair. pacman checks every package's signature
+    /// against the keys under `/etc/pacman.d/gnupg`, and on a system that has
+    /// not been updated in months they can be too old for what the mirrors
+    /// sign now — or that directory can have been left unreadable by a
+    /// transaction that died. Both end as "invalid or corrupted package (PGP
+    /// signature)", and neither is a package problem, so the act is offered
+    /// beside the mirror repair rather than as an install. It asks first: the
+    /// run is root's, and `--init` generates a signing key when the keyring
+    /// holds none.
+    pub fn fix_keyring(&self) {
+        let ui = self.clone();
+        super::dialog::confirm(
+            self,
+            &i18n::t("keyring.title"),
+            &i18n::t("keyring.body"),
+            &[],
+            &i18n::t("action.repair"),
+            false,
+            move || ui.start_txn(Txn::FixKeyring),
+        );
+    }
+
     /// The "⋯" menu's About: `AdwAboutDialog` is the GNOME-standard one —
     /// it draws itself from these fields, follows the theme, and closes on
     /// Escape. The version is the crate's — `bump-version.sh` moves it and

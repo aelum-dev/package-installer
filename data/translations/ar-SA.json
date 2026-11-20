@@ -17,6 +17,7 @@
   "action.cancel": "إلغاء",
   "action.close": "إغلاق",
   "action.extract": "استخراج",
+  "action.repair": "إصلاح",
   "status.reading": "قراءة قواعد بيانات الحزم…",
   "status.refreshing": "تحديث قواعد البيانات قيد التقدم، يرجى الانتظار…",
   "rows.noMatches": "لا توجد نتائج مطابقة",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "تثبيت {file}…",
   "txn.summaryBuild": "جارٍ بناء {name} من AUR…",
   "txn.summaryFirmware": "تحديثات البرنامج الثابت",
+  "txn.summaryKeyring": "جارٍ إصلاح مفاتيح التوقيع…",
   "toast.busy": "تجري عملية أخرى بالفعل.",
   "toast.noHelper": "تتطلب عمليات الحزم وجود aelum-package-installer مثبَّتًا ({helper} مفقود).",
   "toast.dbErrors": "تعذّرت قراءة {count} من قواعد بيانات الحزم: {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "تثبيت الحزم المبنية…",
   "phase.cleanup": "إزالة اعتماديات وقت البناء…",
   "phase.firmware": "جارٍ كتابة البرنامج الثابت…",
+  "phase.keyring": "جارٍ إعادة بناء مفاتيح التوقيع…",
   "chooser.title": "اختيار مزوّد",
   "chooser.body": "تحتاج هذه الحزم إلى اختيار مزوّد. اختر الحزمة التي تلبي كل متطلب — الأولى هي ما سيُثبَّت افتراضيًا.",
   "action.exit": "خروج",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "سيُثبَّت reflector أولًا: البرنامج الذي يرتّب المرايا حسب السرعة.",
   "mirrors.running": "جارٍ تحديث المرايا…",
   "mirrors.done": "تم تحديث قائمة المرايا.",
-  "mirrors.failed": "تعذّر تحديث المرايا."
+  "mirrors.failed": "تعذّر تحديث المرايا.",
+  "keyring.menu": "إصلاح مفاتيح التوقيع",
+  "keyring.title": "هل تريد إصلاح مفاتيح التوقيع؟",
+  "keyring.body": "يتم التحقق من كل حزمة يثبّتها هذا النظام مقابل هذه المفاتيح. تُعاد بناء المفاتيح من ملفات المفاتيح الموجودة على هذا الجهاز بالفعل. لا تُضاف أي حزمة ولا تُحذف."
 }

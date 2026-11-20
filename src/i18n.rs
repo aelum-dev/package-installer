@@ -360,6 +360,7 @@ mod tests {
             "action.cancel",
             "action.close",
             "action.exit",
+            "action.repair",
             "status.reading",
             "status.refreshing",
             "rows.noMatches",
@@ -438,6 +439,8 @@ mod tests {
             "txn.summaryUpgrade",
             "txn.summaryFile",
             "txn.summaryBuild",
+            "txn.summaryKeyring",
+            "phase.keyring",
             "toast.busy",
             "toast.noHelper",
             "toast.dbErrors",
@@ -455,6 +458,9 @@ mod tests {
             "mirrors.running",
             "mirrors.done",
             "mirrors.failed",
+            "keyring.menu",
+            "keyring.title",
+            "keyring.body",
         ] {
             assert!(english.contains_key(key), "en-US.json is missing {key}");
         }

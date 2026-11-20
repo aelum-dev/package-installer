@@ -17,6 +17,7 @@
   "action.cancel": "Cancel",
   "action.close": "Close",
   "action.extract": "Extract",
+  "action.repair": "Repair",
   "status.reading": "Reading package databases…",
   "status.refreshing": "Databases refresh in progress, please wait…",
   "rows.noMatches": "No matches",
@@ -122,6 +123,7 @@
   "txn.summaryFile": "Installing {file}…",
   "txn.summaryBuild": "Building {name} from the AUR…",
   "txn.summaryFirmware": "Firmware updates",
+  "txn.summaryKeyring": "Repairing the signing keys…",
   "toast.busy": "Another operation is already running.",
   "toast.noHelper": "Package operations need the installed aelum-package-installer ({helper} is missing).",
   "toast.dbErrors": "Could not read {count} package database(s): {errors}",
@@ -147,6 +149,7 @@
   "phase.installBuilt": "Installing the built packages…",
   "phase.cleanup": "Removing build-time dependencies…",
   "phase.firmware": "Writing firmware…",
+  "phase.keyring": "Rebuilding the signing keys…",
   "chooser.title": "Choose a provider",
   "chooser.body": "These packages need a provider chosen. Pick which package answers each requirement — the first one is what would be installed by default.",
   "action.exit": "Exit",
@@ -157,5 +160,8 @@
   "mirrors.willInstall": "This installs reflector first — the program that ranks mirrors by speed.",
   "mirrors.running": "Updating mirrors…",
   "mirrors.done": "Mirror list updated.",
-  "mirrors.failed": "Could not update the mirrors."
+  "mirrors.failed": "Could not update the mirrors.",
+  "keyring.menu": "Repair signing keys",
+  "keyring.title": "Repair the signing keys?",
+  "keyring.body": "Every package this system installs is checked against these keys. The keys are rebuilt from the key files already on this machine. No package is added or removed."
 }
