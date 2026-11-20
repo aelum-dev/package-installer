@@ -33,6 +33,13 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.8.1" date="2026-11-20">
+      <description>
+        <ul>
+          <li>New app and package-file icons: the artwork now fills the icon, and the ground shadow is gone.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.8.0" date="2026-11-20">
       <description>
         <ul>
