@@ -163,5 +163,5 @@
   "mirrors.failed": "Peilien päivitys ei onnistunut.",
   "keyring.menu": "Korjaa allekirjoitusavaimet",
   "keyring.title": "Korjataanko allekirjoitusavaimet?",
-  "keyring.body": "Järjestelmän asentama joka paketti tarkistetaan näillä avaimilla. Avaimet rakennetaan uudelleen koneella jo olevista avaintiedostoista. Yhtään pakettia ei lisätä eikä poisteta."
+  "keyring.body": "Jokainen järjestelmän asentama paketti tarkistetaan näillä avaimilla. Avaimet rakennetaan uudelleen koneella jo olevista avaintiedostoista. Yhtään pakettia ei lisätä eikä poisteta."
 }

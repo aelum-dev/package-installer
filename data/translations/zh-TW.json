@@ -162,6 +162,6 @@
   "mirrors.done": "鏡像源清單已更新。",
   "mirrors.failed": "無法更新鏡像源。",
   "keyring.menu": "修復簽章金鑰",
-  "keyring.title": "要修復簽章金鑰嗎?",
+  "keyring.title": "要修復簽章金鑰嗎？",
   "keyring.body": "此系統安裝的每個軟體包都會依據這些金鑰驗證。金鑰會由這台電腦上既有的金鑰檔案重建。不會新增或移除任何軟體包。"
 }

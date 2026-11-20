@@ -149,7 +149,7 @@
   "phase.installBuilt": "Installerer de bygde pakkene…",
   "phase.cleanup": "Fjerner byggeavhengigheter…",
   "phase.firmware": "Skriver fastvaren…",
-  "phase.keyring": "Bygger på nytt signeringsnøklene…",
+  "phase.keyring": "Bygger signeringsnøklene på nytt…",
   "chooser.title": "Velg en leverandør",
   "chooser.body": "Disse pakkene krever at du velger en leverandør. Velg hvilken pakke som dekker hvert krav — den første ville blitt installert som standard.",
   "action.exit": "Avslutt",

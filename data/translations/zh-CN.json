@@ -162,6 +162,6 @@
   "mirrors.done": "镜像源列表已更新。",
   "mirrors.failed": "无法更新镜像源。",
   "keyring.menu": "修复签名密钥",
-  "keyring.title": "要修复签名密钥吗?",
+  "keyring.title": "要修复签名密钥吗？",
   "keyring.body": "此系统安装的每个软件包都会根据这些密钥进行校验。密钥将由这台计算机上已有的密钥文件重新生成。不会添加或移除任何软件包。"
 }
