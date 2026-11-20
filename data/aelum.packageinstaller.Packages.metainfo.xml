@@ -33,6 +33,13 @@
     <binary>package-installer</binary>
   </provides>
   <releases>
+    <release version="0.8.0" date="2026-11-20">
+      <description>
+        <ul>
+          <li>New "Repair signing keys" action in the ⋯ menu: the pacman signing keys are rebuilt from the key files already on this machine, with no network access and no package added or removed</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.7.0" date="2026-11-18">
       <description>
         <ul>
